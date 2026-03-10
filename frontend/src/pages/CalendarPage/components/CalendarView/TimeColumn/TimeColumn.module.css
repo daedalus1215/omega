@@ -1,0 +1,65 @@
+.timeColumn {
+  min-width: 100px;
+  background-color: var(--color-card-bg, #1e1e1e);
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  height: 1500px; /* 60px header + 1440px content (24 hours * 60px) */
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .timeColumn {
+    min-width: 50px;
+    height: 1495px; /* 55px header + 1440px content (24 hours * 60px) */
+  }
+}
+
+.timeColumn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 1px;
+  background-color: var(--color-border, #333);
+  pointer-events: none;
+}
+
+.timeSlotHeader {
+  height: 60px;
+  border-bottom: 1px solid var(--color-border, #333);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background-color: var(--color-card-bg, #1e1e1e);
+}
+
+@media (max-width: 600px) {
+  .timeSlotHeader {
+    height: 55px;
+  }
+}
+
+.timeSlot {
+  height: 60px;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #999);
+  border-bottom: 1px solid var(--color-border, #333);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  background-color: var(--color-card-bg, #1e1e1e);
+}
+
+@media (max-width: 600px) {
+  .timeSlot {
+    padding: 0.25rem;
+    font-size: 0.625rem;
+    justify-content: center;
+  }
+}

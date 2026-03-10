@@ -1,0 +1,60 @@
+.formControl {
+  min-width: 100px;
+}
+
+.select {
+  background-color: var(--color-card-bg-secondary, #2a2a2a);
+  color: var(--color-text, #fff);
+  border-radius: 4px;
+}
+
+.select :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: var(--color-border, #333);
+}
+
+.select:hover :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: var(--color-border-hover, #444);
+}
+
+.select :global(.MuiSelect-icon) {
+  color: var(--color-text-secondary, #888);
+}
+
+.menuPaper {
+  background-color: var(--color-card-bg, #1e1e1e) !important;
+  border: 1px solid var(--color-border, #333);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.menuItem {
+  color: var(--color-text, #fff);
+  font-size: 0.875rem;
+  padding: 8px 16px;
+}
+
+.menuItem:hover {
+  background-color: var(--color-hover, rgba(99, 102, 241, 0.1)) !important;
+}
+
+.menuItem:global(.Mui-selected) {
+  background-color: var(--color-primary-light, rgba(99, 102, 241, 0.2)) !important;
+  color: var(--color-primary, #6366f1);
+}
+
+.menuItem:global(.Mui-disabled) {
+  color: var(--color-text-disabled, #666);
+  opacity: 0.5;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .formControl {
+    min-width: 80px;
+  }
+
+  .menuItem {
+    font-size: 0.8125rem;
+    padding: 6px 12px;
+  }
+}

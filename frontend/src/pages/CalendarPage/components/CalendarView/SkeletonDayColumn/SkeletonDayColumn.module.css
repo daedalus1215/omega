@@ -1,0 +1,79 @@
+.skeletonDayColumn {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 1500px; /* 60px header + 1440px content */
+  flex-shrink: 0;
+  opacity: 0.6;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@media (max-width: 600px) {
+  .skeletonDayColumn {
+    min-width: 100px;
+    height: 1495px; /* 55px header + 1440px content */
+  }
+}
+
+.skeletonDayColumn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 1px;
+  background-color: var(--color-border, #333);
+  pointer-events: none;
+}
+
+.skeletonHeader {
+  height: 60px;
+  min-height: 60px;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border, #333);
+  background-color: var(--color-card-bg, #1e1e1e);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+@media (max-width: 600px) {
+  .skeletonHeader {
+    padding: 0.5rem 0.5rem;
+    height: 55px;
+    min-height: 55px;
+    gap: 0.125rem;
+  }
+}
+
+.skeletonContent {
+  display: flex;
+  flex-direction: column;
+  height: 1440px; /* 24 hours * 60px per hour */
+  flex-shrink: 0;
+  position: relative;
+}
+
+.skeletonSlot {
+  height: 60px;
+  min-height: 60px;
+  border-bottom: 1px solid var(--color-border, #333);
+  position: relative;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}

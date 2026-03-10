@@ -1,0 +1,51 @@
+.calendarPage {
+  height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  padding: 0.5rem;
+  width: calc(100vw - 85px); /* Sidebar width */
+  box-sizing: border-box;
+}
+
+.errorMessage {
+  padding: 2rem;
+  color: var(--color-error, #f44336);
+  text-align: center;
+}
+
+.calendarContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.calendarContent > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1200px) {
+  .calendarPage {
+    width: 100vw;
+  }
+}
+
+@media (max-width: 768px) {
+  .calendarPage {
+    padding: 0.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .calendarPage {
+    padding: 0.25rem;
+  }
+}

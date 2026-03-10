@@ -1,0 +1,89 @@
+.sidebar {
+  background-color: var(--color-bg-paper);
+  color: var(--color-text);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-behavior: none;
+  margin-top: 6em;
+}
+
+.header {
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--color-overlay-stronger);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) invert(1);
+}
+
+.name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.nav {
+  flex: 1;
+  padding: 0;
+}
+
+.navItem {
+  padding: 0.5rem 0.75rem !important;
+  margin: 0.25rem 0 !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.navItem:hover {
+  background-color: var(--color-overlay-stronger) !important;
+}
+
+.navItem.active {
+  background-color: var(--color-overlay-stronger) !important;
+}
+
+.navIcon {
+  min-width: 40px !important;
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.navItem:hover .navIcon,
+.navItem.active .navIcon {
+  opacity: 1;
+  color: var(--color-text);
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  background: var(--color-overlay-light);
+  z-index: 2;
+  transition: background-color 0.2s ease;
+}
+
+.resizeHandle:hover,
+.resizeHandle:focus {
+  background: var(--color-overlay-strong);
+  outline: none;
+}

@@ -1,0 +1,88 @@
+.dayView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background-color: var(--color-card-bg, #1e1e1e);
+  border-radius: 8px;
+  gap: 0.5rem;
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.dateTitle {
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.todayBadge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background-color: var(--color-primary, #6366f1);
+  color: white;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.calendarGrid {
+  display: flex;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid var(--color-border, #333);
+  border-radius: 8px;
+  background-color: var(--color-card-bg, #1e1e1e);
+  min-height: 0;
+  position: relative;
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+}
+
+.calendarGrid:active {
+  cursor: grabbing;
+}
+
+.dayColumnContainer {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .header {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .dateTitle {
+    font-size: 0.875rem;
+  }
+
+  .dayView {
+    margin-top: -58px;
+  }
+
+  .calendarGrid {
+    border-radius: 4px;
+  }
+}

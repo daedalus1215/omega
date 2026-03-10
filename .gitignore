@@ -43,6 +43,7 @@ backend/*.sln
 backend/.env
 backend/*.sw?
 backend/.env.development
+backend/db.sqlite
 
 node_modules
 

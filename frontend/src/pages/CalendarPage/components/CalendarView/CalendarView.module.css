@@ -1,0 +1,79 @@
+.calendarView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  min-height: 0;
+  position: relative; /* For loading overlay positioning */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background-color: var(--color-card-bg, #1e1e1e);
+  border-radius: 8px;
+  gap: 0.5rem;
+}
+
+.weekTitle {
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .header {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .weekTitle {
+    font-size: 0.875rem;
+  }
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.calendarGrid {
+  display: flex;
+  flex: 1;
+  margin-top: 48px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid var(--color-border, #333);
+  border-radius: 8px;
+  background-color: var(--color-card-bg, #1e1e1e);
+  min-height: 0;
+  /* min-width: fit-content; */
+  position: relative;
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+  /* Note: scroll-behavior is NOT set here so programmatic scroll adjustments
+     happen instantly. Use behavior: 'smooth' in JS when smooth scroll is desired */
+}
+
+@media (max-width: 600px) {
+  .calendarView {
+    margin-top: -48px;
+  }
+  .calendarGrid {
+    border-radius: 4px;
+  }
+}
+
+/* Virtualized container for day columns */
+.virtualizedContainer {
+  position: relative;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* Time column styles moved to TimeColumn component */
