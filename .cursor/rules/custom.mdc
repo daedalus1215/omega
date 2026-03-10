@@ -1,0 +1,174 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+### Class Structure
+```typescript
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { DtoName } from "src/{module}/apps/dtos/requests/dto-name.dto";
+import { ResponseDtoName } from "src/{module}/apps/dtos/responses/response-dto-name.dto";
+import { EntityName } from "src/{module}/domain/entities/entity-name.entity";
+import { RepositoryName } from "src/{module}/infra/repositories/repository-name.repository";
+
+@Injectable()
+export class ActionNameTransactionScript {
+  constructor(private readonly repositoryName: RepositoryName) {}
+
+  async apply(dto: DtoName): Promise<ResponseDtoName> {
+    // Implementation logic here
+  }
+}
+```
+
+## Naming Conventions
+
+### Class Names
+- End with `TransactionScript`
+- Use PascalCase
+- Examples: `CreateNoteTransactionScript`, `UpdateNoteTransactionScript`
+
+### Method Names
+- Main method should be named `apply`
+- Private helper methods should be descriptive and use camelCase
+
+### Parameters
+- Primary method should accept a DTO object
+- Include `userId` for authorization when needed
+- Return appropriate response DTOs
+
+## Import Patterns
+
+### Standard Imports
+```typescript
+import { Injectable, NotFoundException } from "@nestjs/common";
+```
+
+### DTO Imports
+```typescript
+import { RequestDtoName } from "src/{module}/apps/dtos/requests/request-dto-name.dto";
+import { ResponseDtoName } from "src/{module}/apps/dtos/responses/response-dto-name.dto";
+```
+
+### Domain Imports
+```typescript
+import { EntityName } from "src/{module}/domain/entities/entity-name.entity";
+```
+
+### Infrastructure Imports
+```typescript
+import { RepositoryName } from "src/{module}/infra/repositories/repository-name.repository";
+```
+
+## Error Handling
+
+### Standard Error Pattern
+```typescript
+if (!entity) {
+  throw new NotFoundException("Entity not found");
+}
+```
+
+### Custom Error Messages
+- Use descriptive error messages
+- Include context when helpful
+- Follow consistent error message format
+
+## Examples
+
+### Simple Create Pattern
+```typescript
+@Injectable()
+export class CreateEntityTransactionScript {
+  constructor(private readonly entityRepository: EntityRepository) {}
+
+  async apply(dto: CreateEntityDto): Promise<EntityResponseDto> {
+    const entity = new Entity();
+    entity.name = dto.name;
+    entity.userId = dto.userId;
+    
+    const savedEntity = await this.entityRepository.save(entity);
+    return new EntityResponseDto(savedEntity);
+  }
+}
+```
+
+### Complex Update Pattern
+```typescript
+@Injectable()
+export class UpdateEntityTransactionScript {
+  constructor(
+    private readonly entityRepository: EntityRepository,
+    private readonly converter: DtoToEntityConverter
+  ) {}
+
+  async apply(id: number, dto: UpdateEntityDto, userId: string): Promise<EntityResponseDto> {
+    const entity = await this.entityRepository.findById(id, userId);
+
+    if (!entity) {
+      throw new NotFoundException("Entity not found");
+    }
+
+    const updatedEntity = this.converter.apply(dto, entity);
+    const savedEntity = await this.entityRepository.save(updatedEntity);
+    
+    return new EntityResponseDto(savedEntity);
+  }
+}
+```
+
+## Best Practices
+
+### Single Responsibility
+- Each transaction script should handle one specific business operation
+- Keep methods focused and concise
+
+### Error Handling
+- Always validate input data
+- Check for entity existence before updates
+- Use appropriate HTTP exceptions
+
+### Type Safety
+- Use proper TypeScript types
+- Avoid `any` type
+- Create specific DTOs for each operation
+
+### Testing
+- Place tests in `__specs__` folder next to the target file
+- Name test subjects as `target`
+- Follow Arrange-Act-Assert pattern
+
+### Dependency Injection
+- Inject repositories through constructor
+- Use `@Injectable()` decorator
+- Follow NestJS DI patterns
+
+## Common Patterns
+
+### Find or Create Pattern
+```typescript
+private async findOrCreateEntity(dto: CreateEntityDto): Promise<Entity> {
+  const existingEntity = await this.repository.findByName(dto.name);
+  if (existingEntity) return existingEntity;
+  
+  return await this.repository.create({ name: dto.name, userId: dto.userId });
+}
+```
+
+### Validation Pattern
+```typescript
+private validateEntity(entity: Entity, userId: string): void {
+  if (!entity) {
+    throw new NotFoundException("Entity not found");
+  }
+  
+  if (entity.userId !== userId) {
+    throw new ForbiddenException("Access denied");
+  }
+}
+```
+
+## File Organization
+
+### Directory Structure
