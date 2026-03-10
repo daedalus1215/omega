@@ -1,0 +1,1050 @@
+---
+alwaysApply: true
+---
+# Architecture Patterns & Dependency Injection Rules
+
+## Overview
+
+This document defines the architectural patterns, dependency injection rules, and pattern glossary used throughout the codebase. We follow **Domain-Driven Design (DDD)** with **Layered Architecture** and **Hexagonal Architecture** principles.
+
+## Core Architectural Principles
+
+### Domain-Driven Design (DDD)
+
+We organize our codebase around **three types of subdomains**:
+
+1. **Core Subdomains** - Business-critical functionality that provides competitive advantage
+2. **Support Subdomains** - Supporting functionality that enables core business processes
+3. **Generic Subdomains** - Common functionality that can be shared across modules
+
+### Hexagonal Architecture (Ports & Adapters)
+
+We implement hexagonal architecture to ensure:
+
+-   **Domain logic is isolated** from external concerns
+-   **Dependencies point inward** toward the domain
+-   **External systems are abstracted** through ports and adapters
+-   **Testability** through dependency inversion
+
+### Layered Architecture
+
+Our architecture follows a layered approach with clear boundaries:
+
+-   **Application Layer**: Controllers, DTOs, and request/response handling
+-   **Domain Layer**: Services, Transaction Scripts, Aggregators, Entities, Converters, Assemblers, Mappers
+-   **Infrastructure Layer**: Repositories, external service adapters
+
+Each module follows a consistent structure that reflects our architectural layers:
+
+```
+src/
+├── {module-name}/
+│   ├── application/
+│   │   ├── controllers/
+│   │   │   ├── actions/
+│   │   │   │   └── {action-name}/
+│   │   │   │       ├── {action-name}.action.ts
+│   │   │   │       ├── {action-name}.swagger.ts
+│   │   │   │       └── {action-name}.responder.ts
+│   │   │   └── {module}.controller.ts
+│   │   └── dtos/
+│   │       ├── requests/
+│   │       │   └── {dto-name}.dto.ts
+│   │       └── responses/
+│   │           └── {dto-name}.dto.ts
+│   ├── domain/
+│   │   ├── services/
+│   │   │   └── {service-name}.service.ts
+│   │   ├── transaction-scripts/
+│   │   │   └── {transaction-name}-ts/
+│   │   │       ├── {transaction-name}.transaction.script.ts
+│   │   │       ├── {transaction-name}.param.ts
+│   │   │       └── __specs__/
+│   │   │           └── {transaction-name}.transaction.script.spec.ts
+│   │   ├── entities/
+│   │   ├── exceptions/
+│   │   ├── converters/
+│   │   └── aggregators/
+│   ├── infrastructure/
+│   │   └── repositories/
+│   │       ├── {repository-name}.repository.ts
+│   │       └── __specs__/
+│   │           └── {repository-name}.repository.spec.ts
+│   ├── registries/
+│   │   ├── action.registry.ts
+│   │   ├── repository.registry.ts
+│   │   └── transaction-script.registry.ts
+│   └── {module}.module.ts
+```
+
+## Pattern Glossary
+
+### Transaction Script
+
+**Purpose**: Encapsulates a single business transaction or use case.
+
+**Characteristics**:
+
+-   Single responsibility: handles one specific use case
+-   Uses parameter objects for input
+-   Independently testable
+-   Naming convention: `{action-name}.transaction.script.ts`
+-   Located in: `{domain}/domain/transaction-scripts/{transaction-name}-ts/`
+-   Object Orientated Paradigm: When designing our classes and objects, we follow SOLID principles: Single Responsibility Principle, Open Closed Principle, Liskov's substitution Principle, Interface Segregation Principle, Dependency Inversion Principle.
+-   Functional Paradigm: We design our classes/methods/functions with an adherence to not mutating variables (use const), use maps over loops, don't declare variables unless they are being used more than once. When we do this, we can look at running code concurrently.
+-   Structured Paradigm: We have a top down hierarchy of patterns, we store classes as close to the consumers as possible to follow Functional Cohesion as much as possible - but we do have some logical cohesion going on as well. Ultimately, we are striving for common closure principle: things that change together, live together.
+
+**Dependencies**:
+
+-   Can inject: Repositories, Mappers, Aggregators (via ports)
+-   Cannot inject: Domain Services (creates circular dependency)
+
+**Example**:
+
+```typescript
+// src/invoices/domain/transaction-scripts/create-invoice-TS/create-invoice.transaction.script.ts
+@Injectable()
+export class CreateInvoiceTransactionScript {
+  constructor(private readonly invoiceRepository: InvoiceRepository) {}
+
+  async execute(
+    dto: CreateInvoiceRequestDto,
+    issuerUserId: number,
+  ): Promise<Invoice> {
+    const issueDate = new Date();
+    issueDate.setHours(0, 0, 0, 0);
+
+    // Parse and validate due date is in the future
+    const dueDate = new Date(dto.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+
+    if (dueDate <= issueDate) {
+      throw new Error('Due date must be in the future');
+    }
+
+    // Validate debtor is different from issuer
+    if (dto.debtorUserId === issuerUserId) {
+      throw new Error('Cannot send invoice to yourself');
+    }
+
+    const invoice = await this.invoiceRepository.create({
+      issuerUserId,
+      debtorUserId: dto.debtorUserId,
+      total: dto.amount,
+      balanceDue: dto.amount, // Initially, balance due equals total
+      status: INVOICE_STATUS.SENT,
+      issueDate,
+      dueDate,
+      description: dto.description,
+    });
+
+    return invoice;
+  }
+}
+```
+
+### Domain Service
+
+**Purpose**: Orchestrates business logic and coordinates between transaction scripts and aggregators.
+
+**Characteristics**:
+
+-   High-level business rules and workflows
+-   Coordinates multiple transaction scripts
+-   Uses aggregators for cross-domain communication
+-   Located in: `{domain}/domain/services/{service-name}/`
+
+**Dependencies**:
+
+-   Can inject: Transaction Scripts, Aggregators (via ports), Repositories (for simple lookups)
+-   Cannot inject: Other Domain Services (creates tight coupling)
+
+**Example**:
+
+```typescript
+// src/invoices/domain/services/invoice.service.ts
+@Injectable()
+export class InvoiceService {
+  constructor(
+    private readonly createInvoiceTransactionScript: CreateInvoiceTransactionScript,
+    private readonly fetchInvoicesTransactionScript: FetchInvoicesTransactionScript,
+    private readonly getInvoiceByIdTransactionScript: GetInvoiceByIdTransactionScript,
+    private readonly updateInvoiceStatusTransactionScript: UpdateInvoiceStatusTransactionScript,
+    private readonly cancelInvoiceTransactionScript: CancelInvoiceTransactionScript,
+    private readonly paymentAggregator: PaymentAggregator,
+  ) {}
+
+  async createInvoice(
+    dto: CreateInvoiceRequestDto,
+    issuerUserId: number,
+  ): Promise<Invoice> {
+    return await this.createInvoiceTransactionScript.execute(dto, issuerUserId);
+  }
+
+  async cancelInvoice(
+    invoiceId: number,
+    issuerUserId: number,
+  ): Promise<Invoice> {
+    const invoice = await this.getInvoiceById(invoiceId);
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    if (invoice.issuerUserId !== issuerUserId) {
+      throw new Error('Unauthorized: Only the issuer can cancel this invoice');
+    }
+
+    const hasPayments = await this.paymentAggregator.hasPaymentApplications(
+      invoiceId,
+    );
+    if (hasPayments) {
+      throw new Error(
+        'Cannot cancel invoice: Invoice has existing payments applied to it',
+      );
+    }
+
+    return await this.cancelInvoiceTransactionScript.execute(invoiceId);
+  }
+}
+```
+
+### Converters
+
+**Purpose**: Transform data between different representations (e.g., Entity to DTO, DTO to Entity).
+
+**Characteristics**:
+
+-   Pure transformation logic
+-   No business logic
+-   Stateless operations
+-   Naming convention: `{source}-to-{target}.converter.ts`
+-   Located in: within transaction script folders or as high as high up as it's highest consumer, perhaps: `{domain}/domain/converters/`.
+
+**Note**: Converters are not currently used in this codebase. Responders (in the application layer) handle entity-to-DTO transformation instead.
+
+**Dependencies**:
+
+-   **Cannot inject**: Other Converters (use Assembler to orchestrate multiple converters)
+-   **Cannot inject**: Repositories (use Assemblers instead)
+-   **Cannot inject**: Transaction Scripts, Domain Services
+
+**Example** (conceptual - not currently in codebase):
+
+```typescript
+@Injectable()
+export class InvoiceToDtoConverter {
+	toDto(entity: Invoice): InvoiceDto {
+		return {
+			id: entity.id,
+			issuerUserId: entity.issuerUserId,
+			debtorUserId: entity.debtorUserId,
+			total: Number(entity.total),
+			balanceDue: Number(entity.balanceDue),
+			status: entity.status,
+			issueDate: entity.issueDate,
+			dueDate: entity.dueDate,
+			description: entity.description,
+		};
+	}
+}
+```
+
+### Assemblers
+
+**Purpose**: Combine multiple converters and repositories to assemble complex objects.
+
+**Characteristics**:
+
+-   Orchestrates converters and repositories
+-   Handles data assembly that requires repository access
+-   Located in: `{domain}/domain/transaction-scripts/{transaction-name}-ts/{assembler-name}/`
+-   Naming convention: `{purpose}.assembler.ts`
+
+**Note**: Assemblers are not currently used in this codebase. Transaction scripts and repositories handle data assembly directly.
+
+**Dependencies**:
+
+-   Can inject: Converters, Repositories (shallow - only for data retrieval, not business logic)
+-   Cannot inject: Transaction Scripts, Domain Services, Mappers, Assemblers
+
+**Example** (conceptual - not currently in codebase):
+
+```typescript
+@Injectable()
+export class InvoiceWithPaymentsAssembler {
+	constructor(
+		private readonly invoiceRepository: InvoiceRepository,
+		private readonly paymentApplicationRepository: PaymentApplicationRepository,
+	) {}
+
+	async assemble(invoiceId: number): Promise<InvoiceWithPayments> {
+		const invoice = await this.invoiceRepository.findById(invoiceId);
+		const payments = await this.paymentApplicationRepository.findByInvoiceId(invoiceId);
+		
+		return {
+			invoice,
+			payments,
+		};
+	}
+}
+```
+
+### Mappers
+
+**Purpose**: High-level mapping that coordinates assemblers, converters, and repositories to transform complex data structures.
+
+**Characteristics**:
+
+-   One layer above Assemblers
+-   Coordinates multiple assemblers and converters
+-   Handles complex transformation workflows
+-   Located in: `{domain}/domain/transaction-scripts/{transaction-name}-ts/{mapper-name}/`
+-   Naming convention: `{purpose}.mapper.ts`
+
+**Note**: Mappers are not currently used in this codebase. Transaction scripts handle mapping directly.
+
+**Dependencies**:
+
+-   Can inject: Assemblers, Converters, Repositories
+-   Cannot inject: Transaction Scripts, Domain Services
+-   Typically injected into: Transaction Scripts
+
+**Example** (conceptual - not currently in codebase):
+
+```typescript
+@Injectable()
+export class InvoicePaymentMapper {
+	constructor(
+		private readonly invoiceAssembler: InvoiceWithPaymentsAssembler,
+		private readonly invoiceConverter: InvoiceToDtoConverter,
+	) {}
+
+	async mapToPaymentDto(invoiceId: number): Promise<InvoicePaymentDto> {
+		const { invoice, payments } = await this.invoiceAssembler.assemble(invoiceId);
+		const invoiceDto = this.invoiceConverter.toDto(invoice);
+		
+		return {
+			invoice: invoiceDto,
+			payments: payments.map(p => ({ id: p.id, amount: p.appliedAmount })),
+		};
+	}
+}
+```
+
+### Repositories
+
+**Purpose**: Handle all database operations and data access.
+
+**Characteristics**:
+
+-   Data access layer
+-   TypeORM integration
+-   Query optimization
+-   Error handling for database operations
+-   Located in: `{domain}/infrastructure/repositories/`
+-   Naming convention: `{entity-name}.repository.ts`
+
+**Dependencies**:
+
+-   Can inject: TypeORM Repository, other Repositories (for related data)
+-   Cannot inject: Transaction Scripts, Domain Services, Converters, Assemblers, Mappers
+
+**Example**:
+
+```typescript
+// src/invoices/infra/repositories/invoice.repository.ts
+@Injectable()
+export class InvoiceRepository {
+  constructor(
+    @InjectRepository(Invoice)
+    private readonly repository: Repository<Invoice>,
+  ) {}
+
+  async findById(id: number): Promise<Invoice | null> {
+    return this.repository.findOne({ where: { id } });
+  }
+
+  async create(invoice: Partial<Invoice>): Promise<Invoice> {
+    const newInvoice = this.repository.create(invoice);
+    return this.repository.save(newInvoice);
+  }
+
+  async findByUserIdWithStatusFilter(
+    userId: number,
+    statuses?: InvoiceStatusType[],
+  ): Promise<Invoice[]> {
+    return this.repository.find({
+      where: [
+        {
+          issuerUserId: userId,
+          ...(statuses && statuses.length > 0 ? { status: In(statuses) } : {}),
+        },
+        {
+          debtorUserId: userId,
+          ...(statuses && statuses.length > 0 ? { status: In(statuses) } : {}),
+        },
+      ],
+      order: { dueDate: 'DESC' },
+    });
+  }
+}
+```
+
+### Entities
+
+**Purpose**: Represent domain objects and database tables.
+
+**Characteristics**:
+
+-   TypeORM entities
+-   Domain-specific business objects
+-   Located in: `{domain}/domain/entities/` or `shared/shared-entities/entities/`
+-   Naming convention: `{entity-name}.entity.ts`
+
+**Domain Boundaries**:
+
+-   Entities belong to their specific domain
+-   Shared entities live in `src/shared/shared-entities/entities/`
+-   Domain-specific entities live in `{module}/domain/entities/`
+-   **No cross-domain entity pollution**: Entities from one domain should not directly reference entities from another domain
+
+**Example**:
+
+```typescript
+// src/invoices/domain/entities/invoice.entity.ts
+@Entity({ name: 'invoices' })
+export class Invoice {
+  @PrimaryGeneratedColumn({ type: 'int' })
+  id: number;
+
+  @Column({ name: 'issuer_user_id', type: 'int' })
+  issuerUserId: number;
+
+  @Column({ name: 'debtor_user_id', type: 'int' })
+  debtorUserId: number;
+
+  @Column({ name: 'total', type: 'decimal', precision: 12, scale: 2 })
+  total: number;
+
+  @Column({ name: 'balance_due', type: 'decimal', precision: 12, scale: 2 })
+  balanceDue: number;
+
+  @Column({ name: 'status', type: 'varchar', length: 20 })
+  status: InvoiceStatusType;
+
+  @Column({ name: 'issue_date', type: 'date' })
+  issueDate: Date;
+
+  @Column({ name: 'due_date', type: 'date' })
+  dueDate: Date;
+
+  @Column({ name: 'description', type: 'varchar', nullable: true })
+  description?: string;
+}
+```
+
+### Data Transfer Objects (DTOs)
+
+**Purpose**: Transfer data between layers and across boundaries.
+
+**Types**:
+
+1. **Application DTOs** (Request/Response):
+
+    - Located in: `{domain}/application/dtos/requests/` and `{domain}/application/dtos/responses/`
+    - Used for: API request/response validation
+    - Validated with: class-validator
+    - Naming convention: `{purpose}.dto.ts`
+
+2. **Infrastructure DTOs**:
+    - Located in: `{domain}/infrastructure/dtos/requests/` and `{domain}/infrastructure/dtos/responses/`
+    - Used for: Internal data transfer between infrastructure components
+    - Example: Assembled DTOs for event dispatching
+
+**Example Application DTO**:
+
+```typescript
+// src/invoices/app/actions/create-invoice-action/create-invoice.request.dto.ts
+export class CreateInvoiceRequestDto {
+  @IsInt()
+  @IsPositive()
+  debtorUserId: number;
+
+  @IsNumber()
+  @IsPositive()
+  amount: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsDateString()
+  dueDate: string;
+}
+
+// src/invoices/app/actions/fetch-invoices-action/fetch-invoices.response.dto.ts
+export type FetchInvoicesResponseDto = {
+  invoices: InvoiceDto[];
+  success: boolean;
+};
+
+export type InvoiceDto = {
+  id: number;
+  issuerUserId: number;
+  debtorUserId: number;
+  total: number;
+  balanceDue: number;
+  status: string;
+  issueDate: Date;
+  dueDate: Date;
+  description?: string;
+};
+```
+
+**Example Infrastructure DTO**:
+
+```typescript
+// Example: Assembled DTO for invoice payment event dispatching
+export type AssembledInvoicePaymentDto = {
+	event: { name: string; traceId: string };
+	invoice: {
+		id: number;
+		issuerUserId: number;
+		debtorUserId: number;
+		total: number;
+		balanceDue: number;
+		status: InvoiceStatusType;
+	};
+	payment: {
+		id: number;
+		amount: number;
+		paymentApplicationId: number;
+	};
+	identity: { userId: number; userEmail: string };
+};
+```
+
+### Projections
+
+**Purpose**: Define read-only data structures returned from repositories for specific use cases.
+
+**Characteristics**:
+
+-   Type definitions (not classes)
+-   Optimized for specific queries
+-   Located in: `{domain}/infrastructure/repositories/` or `{domain}/domain/transaction-scripts/{transaction-name}-ts/`
+-   Naming convention: `{purpose}.projection.ts`
+
+**Note**: Projections are not currently used in this codebase. Repositories typically return full entities or DTOs are used for specific data shapes.
+
+**Example** (conceptual - not currently in codebase):
+
+```typescript
+// Example: A projection for invoice summary data
+export type InvoiceSummaryProjection = {
+  id: number;
+  total: number;
+  balanceDue: number;
+  status: InvoiceStatusType;
+  dueDate: Date;
+  debtorUsername: string;
+  issuerUsername: string;
+};
+```
+
+### Aggregators
+
+**Purpose**: Coordinate multiple transaction scripts and provide a unified interface for cross-domain communication.
+
+**Characteristics**:
+
+-   Implement domain ports for external services
+-   Orchestrate multiple transaction scripts
+-   Hide external service complexity
+-   Located in: `{domain}/domain/aggregators/`
+-   Naming convention: `{domain}.aggregator.ts`
+
+**Dependencies**:
+
+-   Can inject: Transaction Scripts, Repositories (for simple lookups)
+-   Cannot inject: Domain Services, other Aggregators (use ports instead)
+
+**Example**:
+
+```typescript
+// src/payments/domain/aggregators/payment.aggregator.ts
+@Injectable()
+export class PaymentAggregator {
+  constructor(
+    private readonly paymentRepository: PaymentRepository,
+    private readonly createPaymentApplicationTransactionScript: CreatePaymentApplicationTransactionScript,
+    private readonly paymentApplicationRepository: PaymentApplicationRepository,
+  ) {}
+
+  async getAccountBalance(accountId: number): Promise<number> {
+    const { credits, debits } =
+      await this.paymentRepository.getAccountPaymentsSums(accountId);
+
+    return credits - debits;
+  }
+
+  async hasPaymentApplications(invoiceId: number): Promise<boolean> {
+    const applications = await this.paymentApplicationRepository.findByInvoiceId(
+      invoiceId,
+    );
+    return applications.length > 0;
+  }
+
+  async createPaymentApplication(
+    paymentId: number,
+    invoiceId: number,
+    appliedAmount: number,
+  ): Promise<PaymentApplication> {
+    return await this.createPaymentApplicationTransactionScript.execute(
+      paymentId,
+      invoiceId,
+      appliedAmount,
+    );
+  }
+}
+```
+
+### Dispatchers
+
+**Purpose**: Publish domain events to external systems.
+
+**Characteristics**:
+
+-   Event publishing logic
+-   Located in: `{domain}/domain/dispatchers/{dispatcher-name}/`
+-   Naming convention: `{purpose}.dispatcher.ts`
+
+**Dependencies**:
+
+-   Can inject: Repositories (for data needed for events)
+-   Cannot inject: Transaction Scripts, Domain Services, other Dispatchers
+
+**Note**: Dispatchers are not currently used in this codebase.
+
+**Example** (conceptual - not currently in codebase):
+
+```typescript
+// src/invoices/domain/dispatchers/invoice-paid-dispatcher/invoice-paid.dispatcher.ts
+@Injectable()
+export class InvoicePaidDispatcher {
+	constructor(
+		private readonly invoiceRepository: InvoiceRepository,
+		private readonly eventProducer: EventProducer,
+	) {}
+
+	async dispatch(invoiceId: number): Promise<void> {
+		const invoice = await this.invoiceRepository.findById(invoiceId);
+		if (!invoice) {
+			throw new Error('Invoice not found');
+		}
+
+		const event = {
+			name: 'invoice.paid',
+			traceId: generateTraceId(),
+			invoiceId: invoice.id,
+			issuerUserId: invoice.issuerUserId,
+			debtorUserId: invoice.debtorUserId,
+			total: Number(invoice.total),
+			paidAt: new Date(),
+		};
+
+		await this.eventProducer.publish(event);
+	}
+}
+```
+
+### RemoteCallers
+
+**Purpose**: Send commands to external systems or services.
+
+**Characteristics**:
+
+-   External service communication
+-   Command/request handling
+-   Located in: `{domain}/domain/remote-callers/{caller-name}/` or `infrastructure/remote-callers/`
+-   Naming convention: `{purpose}.remote-caller.ts`
+
+**Dependencies**:
+
+-   Can inject: Repositories (for data needed for commands)
+-   Cannot inject: Transaction Scripts, Domain Services, other RemoteCallers
+
+**Example**:
+
+```typescript
+@Injectable()
+export class ExternalServiceRemoteCaller {
+	constructor(
+		private readonly httpClient: HttpClient,
+	) {}
+
+	async sendCommand(command: Command): Promise<void> {
+        ...
+	}
+}
+```
+
+## Dependency Injection Rules
+
+### Dependency Hierarchy
+
+The dependency injection follows a strict hierarchy from highest to lowest level. **Patterns at the same level should NOT inject each other** (e.g., Transaction Scripts should not inject other Transaction Scripts, Converters should not inject other Converters).
+
+```
+Entry Points (Application Layer)
+    ↓
+Actions (receive front-end requests)
+Webhooks (receive back-end requests)
+Listeners (receive event messages)
+    ↓
+Domain Services
+    ↓
+Aggregators (via ports)
+    ↓
+Transaction Scripts (can have repo injected)
+    ↓
+Mappers (can have repo injected)
+    ↓
+Assemblers (can have repo injected)
+    ↓
+Converters (cannot have repo injected)
+    ↓
+Repositories (shallow, data only)
+    ↓
+Dispatcher (publish events)
+RemoteCaller (send out commands)
+```
+
+### Blackbox Principle
+
+**Key Rule**: Higher classes can consume lower classes, but only if there is no intermediate class needed. If a lower pattern is used by an intermediate pattern, the intermediate pattern becomes a **blackbox**.
+
+**Example**:
+
+-   If a Converter is used by a Mapper:
+    -   The Converter lives next to the Mapper
+    -   The Mapper is a blackbox
+    -   The Transaction Script should use the Mapper, **not** the Converter directly
+    -   The Transaction Script should not know about the Converter's existence
+
+**Correct Pattern**:
+
+```typescript
+// Converter is used by Mapper
+@Injectable()
+export class SomeConverter {
+	apply(data: Input): Output {
+		/* ... */
+	}
+}
+
+@Injectable()
+export class SomeMapper {
+	constructor(private readonly someConverter: SomeConverter) {}
+	// Mapper uses converter internally - blackbox
+}
+
+@Injectable()
+export class SomeTransactionScript {
+	constructor(private readonly someMapper: SomeMapper) {}
+	// ✅ Transaction Script uses Mapper, not Converter
+}
+```
+
+**Incorrect Pattern**:
+
+```typescript
+@Injectable()
+export class SomeTransactionScript {
+	constructor(
+		private readonly someMapper: SomeMapper,
+		private readonly someConverter: SomeConverter, // ❌ Converter is already used by Mapper
+	) {}
+	// ❌ Transaction Script should not directly access Converter if Mapper uses it
+}
+```
+
+**Exception**: If a Converter is NOT used by any Mapper/Assembler, then a Transaction Script can directly use it.
+
+### Detailed Dependency Rules
+
+#### Converters
+
+**CAN inject**:
+
+-   Nothing (Converters are pure transformation logic with no dependencies)
+
+**CANNOT inject**:
+
+-   Other Converters (patterns at the same level should not inject each other)
+-   Repositories (use Assemblers if repository access is needed)
+-   Transaction Scripts
+-   Domain Services
+-   Assemblers
+-   Mappers
+
+**Rationale**: Converters are pure transformation logic. If they need data access or other dependencies, use an Assembler instead. Converters should not depend on other Converters - if composition is needed, use an Assembler or Mapper.
+
+#### Assemblers
+
+**CAN inject**:
+
+-   Converters
+-   Repositories (shallow - only for data retrieval, not business logic)
+
+**CANNOT inject**:
+
+-   Other Assemblers (patterns at the same level should not inject each other)
+-   Transaction Scripts
+-   Domain Services
+-   Mappers
+
+**Rationale**: Assemblers combine converters and repositories to assemble objects. They should not contain business logic. If an Assembler needs another Assembler, consider using a Mapper instead.
+
+#### Mappers
+
+**CAN inject**:
+
+-   Assemblers
+-   Converters
+-   Repositories
+
+**CANNOT inject**:
+
+-   Other Mappers (patterns at the same level should not inject each other)
+-   Transaction Scripts
+-   Domain Services
+
+**Rationale**: Mappers coordinate assemblers and converters for complex transformations. They are typically injected into Transaction Scripts. If a Mapper needs another Mapper, consider restructuring or using a Transaction Script to orchestrate multiple Mappers.
+
+#### Transaction Scripts
+
+**CAN inject**:
+
+-   Repositories
+-   Mappers
+-   Aggregators (via ports)
+-   Converters (only if not used by a Mapper/Assembler - see Blackbox Principle)
+
+**CANNOT inject**:
+
+-   Other Transaction Scripts (patterns at the same level should not inject each other - use Domain Services or Aggregators to orchestrate)
+-   Domain Services (creates circular dependency)
+-   Assemblers (if a Mapper uses the Assembler, use the Mapper instead - see Blackbox Principle)
+
+**Rationale**: Transaction Scripts encapsulate business transactions. They use Mappers for complex transformations and Repositories for data access. If multiple Transaction Scripts need to work together, use a Domain Service or Aggregator to orchestrate them.
+
+#### Domain Services
+
+**CAN inject**:
+
+-   Transaction Scripts
+-   Aggregators (via ports)
+-   Repositories (for simple lookups)
+
+**CANNOT inject**:
+
+-   Other Domain Services (creates tight coupling)
+-   Mappers (use Transaction Scripts instead)
+-   Assemblers (use Transaction Scripts instead)
+-   Converters (use Transaction Scripts instead)
+
+**Rationale**: Domain Services orchestrate business logic. They coordinate Transaction Scripts and use Aggregators for cross-domain communication.
+
+#### Aggregators
+
+**CAN inject**:
+
+-   Transaction Scripts
+-   Repositories (for simple lookups)
+
+**CANNOT inject**:
+
+-   Domain Services
+-   Other Aggregators (patterns at the same level should not inject each other - use ports for cross-domain communication)
+
+**Rationale**: Aggregators coordinate Transaction Scripts within their domain and provide a unified interface for cross-domain communication. For cross-domain aggregator communication, use ports.
+
+#### Repositories
+
+**CAN inject**:
+
+-   TypeORM Repository
+-   Other Repositories (for related data access)
+
+**CANNOT inject**:
+
+-   Transaction Scripts
+-   Domain Services
+-   Converters
+-   Assemblers
+-   Mappers
+
+**Rationale**: Repositories are the data access layer. They should not contain business logic or depend on higher-level components.
+
+## Domain Boundaries
+
+### Entity Ownership
+
+-   **Domain-Specific Entities**: Live in `{module}/domain/entities/`
+
+    -   Example: `Invoice` entity in `src/invoices/domain/entities/invoice.entity.ts`
+    -   Example: `Payment` entity in `src/payments/domain/entities/payment.entity.ts`
+
+-   **Shared Entities**: Live in `src/shared/shared-entities/entities/`
+    -   Example: Entities shared across multiple domains
+    -   Used across multiple domains
+    -   Should be minimal and stable
+
+### No Cross-Domain Pollination
+
+**Rules**:
+
+1. Entities from one domain should not directly reference entities from another domain
+2. Use Aggregators and ports for cross-domain communication
+3. Shared entities are the exception - they can be used across domains
+4. Domain-specific entities should remain within their domain
+
+**Example - Correct**:
+
+```typescript
+// Invoice entity in invoices domain
+@Entity({ name: 'invoices' })
+export class Invoice {
+  @PrimaryGeneratedColumn({ type: 'int' })
+  id: number;
+  // No direct reference to Payment entity
+}
+
+// Use aggregator for cross-domain access
+@Injectable()
+export class InvoiceService {
+  constructor(
+    private readonly paymentAggregator: PaymentAggregator, // ✅ via aggregator
+  ) {}
+
+  async cancelInvoice(invoiceId: number, issuerUserId: number): Promise<Invoice> {
+    const hasPayments = await this.paymentAggregator.hasPaymentApplications(
+      invoiceId,
+    );
+    // ... validation logic
+  }
+}
+```
+
+**Example - Incorrect**:
+
+```typescript
+// DON'T do this - cross-domain entity reference
+@Entity({ name: 'invoices' })
+export class Invoice {
+  @OneToMany(() => Payment, (payment) => payment.invoice) // ❌ Payment is in payments domain
+  payments!: Payment[];
+}
+```
+
+## Cross-Domain Communication
+
+### Using Aggregators
+
+Aggregators are the primary mechanism for cross-domain communication:
+
+1. **Implement the Aggregator** in the providing domain:
+
+```typescript
+// src/payments/domain/aggregators/payment.aggregator.ts
+@Injectable()
+export class PaymentAggregator {
+  constructor(
+    private readonly paymentRepository: PaymentRepository,
+    private readonly createPaymentApplicationTransactionScript: CreatePaymentApplicationTransactionScript,
+    private readonly paymentApplicationRepository: PaymentApplicationRepository,
+  ) {}
+
+  async hasPaymentApplications(invoiceId: number): Promise<boolean> {
+    const applications = await this.paymentApplicationRepository.findByInvoiceId(
+      invoiceId,
+    );
+    return applications.length > 0;
+  }
+}
+```
+
+2. **Use the Aggregator** in the consuming domain:
+
+```typescript
+// src/invoices/domain/services/invoice.service.ts
+@Injectable()
+export class InvoiceService {
+  constructor(
+    private readonly cancelInvoiceTransactionScript: CancelInvoiceTransactionScript,
+    private readonly paymentAggregator: PaymentAggregator, // ✅ Direct injection from other domain
+  ) {}
+
+  async cancelInvoice(
+    invoiceId: number,
+    issuerUserId: number,
+  ): Promise<Invoice> {
+    const invoice = await this.getInvoiceById(invoiceId);
+    
+    const hasPayments = await this.paymentAggregator.hasPaymentApplications(
+      invoiceId,
+    );
+    if (hasPayments) {
+      throw new Error(
+        'Cannot cancel invoice: Invoice has existing payments applied to it',
+      );
+    }
+
+    return await this.cancelInvoiceTransactionScript.execute(invoiceId);
+  }
+}
+```
+
+## Summary of Dependency Injection Rules
+
+| Component               | Can Inject                                                                                        | Cannot Inject                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Converters**          | Nothing                                                                                           | Other Converters, Repositories, Transaction Scripts, Domain Services, Assemblers, Mappers |
+| **Assemblers**          | Converters, Repositories (shallow)                                                                | Transaction Scripts, Domain Services, Mappers, Other Assemblers                           |
+| **Mappers**             | Assemblers, Converters, Repositories                                                              | Transaction Scripts, Domain Services, Other Mappers                                       |
+| **Transaction Scripts** | Repositories, Mappers, Aggregators (via ports), Converters (only if not used by Mapper/Assembler) | Domain Services, Other Transaction Scripts, Assemblers (if used by Mapper)                |
+| **Domain Services**     | Transaction Scripts, Aggregators (via ports), Repositories (simple lookups)                       | Other Domain Services, Mappers, Assemblers, Converters                                    |
+| **Aggregators**         | Transaction Scripts, Repositories (simple lookups)                                                | Domain Services, Other Aggregators                                                        |
+| **Repositories**        | TypeORM Repository, Other Repositories                                                            | Transaction Scripts, Domain Services, Converters, Assemblers, Mappers                     |
+| **Dispatchers**         | Repositories, Assemblers                                                                          | Transaction Scripts, Domain Services, Other Dispatchers                                   |
+| **RemoteCallers**       | Repositories                                                                                      | Transaction Scripts, Domain Services, Other RemoteCallers                                 |
+
+### Key Rules Summary
+
+1. **No Same-Level Injection**: Patterns at the same level should NOT inject each other
+
+    - Transaction Scripts should not inject other Transaction Scripts
+    - Converters should not inject other Converters
+    - Assemblers should not inject other Assemblers
+    - Mappers should not inject other Mappers
+    - Aggregators should not inject other Aggregators
+
+2. **Blackbox Principle**: If a lower pattern is used by an intermediate pattern, the higher pattern should use the intermediate pattern, not the lower one directly
+
+3. **Orchestration**: When same-level patterns need to work together, move orchestration up one level:
+    - Multiple Transaction Scripts → Use Domain Service or Aggregator
+    - Multiple Converters → Use Assembler or Mapper
+    - Multiple Assemblers → Use Mapper
+
+## Best Practices
+
+1. **Always use ports for cross-domain communication** - Never directly inject aggregators from other domains
+2. **Keep converters pure** - Converters should have no dependencies. If a converter needs a repository, use an assembler instead
+3. **No same-level injection** - Patterns at the same level should not inject each other. Move orchestration up one level
+4. **Respect the blackbox principle** - If a lower pattern is used by an intermediate pattern, use the intermediate pattern, not the lower one
+5. **Repositories are shallow in assemblers** - Only use repositories for data retrieval, not business logic
+6. **One mapper per transaction script** - Mappers are typically used within a single transaction script context
+7. **Domain services orchestrate, don't implement** - Domain services coordinate transaction scripts and aggregators, they don't contain business logic
+8. **Respect domain boundaries** - Entities stay within their domain unless they're shared entities
+9. **Use higher-level patterns for orchestration** - When same-level patterns need to work together, use the next level up to orchestrate them
