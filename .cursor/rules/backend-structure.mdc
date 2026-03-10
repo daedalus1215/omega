@@ -1,0 +1,302 @@
+---
+alwaysApply: true
+---
+
+# Module Design Contract: @/time-tracks
+
+## 1. Purpose
+
+The `time-tracks` module manages all logic related to time tracking for notes. It is responsible for creating, retrieving, and aggregating time track data, ensuring all business rules are enforced.
+
+## 2. Layered Structure
+
+### Application Layer
+- **Actions (Controllers/Handlers):**  
+  Each action handles a specific request (e.g., create, get, aggregate time tracks).  
+  Location: `apps/actions/`
+  **Convention:** Each action should be placed in its own folder named after the action (e.g., `add-tag-to-note-action/`).
+  - The Swagger file should be stored next to the action (e.g., `add-tag-to-note.action.ts` and `add-tag-to-note.swagger.ts`).
+  - Request DTOs for the action should be placed in a `dtos/requests/` subfolder within the action folder (e.g., `add-tag-to-note-action/dtos/requests/add-tag-to-note.dto.ts`).
+  - (Optionally, response DTOs in `dtos/responses/` and tests in `__specs__/` within the action folder.)
+- **DTOs:**  
+  Define request and response shapes.  
+  Location: `apps/dtos/`
+- **Responders/Converters:**  
+  Convert domain entities to DTOs for responses.
+
+### Domain Layer
+- **Services:**  
+  Orchestrate domain logic, delegate to transaction scripts, and use aggregators for cross-domain needs.  
+  Location: `domain/services/`
+- **Aggregators:**  
+  Provide domain-specific operations for use by services in other domains.  
+  Location: `domain/aggregators/`
+- **Transaction Scripts:**  
+  Encapsulate all domain logic for a single feature.  
+  Location: `domain/transaction-scripts/`
+- **Entities & Value Objects:**  
+  Represent core business data and invariants.  
+  Location: `domain/entities/`
+  **Convention:** Entity classes should remain private to their domain. For cross-domain references, hoist only interfaces/types to a shared-kernel location (e.g., `shared-kernel/domain/types/tag.type.ts`). Use these types for contracts, not for persistence or business logic.
+
+  **Exception: Join Entities in Shared-Kernel**
+  - For join entities that exist solely to model relationships between domains (e.g., many-to-many join tables like `TagNote`), it is acceptable to place the entity class in the shared-kernel (e.g., `shared-kernel/domain/entities/tag-note.entity.ts`).
+  - Rationale: These entities do not represent true business concepts or aggregate roots, but are cross-domain artifacts required for persistence. Neither domain "owns" the join, and placing it in the shared-kernel avoids artificial dependencies.
+  - Keep join entities as anemic as possible (no business logic), and document this exception clearly in your architecture.
+
+### Infrastructure Layer
+- **Repositories:**  
+  Handle persistence and retrieval of domain entities. All NestJS repositories are wrapped in our own repository wrappers to provide a consistent interface and encapsulate persistence logic.  
+  Location: `infra/repositories/`
+  **Convention:** For cross-domain associations (e.g., many-to-many join tables), prefer ID-based repository methods (using raw SQL or query builder) over full entity relations. This reduces coupling, improves performance, and keeps code simple. Only use entity relations for true aggregates or when object graph traversal is needed.
+
+## 3. Interaction Flow
+
+1. **Action** receives a request and validates input.
+2. **Action** calls a **Service** (never a transaction script directly).
+3. **Service** may use an **Aggregator** for cross-domain logic.
+4. **Service** delegates to a **Transaction Script** to perform the core business operation.
+5. **Transaction Script** uses **Repositories** to persist/fetch data.
+6. **Service** or **Action** uses a **Responder/Converter** to map the result to a response DTO.
+
+## 4. Dependency Rules
+
+- Application layer depends on domain, never the reverse.
+- Services depend on aggregators for cross-domain logic.
+- Transaction scripts are the only place for domain logic.
+- No action/handler directly uses a transaction script.
+- Aggregators are not called by actions, only by services.
+
+## 5. Cohesion & Coupling
+
+- **Functional Cohesion:** Each class/module has a single, well-defined responsibility.
+- **Loose Coupling:** Aggregators decouple services from other domains.
+- **Transaction Scripts:** Centralize all domain logic for a feature.
+
+## 6. Directory Structure
+
+```
+time-tracks/
+  apps/
+    actions/
+      <feature>-action/
+        <feature>.action.ts
+        <feature>.swagger.ts
+        dtos/
+          requests/
+            <feature>.dto.ts
+          responses/
+            <feature>.response.dto.ts
+        __specs__/
+          <feature>.action.spec.ts
+    dtos/            # Shared request/response DTOs
+  domain/
+    entities/        # Entities and value objects
+    services/        # Domain services
+    aggregators/     # Aggregators for cross-domain logic
+    transaction-scripts/
+      <feature>/
+        <feature>.transaction.script.ts
+  infra/
+    repositories/    # Repository wrappers around NestJS repositories
+  time-tracks.module.ts
+shared-kernel/
+  domain/
+    types/
+      tag.type.ts    # Shared TagProps interface/type for cross-domain reference
+```
+
+## 7. Example: Create Time Track Flow
+
+1. **Action:** `create-time-track.action.ts` receives the request.
+2. **DTO:** Validates input using `create-time-track.dto.ts`.
+3. **Service:** `time-track.service.ts` orchestrates the operation.
+4. **Transaction Script:** `create-time-track.transaction.script.ts` encapsulates the business logic.
+5. **Repository:** `time-track.repository.ts` persists the new time track.
+6. **Responder/Converter:** Maps the entity to a response DTO.
+
+## 8. Design References
+
+- **Functional Cohesion:** Each module/class does one thing.
+- **Larry Constantine's Structured Design:** Minimize coupling, maximize cohesion.
+- **Khononov's Balancing and Coupling:** Aggregators decouple cross-domain logic.
+
+## 9. DDD + TypeORM Architectural Pattern (Recommended for All Modules)
+
+- **Domain Layer:**
+  - Pure TypeScript classes, interfaces, and business logic.
+  - No TypeORM decorators or imports.
+  - No cross-domain imports of concrete classes—only interfaces/types from the shared-kernel.
+- **Infrastructure Layer:**
+  - TypeORM entities, repositories, and database logic.
+  - Handles all persistence concerns.
+  - TypeORM decorators and cross-domain imports are isolated here.
+- **Mapping Layer:**
+  - Converts between domain entities and TypeORM entities (and vice versa).
+
+**Summary Table:**
+
+| Layer           | TypeORM Dependency? | Cross-domain Imports? | Business Logic? |
+|-----------------|--------------------|----------------------|-----------------|
+| Domain          | ❌ No               | ❌ No                 | ✅ Yes          |
+| Infrastructure  | ✅ Yes              | ✅ Yes (infra only)   | ❌ No           |
+
+**Note:**
+- This pattern allows you to use TypeORM for all persistence needs, while keeping your domain logic clean, testable, and portable.
+- This is the recommended pattern for all modules/domains in this codebase.
+
+---
+
+**Note:**  
+- All domain logic must live in transaction scripts.
+- Services/aggregators are the only way to cross domain boundaries.
+- No direct repository access from actions/controllers.
+# Module Design Contract: @/time-tracks
+
+## 1. Purpose
+
+The `time-tracks` module manages all logic related to time tracking for notes. It is responsible for creating, retrieving, and aggregating time track data, ensuring all business rules are enforced.
+
+## 2. Layered Structure
+
+### Application Layer
+- **Actions (Controllers/Handlers):**  
+  Each action handles a specific request (e.g., create, get, aggregate time tracks).  
+  Location: `apps/actions/`
+  **Convention:** Each action should be placed in its own folder named after the action (e.g., `add-tag-to-note-action/`).
+  - The Swagger file should be stored next to the action (e.g., `add-tag-to-note.action.ts` and `add-tag-to-note.swagger.ts`).
+  - Request DTOs for the action should be placed in a `dtos/requests/` subfolder within the action folder (e.g., `add-tag-to-note-action/dtos/requests/add-tag-to-note.dto.ts`).
+  - (Optionally, response DTOs in `dtos/responses/` and tests in `__specs__/` within the action folder.)
+- **DTOs:**  
+  Define request and response shapes.  
+  Location: `apps/dtos/`
+- **Responders/Converters:**  
+  Convert domain entities to DTOs for responses.
+
+### Domain Layer
+- **Services:**  
+  Orchestrate domain logic, delegate to transaction scripts, and use aggregators for cross-domain needs.  
+  Location: `domain/services/`
+- **Aggregators:**  
+  Provide domain-specific operations for use by services in other domains.  
+  Location: `domain/aggregators/`
+- **Transaction Scripts:**  
+  Encapsulate all domain logic for a single feature.  
+  Location: `domain/transaction-scripts/`
+- **Entities & Value Objects:**  
+  Represent core business data and invariants.  
+  Location: `domain/entities/`
+  **Convention:** Entity classes should remain private to their domain. For cross-domain references, hoist only interfaces/types to a shared-kernel location (e.g., `shared-kernel/domain/types/tag.type.ts`). Use these types for contracts, not for persistence or business logic.
+
+  **Exception: Join Entities in Shared-Kernel**
+  - For join entities that exist solely to model relationships between domains (e.g., many-to-many join tables like `TagNote`), it is acceptable to place the entity class in the shared-kernel (e.g., `shared-kernel/domain/entities/tag-note.entity.ts`).
+  - Rationale: These entities do not represent true business concepts or aggregate roots, but are cross-domain artifacts required for persistence. Neither domain "owns" the join, and placing it in the shared-kernel avoids artificial dependencies.
+  - Keep join entities as anemic as possible (no business logic), and document this exception clearly in your architecture.
+
+### Infrastructure Layer
+- **Repositories:**  
+  Handle persistence and retrieval of domain entities. All NestJS repositories are wrapped in our own repository wrappers to provide a consistent interface and encapsulate persistence logic.  
+  Location: `infra/repositories/`
+  **Convention:** For cross-domain associations (e.g., many-to-many join tables), prefer ID-based repository methods (using raw SQL or query builder) over full entity relations. This reduces coupling, improves performance, and keeps code simple. Only use entity relations for true aggregates or when object graph traversal is needed.
+
+## 3. Interaction Flow
+
+1. **Action** receives a request and validates input.
+2. **Action** calls a **Service** (never a transaction script directly).
+3. **Service** may use an **Aggregator** for cross-domain logic.
+4. **Service** delegates to a **Transaction Script** to perform the core business operation.
+5. **Transaction Script** uses **Repositories** to persist/fetch data.
+6. **Service** or **Action** uses a **Responder/Converter** to map the result to a response DTO.
+
+## 4. Dependency Rules
+
+- Application layer depends on domain, never the reverse.
+- Services depend on aggregators for cross-domain logic.
+- Transaction scripts are the only place for domain logic.
+- No action/handler directly uses a transaction script.
+- Aggregators are not called by actions, only by services.
+
+## 5. Cohesion & Coupling
+
+- **Functional Cohesion:** Each class/module has a single, well-defined responsibility.
+- **Loose Coupling:** Aggregators decouple services from other domains.
+- **Transaction Scripts:** Centralize all domain logic for a feature.
+
+## 6. Directory Structure
+
+```
+time-tracks/
+  apps/
+    actions/
+      <feature>-action/
+        <feature>.action.ts
+        <feature>.swagger.ts
+        dtos/
+          requests/
+            <feature>.dto.ts
+          responses/
+            <feature>.response.dto.ts
+        __specs__/
+          <feature>.action.spec.ts
+    dtos/            # Shared request/response DTOs
+  domain/
+    entities/        # Entities and value objects
+    services/        # Domain services
+    aggregators/     # Aggregators for cross-domain logic
+    transaction-scripts/
+      <feature>/
+        <feature>.transaction.script.ts
+  infra/
+    repositories/    # Repository wrappers around NestJS repositories
+  time-tracks.module.ts
+shared-kernel/
+  domain/
+    types/
+      tag.type.ts    # Shared TagProps interface/type for cross-domain reference
+```
+
+## 7. Example: Create Time Track Flow
+
+1. **Action:** `create-time-track.action.ts` receives the request.
+2. **DTO:** Validates input using `create-time-track.dto.ts`.
+3. **Service:** `time-track.service.ts` orchestrates the operation.
+4. **Transaction Script:** `create-time-track.transaction.script.ts` encapsulates the business logic.
+5. **Repository:** `time-track.repository.ts` persists the new time track.
+6. **Responder/Converter:** Maps the entity to a response DTO.
+
+## 8. Design References
+
+- **Functional Cohesion:** Each module/class does one thing.
+- **Larry Constantine's Structured Design:** Minimize coupling, maximize cohesion.
+- **Khononov's Balancing and Coupling:** Aggregators decouple cross-domain logic.
+
+## 9. DDD + TypeORM Architectural Pattern (Recommended for All Modules)
+
+- **Domain Layer:**
+  - Pure TypeScript classes, interfaces, and business logic.
+  - No TypeORM decorators or imports.
+  - No cross-domain imports of concrete classes—only interfaces/types from the shared-kernel.
+- **Infrastructure Layer:**
+  - TypeORM entities, repositories, and database logic.
+  - Handles all persistence concerns.
+  - TypeORM decorators and cross-domain imports are isolated here.
+- **Mapping Layer:**
+  - Converts between domain entities and TypeORM entities (and vice versa).
+
+**Summary Table:**
+
+| Layer           | TypeORM Dependency? | Cross-domain Imports? | Business Logic? |
+|-----------------|--------------------|----------------------|-----------------|
+| Domain          | ❌ No               | ❌ No                 | ✅ Yes          |
+| Infrastructure  | ✅ Yes              | ✅ Yes (infra only)   | ❌ No           |
+
+**Note:**
+- This pattern allows you to use TypeORM for all persistence needs, while keeping your domain logic clean, testable, and portable.
+- This is the recommended pattern for all modules/domains in this codebase.
+
+---
+
+**Note:**  
+- All domain logic must live in transaction scripts.
+- Services/aggregators are the only way to cross domain boundaries.
+- No direct repository access from actions/controllers.
