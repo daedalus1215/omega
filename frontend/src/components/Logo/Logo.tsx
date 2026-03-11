@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../../assets/chronus.svg';
+import logo from '../../assets/omega-logo.svg';
 import styles from './Logo.module.css';
 
 interface LogoProps {
@@ -11,7 +11,7 @@ interface LogoProps {
 export const Logo: React.FC<LogoProps> = ({
   height = 40,
   className = '',
-  alt = 'Alpha-Omega Logo',
+  alt = 'Omega Logo',
 }: LogoProps) => {
   return (
     <img

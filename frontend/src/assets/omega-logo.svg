@@ -1,0 +1,18 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Calendar body -->
+  <rect x="64" y="96" width="384" height="352" rx="80" fill="black"/>
+  <!-- Calendar rings -->
+  <rect x="150" y="40" width="40" height="110" rx="20" fill="black"/>
+  <rect x="322" y="40" width="40" height="110" rx="20" fill="black"/>
+  <!-- Omega cutout -->
+  <path
+    fill="white"
+    d="M192 340
+       C192 270 224 220 256 220
+       C288 220 320 270 320 340
+       L360 340
+       C360 250 310 180 256 180
+       C202 180 152 250 152 340
+       Z"
+  />
+</svg>

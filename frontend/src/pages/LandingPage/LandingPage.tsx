@@ -65,7 +65,7 @@ export const LandingPage: React.FC = () => {
                 mb: 2,
               }}
             >
-              Alpha-Omega
+              Omega
             </Typography>
             <Typography
               variant="h5"

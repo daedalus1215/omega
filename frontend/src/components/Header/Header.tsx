@@ -64,7 +64,7 @@ export const Header: React.FC = () => {
         <div className={styles.container}>
           <button onClick={toggleSidebar} className={styles.brand}>
             <Logo />
-            <span className={styles.name}>Alpha-Omega</span>
+            <span className={styles.name}>Omega</span>
           </button>
           <div className={styles.rightSection}>
             <span className={styles.username}>{user?.username}</span>
