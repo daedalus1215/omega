@@ -6,7 +6,8 @@
   height: 64px;
   background-color: var(--color-bg-paper);
   box-shadow: 0 1px 2px var(--color-shadow-lg);
-  z-index: 100;
+  /* Above calendar toolbar (z-index 1000) so menu stays tappable */
+  z-index: 1100;
 }
 
 .container {
@@ -82,13 +83,36 @@
   gap: 0.5rem;
 }
 
+.header.mobile .mobileToolbarRow.container {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  justify-content: stretch;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0.25rem;
+  box-sizing: border-box;
+}
+
+.mobileHeaderSpacer {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
 .calendarMonthLabel {
-  flex: 1;
+  margin: 0;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-text);
   pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .calendarHeaderRight {

@@ -76,7 +76,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             className={styles.name}
             style={{ marginLeft: 8, fontWeight: 600, fontSize: '1.2rem' }}
           >
-            Alpha-Omega
+            Omega
           </span>
         </Link>
         <IconButton onClick={onClose} aria-label="Close sidebar">

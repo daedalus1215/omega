@@ -61,9 +61,6 @@
 }
 
 @media (max-width: 600px) {
-  .calendarView {
-    margin-top: -48px;
-  }
   .calendarGrid {
     border-radius: 4px;
   }

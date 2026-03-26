@@ -98,9 +98,11 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
 
           </Box>
         )}
-        <Typography variant="h6" className={styles.title} sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}>
-          {getTitle()}
-        </Typography>
+        {!isMobile && (
+          <Typography variant="h6" className={styles.title} sx={{ fontSize: '1rem' }}>
+            {getTitle()}
+          </Typography>
+        )}
       </Box>
 
       <Box className={styles.rightSection}>

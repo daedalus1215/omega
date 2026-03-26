@@ -46,8 +46,22 @@ export const CalendarPage: React.FC = () => {
   const { currentView, setView } = useCalendarView();
 
   useEffect(() => {
-    setCalendarMonthLabel(format(currentDate, 'MMMM'));
-  }, [currentDate, setCalendarMonthLabel]);
+    const label = (() => {
+      switch (currentView) {
+        case 'day':
+          return format(currentDate, 'EEEE, MMMM d, yyyy');
+        case 'month':
+        case 'timeline':
+        default:
+          return format(currentDate, 'MMMM yyyy');
+      }
+    })();
+    setCalendarMonthLabel(label);
+  }, [currentDate, currentView, setCalendarMonthLabel]);
+
+  useEffect(() => {
+    return () => setCalendarMonthLabel('');
+  }, [setCalendarMonthLabel]);
 
   useEffect(() => {
     const openModal = () => {

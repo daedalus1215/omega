@@ -40,7 +40,7 @@ npm run dev            # Starts dev server on port 5174
 ## Project Structure
 
 ```
-alpha-omega/
+omega/
 ├── backend/           # NestJS API
 │   └── src/
 │       ├── auth/              # JWT authentication
