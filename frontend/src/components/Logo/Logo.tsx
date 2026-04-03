@@ -24,7 +24,7 @@ export const Logo: React.FC<LogoProps> = ({
 }: LogoProps) => {
   const logoSrc = variant === 'mark' ? markLogoSrc : fullLogoSrc;
   const height = heightProp ?? defaultHeightForVariant(variant);
-  const classNames = [styles.logo, variant === 'mark' ? styles.logoChrome : '', className].filter(Boolean).join(' ');
+  const classNames = [styles.logo, className].filter(Boolean).join(' ');
   return (
     <img
       src={logoSrc}

@@ -13,6 +13,7 @@ import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.d
 import { EventDetailsModal } from '../EventDetailsModal/EventDetailsModal';
 import { MonthViewProps } from './MonthView.types';
 import { EVENT_COLORS, DEFAULT_EVENT_COLOR_KEY } from '../../constants/calendar.constants';
+import { getEventSurfaceText } from '../../utils/get-event-surface-text';
 import styles from './MonthViewMobile.module.css';
 
 const MAX_EVENTS_MOBILE = 4;
@@ -113,21 +114,30 @@ export const MonthViewMobile: React.FC<MonthViewProps> = ({
                     </Typography>
 
                     <Box className={styles.eventsContainer}>
-                      {visibleEvents.map((event) => (
-                        <Box
-                          key={event.id}
-                          className={styles.eventPill}
-                          onClick={(mouseEvent) => handleEventClick(event, mouseEvent)}
-                          title={event.title}
-                          style={{ backgroundColor: getEventColor(event) }}
-                        >
-                          <Typography className={styles.eventTitle} noWrap
-                            sx={{ fontSize: '0.575rem' }}
+                      {visibleEvents.map((event) => {
+                        const pillBg = getEventColor(event);
+                        const pillText = getEventSurfaceText(pillBg);
+                        return (
+                          <Box
+                            key={event.id}
+                            className={styles.eventPill}
+                            onClick={(mouseEvent) => handleEventClick(event, mouseEvent)}
+                            title={event.title}
+                            style={{
+                              backgroundColor: pillBg,
+                              color: pillText.foreground,
+                            }}
                           >
-                            {event.title}
-                          </Typography>
-                        </Box>
-                      ))}
+                            <Typography
+                              className={styles.eventTitle}
+                              noWrap
+                              sx={{ fontSize: '0.575rem', color: 'inherit' }}
+                            >
+                              {event.title}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
 
                       {hiddenCount > 0 && (
                         <Typography variant="caption" className={styles.moreEvents}>

@@ -41,7 +41,7 @@
 }
 
 .navButton {
-  color: var(--color-text, #fff);
+  color: var(--color-text, #18181b);
   padding: 4px;
 }
 

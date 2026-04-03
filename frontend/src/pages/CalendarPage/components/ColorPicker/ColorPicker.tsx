@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, FormControl, FormLabel, Typography, Tooltip } from '@mui/material';
+import { Box, FormControl, FormLabel, Typography, Tooltip, useTheme } from '@mui/material';
 import {
   EVENT_COLORS,
   EventColorKey,
@@ -27,6 +27,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   isEditing,
   disabled = false,
 }) => {
+  const theme = useTheme();
   const selectedColorKey = getColorKeyFromValue(value);
 
   if (!isEditing) {
@@ -80,8 +81,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                   backgroundColor: color.value,
                   cursor: disabled ? 'not-allowed' : 'pointer',
                   border: isSelected ? '2px solid' : '1px solid',
-                  borderColor: isSelected ? 'white' : 'divider',
-                  boxShadow: isSelected ? '0 0 0 2px ' + color.value : 'none',
+                  borderColor: isSelected ? theme.palette.primary.main : 'divider',
+                  boxShadow: isSelected
+                    ? `0 0 0 2px ${theme.palette.primary.main}`
+                    : 'none',
                   opacity: disabled ? 0.5 : 1,
                   transition: 'all 0.15s ease',
                   '&:hover': disabled

@@ -17,8 +17,8 @@ export default defineConfig({
         name: 'Omega Calendar',
         short_name: 'Omega',
         description: 'Omega calendar application',
-        theme_color: '#000000',
-        background_color: '#000000',
+        theme_color: '#fafafa',
+        background_color: '#fafafa',
         icons: [
           {
             src: '/icon-192.png',

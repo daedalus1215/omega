@@ -6,11 +6,6 @@
   transition: transform 0.2s ease;
 }
 
-/* Monochrome mark: same treatment as Chronus (chronus.svg) on dark chrome — black → white */
-.logoChrome {
-  filter: brightness(0) invert(1);
-}
-
 .logo:hover {
   transform: scale(1.05);
 }

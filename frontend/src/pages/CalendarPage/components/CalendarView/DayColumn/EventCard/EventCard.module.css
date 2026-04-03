@@ -2,7 +2,7 @@
   position: absolute;
   padding: 4px;
   background-color: var(--event-color, #6366f1);
-  color: #fff;
+  color: var(--event-foreground, #ffffff);
   cursor: pointer;
   overflow: hidden;
   z-index: 1;
@@ -11,7 +11,7 @@
   touch-action: none;
   user-select: none;
   box-shadow: 0 2px 4px color-mix(in srgb, var(--event-color, #6366f1) 30%, transparent);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--event-border-subtle, rgba(255, 255, 255, 0.18));
 }
 
 .eventCard:hover {
@@ -56,13 +56,13 @@
   font-size: 0.875rem;
   opacity: 1;
   flex-shrink: 0;
-  color: var(--color-accent, #10b981);
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  color: var(--event-foreground-muted, rgba(255, 255, 255, 0.9));
 }
 
 .eventTitle {
   font-weight: 600;
   display: block;
+  color: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -89,7 +89,7 @@
 .eventDescription {
   display: block;
   font-size: 0.7rem;
-  opacity: 0.9;
+  color: var(--event-foreground-muted, rgba(255, 255, 255, 0.9));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -98,7 +98,7 @@
 .resizeHandle {
   opacity: 0;
   transition: opacity 0.2s ease;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--event-handle-surface, rgba(255, 255, 255, 0.35));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -106,18 +106,22 @@
 
 .resizeHandle:hover {
   opacity: 1 !important;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: color-mix(
+    in srgb,
+    var(--event-handle-surface, rgba(255, 255, 255, 0.35)) 85%,
+    var(--event-foreground, #fff) 15%
+  );
 }
 
 .resizeHandle::after {
   content: '';
   width: 20px;
   height: 3px;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--event-handle-strong, rgba(255, 255, 255, 0.85));
 }
 
 .resizeHandle:active {
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: var(--event-handle-surface, rgba(255, 255, 255, 0.35));
 }
 
 @media (max-width: 600px) {

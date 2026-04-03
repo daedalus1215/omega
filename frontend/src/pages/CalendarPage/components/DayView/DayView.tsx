@@ -464,7 +464,7 @@ export const DayView: React.FC<DayViewProps> = ({
               sx={{
                 padding: '4px 8px',
                 backgroundColor: 'var(--color-primary, #6366f1)',
-                color: 'var(--color-text, #fff)',
+                color: 'var(--color-text, #18181b)',
                 borderRadius: '4px',
                 minWidth: '120px',
                 width: isMobile ? 'calc(100vw - 150px)' : '300px',
