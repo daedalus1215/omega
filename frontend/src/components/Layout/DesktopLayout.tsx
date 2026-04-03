@@ -25,8 +25,8 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
       sx={{
         display: 'flex',
         height: '100vh',
-        backgroundColor: '#1a1a1a',
-        color: '#fff',
+        backgroundColor: 'background.default',
+        color: 'text.primary',
       }}
     >
       {/* Navigation Sidebar */}
@@ -36,7 +36,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
           flex: '0 0 auto',
           borderRight: '1px solid',
           borderColor: 'divider',
-          backgroundColor: '#111',
+          backgroundColor: 'background.paper',
           height: '100vh',
           overflow: 'hidden',
           display: 'flex',
@@ -60,7 +60,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
           elevation={0}
           sx={{
             flexShrink: 0,
-            backgroundColor: '#1a1a1a',
+            backgroundColor: 'background.default',
             zIndex: 1200,
           }}
         >
@@ -84,7 +84,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
             elevation={0}
             sx={{
               flex: 1,
-              backgroundColor: '#1a1a1a',
+              backgroundColor: 'background.default',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',

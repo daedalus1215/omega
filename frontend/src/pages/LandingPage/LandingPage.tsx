@@ -41,7 +41,7 @@ export const LandingPage: React.FC = () => {
             alignItems: 'center',
           }}
         >
-          <Logo height={300} />
+          <Logo height="clamp(200px, 52vmin, 300px)" />
         </Box>
 
         {/* Action Section */}

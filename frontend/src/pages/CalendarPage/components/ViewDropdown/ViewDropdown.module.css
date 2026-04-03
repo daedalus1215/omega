@@ -3,47 +3,47 @@
 }
 
 .select {
-  background-color: var(--color-card-bg-secondary, #2a2a2a);
-  color: var(--color-text, #fff);
+  background-color: var(--color-card-bg-secondary);
+  color: var(--color-text);
   border-radius: 4px;
 }
 
 .select :global(.MuiOutlinedInput-notchedOutline) {
-  border-color: var(--color-border, #333);
+  border-color: var(--color-border);
 }
 
 .select:hover :global(.MuiOutlinedInput-notchedOutline) {
-  border-color: var(--color-border-hover, #444);
+  border-color: var(--color-border-medium);
 }
 
 .select :global(.MuiSelect-icon) {
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
 }
 
 .menuPaper {
-  background-color: var(--color-card-bg, #1e1e1e) !important;
-  border: 1px solid var(--color-border, #333);
+  background-color: var(--color-card-bg) !important;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   margin-top: 4px;
 }
 
 .menuItem {
-  color: var(--color-text, #fff);
+  color: var(--color-text);
   font-size: 0.875rem;
   padding: 8px 16px;
 }
 
 .menuItem:hover {
-  background-color: var(--color-hover, rgba(99, 102, 241, 0.1)) !important;
+  background-color: var(--color-primary-light) !important;
 }
 
 .menuItem:global(.Mui-selected) {
-  background-color: var(--color-primary-light, rgba(99, 102, 241, 0.2)) !important;
-  color: var(--color-primary, #6366f1);
+  background-color: var(--color-primary-light-2) !important;
+  color: var(--color-primary);
 }
 
 .menuItem:global(.Mui-disabled) {
-  color: var(--color-text-disabled, #666);
+  color: var(--color-text-muted);
   opacity: 0.5;
 }
 

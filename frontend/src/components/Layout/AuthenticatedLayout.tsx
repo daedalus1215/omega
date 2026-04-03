@@ -46,7 +46,7 @@ export const AuthenticatedLayout: React.FC = () => {
                 flex: '0 0 auto',
                 borderRight: '1px solid',
                 borderColor: 'divider',
-                backgroundColor: '#111',
+                backgroundColor: 'background.paper',
                 height: '100%',
                 overflow: 'hidden',
                 display: 'flex',

@@ -146,7 +146,7 @@
 }
 
 .eventTitle {
-  color: var(--color-text, #f4f4f4);
+  color: var(--color-text, #18181b);
   font-size: 0.625rem;
   white-space: nowrap;
   overflow: hidden;

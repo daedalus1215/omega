@@ -27,6 +27,10 @@ import {
 } from '@dnd-kit/core';
 import { differenceInMinutes } from 'date-fns';
 import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.dtos';
+import {
+  CSS_THEME_HEX_FALLBACK,
+  cssVarWithFallback,
+} from '../../../../constants/css-theme-fallbacks';
 import { useEventLayouts } from '../../hooks/useEventLayouts';
 import { useUpdateCalendarEvent } from '../../hooks/useUpdateCalendarEvent';
 import { DayColumn } from '../CalendarView/DayColumn/DayColumn';
@@ -463,8 +467,14 @@ export const DayView: React.FC<DayViewProps> = ({
             <Box
               sx={{
                 padding: '4px 8px',
-                backgroundColor: 'var(--color-primary, #6366f1)',
-                color: 'var(--color-text, #fff)',
+                backgroundColor: cssVarWithFallback(
+                  '--color-primary',
+                  CSS_THEME_HEX_FALLBACK.primary,
+                ),
+                color: cssVarWithFallback(
+                  '--color-on-primary',
+                  CSS_THEME_HEX_FALLBACK.onPrimary,
+                ),
                 borderRadius: '4px',
                 minWidth: '120px',
                 width: isMobile ? 'calc(100vw - 150px)' : '300px',

@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { startOfDay } from 'date-fns';
 import { EventLayout } from '../../../../hooks/useEventLayouts';
 import { CALENDAR_CONSTANTS, EVENT_COLORS, DEFAULT_EVENT_COLOR_KEY } from '../../../../constants/calendar.constants';
+import { getEventSurfaceText } from '../../../../utils/get-event-surface-text';
 import styles from './EventCard.module.css';
 
 type EventCardProps = {
@@ -82,6 +83,7 @@ export const EventCard: React.FC<EventCardProps> = ({
     return entry ? entry[1] : EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY];
   };
   const colorData = getColorData(eventColor);
+  const surfaceText = getEventSurfaceText(eventColor);
 
   // Calculate dimensions - use preview if available during resize
   let topPixels: number;
@@ -134,8 +136,14 @@ export const EventCard: React.FC<EventCardProps> = ({
     opacity: isDragging ? 0 : 1,
     transform: CSS.Translate.toString(transform),
     backgroundColor: eventColor,
+    color: surfaceText.foreground,
     '--event-color': eventColor,
     '--event-color-light': colorData.light,
+    '--event-foreground': surfaceText.foreground,
+    '--event-foreground-muted': surfaceText.foregroundMuted,
+    '--event-border-subtle': surfaceText.borderSubtle,
+    '--event-handle-surface': surfaceText.handleSurface,
+    '--event-handle-strong': surfaceText.handleStrong,
   } as React.CSSProperties;
 
   const handleClick = (e: React.MouseEvent) => {

@@ -59,7 +59,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               mb: 1,
             }}
           >
-            <Logo height={75} />
+            <Logo height="clamp(104px, 38vmin, 168px)" />
             <Typography variant="h4" component="h1" fontWeight={600}>
               Login
             </Typography>
