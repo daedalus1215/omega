@@ -58,6 +58,7 @@
 
   /* App / calendar chrome (hex + rgba — mirrors MUI theme.ts) */
   --color-primary: #6366f1;
+  --color-on-primary: #ffffff;
   --color-primary-dark: #4f46e5;
   --color-primary-light: rgba(99, 102, 241, 0.12);
   --color-primary-light-2: rgba(99, 102, 241, 0.22);
@@ -239,6 +240,7 @@ button:focus-visible {
   --sidebar-ring: oklch(0.551 0.027 264.364);
 
   --color-bg: #000000;
+  --color-on-primary: #ffffff;
   --color-bg-secondary: #141414;
   --color-bg-paper: #111111;
   --color-bg-elevated: #1a1a1a;

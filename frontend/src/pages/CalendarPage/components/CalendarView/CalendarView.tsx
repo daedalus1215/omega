@@ -27,6 +27,10 @@ import {
   closestCenter,
 } from '@dnd-kit/core';
 import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.dtos';
+import {
+  CSS_THEME_HEX_FALLBACK,
+  cssVarWithFallback,
+} from '../../../../constants/css-theme-fallbacks';
 import { EventDetailsModal } from '../EventDetailsModal/EventDetailsModal';
 import { useEventLayouts } from '../../hooks/useEventLayouts';
 import { DayColumn } from './DayColumn/DayColumn';
@@ -683,8 +687,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <Box
                 sx={{
                   padding: '4px 8px',
-                  backgroundColor: 'var(--color-primary, #6366f1)',
-                  color: 'var(--color-text, #18181b)',
+                  backgroundColor: cssVarWithFallback(
+                    '--color-primary',
+                    CSS_THEME_HEX_FALLBACK.primary,
+                  ),
+                  color: cssVarWithFallback(
+                    '--color-on-primary',
+                    CSS_THEME_HEX_FALLBACK.onPrimary,
+                  ),
                   borderRadius: '4px',
                   minWidth: '120px',
                   width: '150px',
