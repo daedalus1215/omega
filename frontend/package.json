@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "icons": "node scripts/generate-icons.mjs",
     "build": "tsc && vite build",
     "lint": "eslint .",
     "prettier": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
@@ -49,10 +50,12 @@
     "globals": "^15.14.0",
     "postcss": "^8.5.3",
     "prettier": "^3.7.3",
+    "sharp": "^0.33.5",
     "tailwindcss": "^4.1.7",
     "tw-animate-css": "^1.3.0",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.18.2",
-    "vite": "^4.0.0"
+    "vite": "^4.0.0",
+    "vite-plugin-pwa": "^1.0.0"
   }
 }
