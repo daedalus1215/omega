@@ -71,7 +71,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
           }}
           onClick={onClose}
         >
-          <Logo />
+          <Logo variant="mark" height={88} />
           <span
             className={styles.name}
             style={{ marginLeft: 8, fontWeight: 600, fontSize: '1.2rem' }}
