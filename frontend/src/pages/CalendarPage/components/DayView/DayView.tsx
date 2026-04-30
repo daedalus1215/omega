@@ -175,6 +175,13 @@ export const DayView: React.FC<DayViewProps> = ({
     (e: React.TouchEvent | React.MouseEvent) => {
       if (touchStartX.current === null || touchStartY.current === null) return;
 
+      // Don't navigate days while an event drag or resize is in progress
+      if (draggedEvent || resizingEvent) {
+        touchStartX.current = null;
+        touchStartY.current = null;
+        return;
+      }
+
       const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : e.clientX;
       const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : e.clientY;
 
@@ -195,7 +202,7 @@ export const DayView: React.FC<DayViewProps> = ({
       touchStartX.current = null;
       touchStartY.current = null;
     },
-    [currentDate, onDateChange]
+    [currentDate, onDateChange, draggedEvent, resizingEvent]
   );
 
   // Mouse drag handlers for desktop swipe
