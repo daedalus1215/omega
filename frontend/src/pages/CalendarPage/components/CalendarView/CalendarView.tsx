@@ -12,6 +12,12 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import { eachDayOfInterval, startOfDay, differenceInMinutes } from 'date-fns';
 import {
@@ -128,6 +134,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [toastSeverity, setToastSeverity] = useState<'success' | 'error'>(
     'success'
   );
+  const [pendingMove, setPendingMove] = useState<{
+    event: CalendarEventResponseDto;
+    startDate: Date;
+    endDate: Date;
+  } | null>(null);
 
   const displayEvents = useMemo(() => {
     if (!movePreview) {
@@ -503,19 +514,53 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       eventToMove,
       dropPosition
     );
-    setMovePreview({
-      eventId: eventToMove.id,
+    const nextStartDateIso = newStartDate.toISOString();
+    const nextEndDateIso = newEndDate.toISOString();
+    const hasMoveChangedTime =
+      eventToMove.startDate !== nextStartDateIso ||
+      eventToMove.endDate !== nextEndDateIso;
+    if (!hasMoveChangedTime) {
+      return;
+    }
+    setPendingMove({
+      event: eventToMove,
       startDate: newStartDate,
       endDate: newEndDate,
     });
+  };
+
+  const handleDragCancel = () => {
+    // Clear all drag/resize state on cancel
+    setDraggedEvent(null);
+    setResizingEvent(null);
+    setMovePreview(null);
+    setResizePreview(null);
+  };
+
+  const handleCancelMove = () => {
+    setPendingMove(null);
+  };
+
+  const handleConfirmMove = async () => {
+    if (!pendingMove) {
+      return;
+    }
+    const nextStartDateIso = pendingMove.startDate.toISOString();
+    const nextEndDateIso = pendingMove.endDate.toISOString();
+    setMovePreview({
+      eventId: pendingMove.event.id,
+      startDate: pendingMove.startDate,
+      endDate: pendingMove.endDate,
+    });
+    setPendingMove(null);
     try {
       await updateMutation.mutateAsync({
-        id: eventToMove.id,
+        id: pendingMove.event.id,
         event: {
-          title: eventToMove.title,
-          description: eventToMove.description,
-          startDate: newStartDate.toISOString(),
-          endDate: newEndDate.toISOString(),
+          title: pendingMove.event.title,
+          description: pendingMove.event.description,
+          startDate: nextStartDateIso,
+          endDate: nextEndDateIso,
         },
       });
     } catch (error) {
@@ -528,14 +573,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           : 'Failed to move event'
       );
     }
-  };
-
-  const handleDragCancel = () => {
-    // Clear all drag/resize state on cancel
-    setDraggedEvent(null);
-    setResizingEvent(null);
-    setMovePreview(null);
-    setResizePreview(null);
   };
 
   return (
@@ -762,6 +799,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           {toastMessage}
         </Alert>
       </Snackbar>
+      <Dialog
+        open={pendingMove !== null}
+        onClose={handleCancelMove}
+        aria-labelledby="move-event-dialog-title"
+        aria-describedby="move-event-dialog-description"
+      >
+        <DialogTitle id="move-event-dialog-title">Move Event</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="move-event-dialog-description">
+            Do you want to move this event to the new date and time?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelMove} variant="outlined">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmMove} variant="contained">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

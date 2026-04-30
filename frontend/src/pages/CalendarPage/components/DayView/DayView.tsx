@@ -4,7 +4,16 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { Box, Typography } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from '@mui/material';
 import {
   addDays,
   subDays,
@@ -91,6 +100,11 @@ export const DayView: React.FC<DayViewProps> = ({
     startDate: Date;
     endDate: Date;
     direction: ResizeDirection;
+  } | null>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    event: CalendarEventResponseDto;
+    startDate: Date;
+    endDate: Date;
   } | null>(null);
 
   // Swipe handling refs
@@ -380,27 +394,19 @@ export const DayView: React.FC<DayViewProps> = ({
       eventToMove,
       dropPosition
     );
-
-    setMovePreview({
-      eventId: eventToMove.id,
+    const nextStartDateIso = newStartDate.toISOString();
+    const nextEndDateIso = newEndDate.toISOString();
+    const hasMoveChangedTime =
+      eventToMove.startDate !== nextStartDateIso ||
+      eventToMove.endDate !== nextEndDateIso;
+    if (!hasMoveChangedTime) {
+      return;
+    }
+    setPendingMove({
+      event: eventToMove,
       startDate: newStartDate,
       endDate: newEndDate,
     });
-
-    try {
-      await updateMutation.mutateAsync({
-        id: eventToMove.id,
-        event: {
-          title: eventToMove.title,
-          description: eventToMove.description,
-          startDate: newStartDate.toISOString(),
-          endDate: newEndDate.toISOString(),
-        },
-      });
-    } catch (error) {
-      console.error('Error moving event:', error);
-      setMovePreview(null);
-    }
   };
 
   const handleDragCancel = () => {
@@ -408,6 +414,38 @@ export const DayView: React.FC<DayViewProps> = ({
     setResizingEvent(null);
     setMovePreview(null);
     setResizePreview(null);
+  };
+
+  const handleCancelMove = () => {
+    setPendingMove(null);
+  };
+
+  const handleConfirmMove = async () => {
+    if (!pendingMove) {
+      return;
+    }
+    const nextStartDateIso = pendingMove.startDate.toISOString();
+    const nextEndDateIso = pendingMove.endDate.toISOString();
+    setMovePreview({
+      eventId: pendingMove.event.id,
+      startDate: pendingMove.startDate,
+      endDate: pendingMove.endDate,
+    });
+    setPendingMove(null);
+    try {
+      await updateMutation.mutateAsync({
+        id: pendingMove.event.id,
+        event: {
+          title: pendingMove.event.title,
+          description: pendingMove.event.description,
+          startDate: nextStartDateIso,
+          endDate: nextEndDateIso,
+        },
+      });
+    } catch (error) {
+      console.error('Error moving event:', error);
+      setMovePreview(null);
+    }
   };
 
   // Calculate event height for drag overlay
@@ -527,6 +565,27 @@ export const DayView: React.FC<DayViewProps> = ({
         onClose={() => setSelectedEventId(null)}
         eventId={selectedEventId}
       />
+      <Dialog
+        open={pendingMove !== null}
+        onClose={handleCancelMove}
+        aria-labelledby="move-event-dialog-title"
+        aria-describedby="move-event-dialog-description"
+      >
+        <DialogTitle id="move-event-dialog-title">Move Event</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="move-event-dialog-description">
+            Do you want to move this event to the new date and time?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelMove} variant="outlined">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmMove} variant="contained">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
