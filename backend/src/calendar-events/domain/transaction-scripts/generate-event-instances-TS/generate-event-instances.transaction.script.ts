@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CalendarEventRepository } from '../../../infra/repositories/calendar-event.repository';
 import { RecurrenceExceptionRepository } from '../../../infra/repositories/recurrence-exception.repository';
+import { EventReminderRepository } from '../../../infra/repositories/event-reminder.repository';
 import { RecurringEvent } from '../../entities/recurring-event.entity';
 import { CalendarEvent } from '../../entities/calendar-event.entity';
 import { generateInstanceDates } from '../../utils/rrule-pattern.utils';
-import { startOfDay, differenceInMinutes } from 'date-fns';
+import { startOfDayUTC } from '../../utils/date-utc.utils';
+import { differenceInMinutes } from 'date-fns';
 import { Logger } from 'nestjs-pino';
 
 /**
@@ -17,7 +19,8 @@ export class GenerateEventInstancesTransactionScript {
   constructor(
     private readonly logger: Logger,
     private readonly calendarEventRepository: CalendarEventRepository,
-    private readonly recurrenceExceptionRepository: RecurrenceExceptionRepository
+    private readonly recurrenceExceptionRepository: RecurrenceExceptionRepository,
+    private readonly eventReminderRepository: EventReminderRepository
   ) {}
 
   /**
@@ -42,11 +45,11 @@ export class GenerateEventInstancesTransactionScript {
       );
 
     // Filter to only instances in the requested date range for return value
-    const rangeStartNormalized = startOfDay(rangeStart);
-    const rangeEndNormalized = startOfDay(rangeEnd);
+    const rangeStartNormalized = startOfDayUTC(rangeStart);
+    const rangeEndNormalized = startOfDayUTC(rangeEnd);
     const existingInstancesInRange = allExistingInstances.filter(instance => {
       if (!instance.instanceDate) return false;
-      const instanceDateNormalized = startOfDay(instance.instanceDate);
+      const instanceDateNormalized = startOfDayUTC(instance.instanceDate);
       return (
         instanceDateNormalized >= rangeStartNormalized &&
         instanceDateNormalized <= rangeEndNormalized
@@ -59,8 +62,7 @@ export class GenerateEventInstancesTransactionScript {
     const existingInstanceDateTimestamps = new Set<number>();
     for (const instance of allExistingInstances) {
       if (!instance.instanceDate) continue;
-      // Normalize instanceDate to start of day and get timestamp
-      const normalizedDate = startOfDay(instance.instanceDate);
+      const normalizedDate = startOfDayUTC(instance.instanceDate);
       const timestamp = normalizedDate.getTime();
       existingInstanceDateTimestamps.add(timestamp);
     }
@@ -104,8 +106,7 @@ export class GenerateEventInstancesTransactionScript {
     // Create CalendarEvent for each generated date that doesn't already exist
     const newInstances: CalendarEvent[] = [];
     for (const instanceStartDate of instanceStartDates) {
-      const instanceDate = startOfDay(instanceStartDate);
-      // Use timestamp for comparison to avoid timezone/format issues
+      const instanceDate = startOfDayUTC(instanceStartDate);
       const timestamp = instanceDate.getTime();
 
       // Skip if instance already exists
@@ -121,20 +122,57 @@ export class GenerateEventInstancesTransactionScript {
         userId: recurringEvent.userId,
         recurringEventId: recurringEvent.id,
         instanceDate,
-        title: recurringEvent.title, // Base title from recurring event
-        description: recurringEvent.description, // Base description from recurring event
-        color: recurringEvent.color, // Color from recurring event
+        title: recurringEvent.title,
+        description: recurringEvent.description,
+        color: recurringEvent.color,
         startDate: instanceStartDate,
         endDate: instanceEndDate,
         isModified: false,
-        // titleOverride and descriptionOverride are null for new instances
-        // They can be set later if the instance is modified
       });
 
       newInstances.push(instance);
     }
 
-    // Return both existing instances in range and newly created instances
-    return [...existingInstancesInRange, ...newInstances];
+    const allInstancesInRange = [...existingInstancesInRange, ...newInstances];
+
+    // Ensure all instances have reminders (handles both new and existing).
+    // Uses deduplication so it's safe to call on every fetch cycle.
+    if (recurringEvent.reminderMinutes !== undefined && recurringEvent.reminderMinutes !== null) {
+      await this.ensureRemindersExist(
+        allInstancesInRange,
+        recurringEvent.reminderMinutes
+      );
+    }
+
+    return allInstancesInRange;
+  }
+
+  /**
+   * Ensure every instance has a reminder. Uses a single batch query
+   * to find which instances already have reminders, then only creates
+   * for those missing one. Safe to call repeatedly (idempotent).
+   */
+  private async ensureRemindersExist(
+    instances: CalendarEvent[],
+    reminderMinutes: number
+  ): Promise<void> {
+    if (instances.length === 0) return;
+
+    const instanceIds = instances.map(i => i.id);
+    const existingReminders =
+      await this.eventReminderRepository.findByEventIds(instanceIds);
+
+    const instanceIdsWithReminders = new Set(
+      existingReminders.map(r => r.calendarEventId)
+    );
+
+    for (const instance of instances) {
+      if (instanceIdsWithReminders.has(instance.id)) continue;
+
+      await this.eventReminderRepository.create({
+        calendarEventId: instance.id,
+        reminderMinutes,
+      });
+    }
   }
 }

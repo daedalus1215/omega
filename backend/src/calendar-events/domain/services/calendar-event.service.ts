@@ -22,6 +22,9 @@ import { FetchEventRemindersTransactionScript } from '../transaction-scripts/fet
 import { FetchEventRemindersCommand } from '../transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.command';
 import { CalendarEvent } from '../entities/calendar-event.entity';
 import { EventReminder } from '../entities/event-reminder.entity';
+import { CalendarEventRepository } from '../../infra/repositories/calendar-event.repository';
+import { RecurringEventRepository } from '../../infra/repositories/recurring-event.repository';
+import { EventReminderRepository } from '../../infra/repositories/event-reminder.repository';
 
 /**
  * Calendar Event Service.
@@ -41,7 +44,10 @@ export class CalendarEventService {
     private readonly createEventReminderTransactionScript: CreateEventReminderTransactionScript,
     private readonly updateEventReminderTransactionScript: UpdateEventReminderTransactionScript,
     private readonly deleteEventReminderTransactionScript: DeleteEventReminderTransactionScript,
-    private readonly fetchEventRemindersTransactionScript: FetchEventRemindersTransactionScript
+    private readonly fetchEventRemindersTransactionScript: FetchEventRemindersTransactionScript,
+    private readonly calendarEventRepository: CalendarEventRepository,
+    private readonly recurringEventRepository: RecurringEventRepository,
+    private readonly eventReminderRepository: EventReminderRepository
   ) {}
 
   /**
@@ -131,27 +137,78 @@ export class CalendarEventService {
 
   /**
    * Create an event reminder.
+   * If the event is a recurring instance, also updates the template's reminderMinutes
+   * so future instances inherit the same reminder.
    */
   async createReminder(
     command: CreateEventReminderCommand
   ): Promise<EventReminder> {
-    return await this.createEventReminderTransactionScript.apply(command);
+    const reminder =
+      await this.createEventReminderTransactionScript.apply(command);
+    await this.syncReminderToRecurringTemplate(
+      command.calendarEventId,
+      command.user.userId,
+      command.reminderMinutes
+    );
+    return reminder;
   }
 
   /**
    * Update an event reminder.
+   * If the event is a recurring instance, also updates the template's reminderMinutes.
    */
   async updateReminder(
     command: UpdateEventReminderCommand
   ): Promise<EventReminder> {
-    return await this.updateEventReminderTransactionScript.apply(command);
+    const reminder =
+      await this.updateEventReminderTransactionScript.apply(command);
+    await this.syncReminderToRecurringTemplate(
+      reminder.calendarEventId,
+      command.user.userId,
+      command.reminderMinutes
+    );
+    return reminder;
   }
 
   /**
    * Delete an event reminder.
+   * If the event is a recurring instance, clears the template's reminderMinutes.
    */
   async deleteReminder(command: DeleteEventReminderCommand): Promise<void> {
-    return await this.deleteEventReminderTransactionScript.apply(command);
+    const reminder = await this.eventReminderRepository.findById(
+      command.reminderId
+    );
+    await this.deleteEventReminderTransactionScript.apply(command);
+    if (reminder) {
+      await this.syncReminderToRecurringTemplate(
+        reminder.calendarEventId,
+        command.user.userId,
+        null
+      );
+    }
+  }
+
+  /**
+   * When a reminder is created/updated/deleted on a recurring instance,
+   * propagate the change to the recurring event template so future
+   * instances inherit the same setting.
+   */
+  private async syncReminderToRecurringTemplate(
+    calendarEventId: number,
+    userId: number,
+    reminderMinutes: number | null
+  ): Promise<void> {
+    const event = await this.calendarEventRepository.findById(
+      calendarEventId,
+      userId
+    );
+    if (!event?.recurringEventId) return;
+
+    await this.recurringEventRepository.updateReminderMinutes(
+      event.recurringEventId,
+      userId,
+      reminderMinutes
+    );
   }
 
   /**

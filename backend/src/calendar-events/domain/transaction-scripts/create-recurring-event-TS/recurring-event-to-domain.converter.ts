@@ -32,6 +32,7 @@ export class RecurringEventToDomainConverter {
       recurrencePattern: pattern,
       recurrenceEndDate: infra.recurrenceEndDate,
       noEndDate: infra.noEndDate,
+      reminderMinutes: infra.reminderMinutes,
       createdAt: infra.createdAt,
       updatedAt: infra.updatedAt,
     };

@@ -13,7 +13,8 @@ import { FetchCalendarEventsCommand } from '../../../domain/transaction-scripts/
 import { CalendarEventResponseDto } from '../../dtos/responses/calendar-event.response.dto';
 import { EventReminderRepository } from '../../../infra/repositories/event-reminder.repository';
 import { EventReminderResponseDto } from '../fetch-event-reminders-action/dtos/responses/event-reminder.response.dto';
-import { parseISO, startOfWeek, endOfWeek } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { startOfWeekUTC, endOfWeekUTC } from '../../../domain/utils/date-utc.utils';
 
 /**
  * Action handler for fetching calendar events within a date range.
@@ -46,10 +47,10 @@ export class FetchCalendarEventsAction {
     const now = new Date();
     const startDate = dto.startDate
       ? parseISO(dto.startDate)
-      : startOfWeek(now, { weekStartsOn: 1 });
+      : startOfWeekUTC(now);
     const endDate = dto.endDate
       ? parseISO(dto.endDate)
-      : endOfWeek(now, { weekStartsOn: 1 });
+      : endOfWeekUTC(now);
     const command: FetchCalendarEventsCommand = {
       userId: user.userId,
       startDate,

@@ -15,6 +15,9 @@ import { FetchEventRemindersTransactionScript } from '../../transaction-scripts/
 import { CreateCalendarEventCommand } from '../../transaction-scripts/create-calendar-event-TS/create-calendar-event.command';
 import { CalendarEvent } from '../../entities/calendar-event.entity';
 import { EventReminder } from '../../entities/event-reminder.entity';
+import { CalendarEventRepository } from '../../../infra/repositories/calendar-event.repository';
+import { RecurringEventRepository } from '../../../infra/repositories/recurring-event.repository';
+import { EventReminderRepository } from '../../../infra/repositories/event-reminder.repository';
 import {
   generateRandomNumbers,
   createMock,
@@ -36,6 +39,9 @@ describe('CalendarEventService', () => {
   let mockUpdateEventReminderTransactionScript: jest.Mocked<UpdateEventReminderTransactionScript>;
   let mockDeleteEventReminderTransactionScript: jest.Mocked<DeleteEventReminderTransactionScript>;
   let mockFetchEventRemindersTransactionScript: jest.Mocked<FetchEventRemindersTransactionScript>;
+  let mockCalendarEventRepository: jest.Mocked<CalendarEventRepository>;
+  let mockRecurringEventRepository: jest.Mocked<RecurringEventRepository>;
+  let mockEventReminderRepository: jest.Mocked<EventReminderRepository>;
 
   const mockUser = {
     userId: generateRandomNumbers(),
@@ -86,6 +92,18 @@ describe('CalendarEventService', () => {
 
     mockFetchEventRemindersTransactionScript =
       createMockWithApply<FetchEventRemindersTransactionScript>();
+
+    mockCalendarEventRepository = createMock<CalendarEventRepository>({
+      findById: jest.fn(),
+    });
+
+    mockRecurringEventRepository = createMock<RecurringEventRepository>({
+      updateReminderMinutes: jest.fn(),
+    });
+
+    mockEventReminderRepository = createMock<EventReminderRepository>({
+      findById: jest.fn(),
+    });
 
     mockDataSource = createMock<DataSource>({
       transaction: jest.fn(),
@@ -141,6 +159,18 @@ describe('CalendarEventService', () => {
         {
           provide: FetchEventRemindersTransactionScript,
           useValue: mockFetchEventRemindersTransactionScript,
+        },
+        {
+          provide: CalendarEventRepository,
+          useValue: mockCalendarEventRepository,
+        },
+        {
+          provide: RecurringEventRepository,
+          useValue: mockRecurringEventRepository,
+        },
+        {
+          provide: EventReminderRepository,
+          useValue: mockEventReminderRepository,
         },
       ],
     }).compile();

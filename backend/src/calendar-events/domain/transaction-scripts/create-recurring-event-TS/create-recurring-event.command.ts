@@ -10,5 +10,6 @@ export type CreateRecurringEventCommand = {
   recurrencePattern: RecurrencePattern;
   recurrenceEndDate?: Date;
   noEndDate: boolean;
+  reminderMinutes?: number;
   user: AuthUser;
 };

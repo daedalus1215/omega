@@ -65,6 +65,7 @@ export type CreateRecurringEventRequest = {
   recurrencePattern: RecurrencePatternDto;
   recurrenceEndDate?: string;
   noEndDate: boolean;
+  reminderMinutes?: number;
 };
 
 export type RecurringEventResponseDto = {
@@ -78,6 +79,7 @@ export type RecurringEventResponseDto = {
   recurrencePattern: RecurrencePatternDto;
   recurrenceEndDate?: string;
   noEndDate: boolean;
+  reminderMinutes?: number;
   createdAt: string;
   updatedAt: string;
 };

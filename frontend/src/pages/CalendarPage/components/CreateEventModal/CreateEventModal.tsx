@@ -167,6 +167,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             ? new Date(recurrenceData.recurrenceEndDate).toISOString()
             : undefined,
           noEndDate: recurrenceData.noEndDate,
+          reminderMinutes: reminderMinutes !== null ? reminderMinutes : undefined,
         });
       } else {
         await createMutation.mutateAsync({

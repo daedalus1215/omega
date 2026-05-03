@@ -44,6 +44,7 @@ export class CreateRecurringEventTransactionScript {
       recurrencePattern: command.recurrencePattern,
       recurrenceEndDate: command.recurrenceEndDate,
       noEndDate: command.noEndDate,
+      reminderMinutes: command.reminderMinutes,
     };
     const infrastructureEntity = this.toInfrastructureConverter.apply(
       domainEvent,

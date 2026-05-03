@@ -149,4 +149,9 @@ export class CreateRecurringEventRequestDto {
 
   @IsBoolean()
   noEndDate: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  reminderMinutes?: number;
 }

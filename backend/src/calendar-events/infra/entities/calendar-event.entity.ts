@@ -32,8 +32,21 @@ export class CalendarEventEntity {
   @Column({ name: 'recurring_event_id', type: 'int', nullable: true })
   recurringEventId?: number;
 
-  @Column({ name: 'instance_date', type: 'date', nullable: true })
-  instanceDate?: Date; // Date of this instance (for recurring events)
+  @Column({
+    name: 'instance_date',
+    type: 'date',
+    nullable: true,
+    transformer: {
+      to: (value: Date | null | undefined): string | null =>
+        value ? value.toISOString().split('T')[0] : null,
+      from: (value: Date | string | null): Date | undefined => {
+        if (!value) return undefined;
+        if (value instanceof Date) return value;
+        return new Date(value + 'T00:00:00.000Z');
+      },
+    },
+  })
+  instanceDate?: Date;
 
   @Column({ name: 'title', type: 'varchar', length: 255 })
   title: string;

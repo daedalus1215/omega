@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError, EntityManager } from 'typeorm';
-import { startOfDay } from 'date-fns';
+import { toUTCDateString } from '../../domain/utils/date-utc.utils';
 import { CalendarEventEntity } from '../entities/calendar-event.entity';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
 import { Logger } from 'nestjs-pino';
@@ -60,10 +60,7 @@ export class CalendarEventRepository {
         error.message.includes('recurring_event_id') &&
         error.message.includes('instance_date')
       ) {
-        // Normalize instanceDate to start of day for consistent comparison
-        // SQLite date columns store dates as YYYY-MM-DD strings
-        const normalizedDate = startOfDay(event.instanceDate);
-        const dateString = normalizedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const dateString = toUTCDateString(event.instanceDate);
 
         // Fetch and return the existing instance using date string comparison
         // SQLite date columns can be compared directly with date strings

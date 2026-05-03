@@ -15,6 +15,7 @@ export type RecurringEvent = {
   recurrencePattern: RecurrencePattern; // Value object
   recurrenceEndDate?: Date; // Optional end date for series
   noEndDate: boolean; // Flag for infinite series
+  reminderMinutes?: number; // Default reminder for all instances
   createdAt: Date;
   updatedAt: Date;
 };
