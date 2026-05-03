@@ -64,6 +64,18 @@ export class RecurringEventRepository {
   }
 
   /**
+   * Update only the reminderMinutes field on a recurring event.
+   * Accepts null to clear the value (sets DB column to NULL).
+   */
+  async updateReminderMinutes(
+    id: number,
+    userId: number,
+    reminderMinutes: number | null
+  ): Promise<void> {
+    await this.repository.update({ id, userId }, { reminderMinutes });
+  }
+
+  /**
    * Delete a recurring event by ID and user ID.
    */
   async delete(id: number, userId: number): Promise<void> {

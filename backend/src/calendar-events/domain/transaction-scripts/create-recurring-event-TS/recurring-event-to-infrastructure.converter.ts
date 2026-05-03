@@ -31,6 +31,7 @@ export class RecurringEventToInfrastructureConverter {
       recurrenceEndDate: domain.recurrenceEndDate,
       noEndDate: domain.noEndDate ?? false,
       rruleString,
+      reminderMinutes: domain.reminderMinutes,
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
     };

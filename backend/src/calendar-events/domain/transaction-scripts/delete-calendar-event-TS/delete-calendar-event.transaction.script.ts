@@ -3,7 +3,7 @@ import { CalendarEventRepository } from '../../../infra/repositories/calendar-ev
 import { RecurrenceExceptionRepository } from '../../../infra/repositories/recurrence-exception.repository';
 import { RecurringEventRepository } from '../../../infra/repositories/recurring-event.repository';
 import { DeleteCalendarEventCommand } from './delete-calendar-event.command';
-import { startOfDay } from 'date-fns';
+import { startOfDayUTC } from '../../utils/date-utc.utils';
 import { Logger } from 'nestjs-pino';
 
 /**
@@ -51,7 +51,7 @@ export class DeleteCalendarEventTransactionScript {
       );
 
       if (parentRecurringEvent) {
-        const exceptionDate = startOfDay(calendarEvent.instanceDate);
+        const exceptionDate = startOfDayUTC(calendarEvent.instanceDate);
 
         // Check if exception already exists (idempotent)
         const existingExceptions =
@@ -60,7 +60,7 @@ export class DeleteCalendarEventTransactionScript {
           );
         const exceptionExists = existingExceptions.some(
           ex =>
-            startOfDay(ex.exceptionDate).getTime() === exceptionDate.getTime()
+            startOfDayUTC(ex.exceptionDate).getTime() === exceptionDate.getTime()
         );
 
         if (!exceptionExists) {

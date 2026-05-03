@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchCalendarEvents } from '../../../api/requests/calendar-events.requests';
 import { CalendarEventResponseDto } from '../../../api/dtos/calendar-events.dtos';
-import { format, addDays } from 'date-fns';
+import { addDays } from 'date-fns';
 
 /**
  * React Query key factory for calendar events.
@@ -31,8 +31,8 @@ export const useCalendarEvents = (
   error: Error | null;
   refetch: () => void;
 } => {
-  const startDateStr = format(startDate, 'yyyy-MM-dd');
-  const endDateStr = format(addDays(endDate, 1), 'yyyy-MM-dd');
+  const startDateStr = startDate.toISOString().split('T')[0];
+  const endDateStr = addDays(endDate, 1).toISOString().split('T')[0];
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: calendarEventKeys.list(startDateStr, endDateStr),

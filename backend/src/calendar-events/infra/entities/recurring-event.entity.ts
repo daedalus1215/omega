@@ -57,6 +57,9 @@ export class RecurringEventEntity {
   @Column({ name: 'rrule_string', type: 'text' })
   rruleString: string; // RFC 5545 RRULE string for rrule library
 
+  @Column({ name: 'reminder_minutes', type: 'int', nullable: true })
+  reminderMinutes?: number | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;
 

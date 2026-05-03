@@ -61,6 +61,7 @@ export class CreateRecurringEventAction {
         ? new Date(dto.recurrenceEndDate)
         : undefined,
       noEndDate: dto.noEndDate,
+      reminderMinutes: dto.reminderMinutes,
       user,
     };
     const event =

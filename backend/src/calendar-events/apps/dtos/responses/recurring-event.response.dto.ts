@@ -19,6 +19,7 @@ export type RecurringEventResponseDto = {
   recurrencePattern: RecurrencePatternResponseDto;
   recurrenceEndDate?: Date;
   noEndDate: boolean;
+  reminderMinutes?: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -34,6 +35,7 @@ export class RecurringEventResponseDtoClass {
   recurrencePattern: RecurrencePatternResponseDto;
   recurrenceEndDate?: Date;
   noEndDate: boolean;
+  reminderMinutes?: number;
   createdAt: Date;
   updatedAt: Date;
 
@@ -54,6 +56,7 @@ export class RecurringEventResponseDtoClass {
     };
     this.recurrenceEndDate = event.recurrenceEndDate;
     this.noEndDate = event.noEndDate;
+    this.reminderMinutes = event.reminderMinutes;
     this.createdAt = event.createdAt;
     this.updatedAt = event.updatedAt;
   }
