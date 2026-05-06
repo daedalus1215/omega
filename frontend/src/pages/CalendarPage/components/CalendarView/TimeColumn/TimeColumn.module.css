@@ -10,10 +10,18 @@
   flex-shrink: 0;
 }
 
+.timeColumnNoScheduleHeader {
+  height: 1440px; /* 24 hours * 60px */
+}
+
 @media (max-width: 600px) {
   .timeColumn {
     min-width: 50px;
     height: 1495px; /* 55px header + 1440px content (24 hours * 60px) */
+  }
+
+  .timeColumnNoScheduleHeader {
+    height: 1440px;
   }
 }
 

@@ -18,6 +18,8 @@ type DayColumnProps = {
     endDate: Date;
     direction: 'top' | 'bottom';
   } | null;
+  /** Hide weekday/date header when the page already shows the date (e.g. Day view). */
+  hideDayHeader?: boolean;
 };
 
 /**
@@ -29,6 +31,7 @@ type DayColumnProps = {
  * @param props.layoutMap - Map of event IDs to their layout information
  * @param props.timeSlots - Array of hour indices (0-23)
  * @param props.onEventSelect - Callback when an event is clicked
+ * @param props.hideDayHeader - When true, omit the weekday/date header row
  */
 export const DayColumn: React.FC<DayColumnProps> = ({
   day,
@@ -37,6 +40,7 @@ export const DayColumn: React.FC<DayColumnProps> = ({
   onEventSelect,
   onTimeSlotClick,
   resizePreview,
+  hideDayHeader = false,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${day.toISOString()}`,
@@ -58,18 +62,20 @@ export const DayColumn: React.FC<DayColumnProps> = ({
     <Box
       ref={setNodeRef}
       data-day-id={day.toISOString()}
-      className={`${styles.dayColumn} ${isOver ? styles.dropOver : ''}`}
+      className={`${styles.dayColumn} ${hideDayHeader ? styles.dayColumnNoDayHeader : ''} ${isOver ? styles.dropOver : ''}`}
     >
-      <Paper
-        className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''}`}
-      >
-        <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-          {format(day, 'EEE')}
-        </Typography>
-        <Typography variant="h6" sx={{ lineHeight: 1.2, fontSize: '1.25rem' }}>
-          {format(day, 'd')}
-        </Typography>
-      </Paper>
+      {!hideDayHeader ? (
+        <Paper
+          className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''}`}
+        >
+          <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
+            {format(day, 'EEE')}
+          </Typography>
+          <Typography variant="h6" sx={{ lineHeight: 1.2, fontSize: '1.25rem' }}>
+            {format(day, 'd')}
+          </Typography>
+        </Paper>
+      ) : null}
       <Box className={styles.dayContent}>
         {timeSlots.map(hour => (
           <Box

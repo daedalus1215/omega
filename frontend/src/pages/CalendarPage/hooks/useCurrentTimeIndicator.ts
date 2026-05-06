@@ -5,6 +5,8 @@ import { CALENDAR_CONSTANTS } from '../constants/calendar.constants';
 type UseCurrentTimeIndicatorOptions = {
   days: Date[];
   isMobile: boolean;
+  /** When false, Y position is relative to the schedule grid only (no sticky header row). */
+  hasScheduleHeaderRow?: boolean;
 };
 
 type CurrentTimeIndicatorReturn = {
@@ -19,6 +21,7 @@ type CurrentTimeIndicatorReturn = {
 export const useCurrentTimeIndicator = ({
   days,
   isMobile,
+  hasScheduleHeaderRow = true,
 }: UseCurrentTimeIndicatorOptions): CurrentTimeIndicatorReturn => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
@@ -46,9 +49,11 @@ export const useCurrentTimeIndicator = ({
       return null;
     }
 
-    const headerHeight = isMobile
-      ? CALENDAR_CONSTANTS.MOBILE_HEADER_HEIGHT
-      : CALENDAR_CONSTANTS.HEADER_HEIGHT;
+    const headerHeight = hasScheduleHeaderRow
+      ? isMobile
+        ? CALENDAR_CONSTANTS.MOBILE_HEADER_HEIGHT
+        : CALENDAR_CONSTANTS.HEADER_HEIGHT
+      : 0;
 
     const hours = currentTime.getHours();
     const minutes = currentTime.getMinutes();
@@ -59,7 +64,7 @@ export const useCurrentTimeIndicator = ({
       (minutes / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
 
     return position;
-  }, [isTodayInRange, currentTime, isMobile]);
+  }, [isTodayInRange, currentTime, isMobile, hasScheduleHeaderRow]);
 
   return {
     currentTime,

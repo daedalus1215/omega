@@ -161,6 +161,7 @@ export const DayView: React.FC<DayViewProps> = ({
   const { currentTimePosition } = useCurrentTimeIndicator({
     days: dayRange,
     isMobile,
+    hasScheduleHeaderRow: false,
   });
 
   // Swipe gesture handlers
@@ -486,7 +487,7 @@ export const DayView: React.FC<DayViewProps> = ({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
         >
-          <TimeColumn timeSlots={timeSlots} />
+          <TimeColumn timeSlots={timeSlots} hideScheduleHeaderRow />
 
           {currentTimePosition !== null && (
             <CurrentTimeIndicator
@@ -503,6 +504,7 @@ export const DayView: React.FC<DayViewProps> = ({
               onEventSelect={setSelectedEventId}
               onTimeSlotClick={onTimeSlotClick}
               resizePreview={resizePreview}
+              hideDayHeader
             />
           </Box>
         </Box>

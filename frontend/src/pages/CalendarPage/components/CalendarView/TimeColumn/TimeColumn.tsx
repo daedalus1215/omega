@@ -6,6 +6,8 @@ import styles from './TimeColumn.module.css';
 
 type TimeColumnProps = {
   timeSlots: number[];
+  /** Omit the top spacer row so the first hour aligns with a headerless day column (e.g. Day view). */
+  hideScheduleHeaderRow?: boolean;
 };
 
 type FormattedHour = {
@@ -33,12 +35,19 @@ const formatHour = (hour: number): FormattedHour => {
  * Time column component showing hours of the day
  * Displays on the left side of the calendar grid with sticky positioning
  */
-export const TimeColumn: React.FC<TimeColumnProps> = ({ timeSlots }) => {
+export const TimeColumn: React.FC<TimeColumnProps> = ({
+  timeSlots,
+  hideScheduleHeaderRow = false,
+}) => {
   const isMobile = useIsMobile();
 
   return (
-    <Box className={styles.timeColumn} role="presentation" aria-hidden="true">
-      <Box className={styles.timeSlotHeader}></Box>
+    <Box
+      className={`${styles.timeColumn} ${hideScheduleHeaderRow ? styles.timeColumnNoScheduleHeader : ''}`}
+      role="presentation"
+      aria-hidden="true"
+    >
+      {!hideScheduleHeaderRow ? <Box className={styles.timeSlotHeader} /> : null}
       {timeSlots.map(hour => {
         const { hour: displayHour, period, isDay } = formatHour(hour);
         return (
