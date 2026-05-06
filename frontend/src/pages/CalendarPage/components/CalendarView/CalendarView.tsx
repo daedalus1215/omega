@@ -33,10 +33,7 @@ import {
   closestCenter,
 } from '@dnd-kit/core';
 import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.dtos';
-import {
-  CSS_THEME_HEX_FALLBACK,
-  cssVarWithFallback,
-} from '../../../../constants/css-theme-fallbacks';
+import { getEventSurfaceText } from '../../utils/get-event-surface-text';
 import { EventDetailsModal } from '../EventDetailsModal/EventDetailsModal';
 import { useEventLayouts } from '../../hooks/useEventLayouts';
 import { DayColumn } from './DayColumn/DayColumn';
@@ -61,7 +58,7 @@ import {
   ResizeDirection,
 } from '../../utils/event-resize.utils';
 import { snapToTimeSlot } from '../../utils/drag-modifiers.utils';
-import { CALENDAR_CONSTANTS } from '../../constants/calendar.constants';
+import { CALENDAR_CONSTANTS, EVENT_COLORS, DEFAULT_EVENT_COLOR_KEY } from '../../constants/calendar.constants';
 import styles from './CalendarView.module.css';
 
 type CalendarViewProps = {
@@ -718,26 +715,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </Box>
         <DragOverlay>
           {draggedEvent ? (() => {
-            // Calculate event height based on duration
             const startDate = new Date(draggedEvent.startDate);
             const endDate = new Date(draggedEvent.endDate);
             const durationMinutes = differenceInMinutes(endDate, startDate);
             const heightPixels = (durationMinutes / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
             const minHeight = (CALENDAR_CONSTANTS.DRAG_SNAP_INTERVAL / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+            const overlayColor = draggedEvent.color || EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value;
+            const overlaySurface = getEventSurfaceText(overlayColor);
             
             return (
               <Box
                 sx={{
                   boxSizing: 'border-box',
                   padding: '4px',
-                  backgroundColor: cssVarWithFallback(
-                    '--color-primary',
-                    CSS_THEME_HEX_FALLBACK.primary,
-                  ),
-                  color: cssVarWithFallback(
-                    '--color-on-primary',
-                    CSS_THEME_HEX_FALLBACK.onPrimary,
-                  ),
+                  backgroundColor: overlayColor,
+                  color: overlaySurface.foreground,
                   borderRadius: '4px',
                   width: draggedEventWidth ? `${draggedEventWidth}px` : '150px',
                   height: `${Math.max(minHeight, heightPixels)}px`,

@@ -36,10 +36,7 @@ import {
 } from '@dnd-kit/core';
 import { differenceInMinutes } from 'date-fns';
 import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.dtos';
-import {
-  CSS_THEME_HEX_FALLBACK,
-  cssVarWithFallback,
-} from '../../../../constants/css-theme-fallbacks';
+import { getEventSurfaceText } from '../../utils/get-event-surface-text';
 import { useEventLayouts } from '../../hooks/useEventLayouts';
 import { useUpdateCalendarEvent } from '../../hooks/useUpdateCalendarEvent';
 import { DayColumn } from '../CalendarView/DayColumn/DayColumn';
@@ -58,7 +55,7 @@ import {
   ResizeDirection,
 } from '../../utils/event-resize.utils';
 import { snapToTimeSlot } from '../../utils/drag-modifiers.utils';
-import { CALENDAR_CONSTANTS } from '../../constants/calendar.constants';
+import { CALENDAR_CONSTANTS, EVENT_COLORS, DEFAULT_EVENT_COLOR_KEY } from '../../constants/calendar.constants';
 import { EventDetailsModal } from '../EventDetailsModal/EventDetailsModal';
 import styles from './DayView.module.css';
 
@@ -516,19 +513,16 @@ export const DayView: React.FC<DayViewProps> = ({
         </Box>
 
         <DragOverlay>
-          {draggedEvent ? (
+          {draggedEvent ? (() => {
+            const overlayColor = draggedEvent.color || EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value;
+            const overlaySurface = getEventSurfaceText(overlayColor);
+            return (
             <Box
               sx={{
                 boxSizing: 'border-box',
                 padding: '4px',
-                backgroundColor: cssVarWithFallback(
-                  '--color-primary',
-                  CSS_THEME_HEX_FALLBACK.primary,
-                ),
-                color: cssVarWithFallback(
-                  '--color-on-primary',
-                  CSS_THEME_HEX_FALLBACK.onPrimary,
-                ),
+                backgroundColor: overlayColor,
+                color: overlaySurface.foreground,
                 borderRadius: '4px',
                 width: draggedEventWidth ? `${draggedEventWidth}px` : (isMobile ? 'calc(100vw - 150px)' : '300px'),
                 height: `${getDragOverlayHeight(draggedEvent)}px`,
@@ -571,7 +565,8 @@ export const DayView: React.FC<DayViewProps> = ({
                 </Typography>
               )}
             </Box>
-          ) : null}
+            );
+          })() : null}
         </DragOverlay>
       </DndContext>
 
