@@ -115,6 +115,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [draggedEvent, setDraggedEvent] =
     useState<CalendarEventResponseDto | null>(null);
+  const [draggedEventWidth, setDraggedEventWidth] = useState<number | null>(null);
   const [resizingEvent, setResizingEvent] = useState<{
     event: CalendarEventResponseDto;
     direction: ResizeDirection;
@@ -301,6 +302,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const direction = data?.direction as ResizeDirection;
         setResizingEvent({ event: eventData, direction });
       } else {
+        const target = event.activatorEvent?.target as HTMLElement | null;
+        const cardElement = target?.closest('[data-event-card]') as HTMLElement | null;
+        setDraggedEventWidth(cardElement ? cardElement.getBoundingClientRect().width : null);
         setDraggedEvent(eventData);
       }
     }
@@ -484,6 +488,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Handle move operations (existing logic)
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizePreview(null);
     if (!over || !activeData?.event) {
       return;
@@ -530,8 +535,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleDragCancel = () => {
-    // Clear all drag/resize state on cancel
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizingEvent(null);
     setMovePreview(null);
     setResizePreview(null);
@@ -723,7 +728,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return (
               <Box
                 sx={{
-                  padding: '4px 8px',
+                  boxSizing: 'border-box',
+                  padding: '4px',
                   backgroundColor: cssVarWithFallback(
                     '--color-primary',
                     CSS_THEME_HEX_FALLBACK.primary,
@@ -733,8 +739,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     CSS_THEME_HEX_FALLBACK.onPrimary,
                   ),
                   borderRadius: '4px',
-                  minWidth: '120px',
-                  width: '150px',
+                  width: draggedEventWidth ? `${draggedEventWidth}px` : '150px',
                   height: `${Math.max(minHeight, heightPixels)}px`,
                   opacity: 0.8,
                   boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',

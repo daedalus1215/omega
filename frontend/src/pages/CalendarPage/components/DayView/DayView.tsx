@@ -86,6 +86,7 @@ export const DayView: React.FC<DayViewProps> = ({
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [draggedEvent, setDraggedEvent] =
     useState<CalendarEventResponseDto | null>(null);
+  const [draggedEventWidth, setDraggedEventWidth] = useState<number | null>(null);
   const [resizingEvent, setResizingEvent] = useState<{
     event: CalendarEventResponseDto;
     direction: ResizeDirection;
@@ -253,6 +254,9 @@ export const DayView: React.FC<DayViewProps> = ({
         const direction = data?.direction as ResizeDirection;
         setResizingEvent({ event: eventData, direction });
       } else {
+        const target = event.activatorEvent?.target as HTMLElement | null;
+        const cardElement = target?.closest('[data-event-card]') as HTMLElement | null;
+        setDraggedEventWidth(cardElement ? cardElement.getBoundingClientRect().width : null);
         setDraggedEvent(eventData);
       }
     }
@@ -378,6 +382,7 @@ export const DayView: React.FC<DayViewProps> = ({
 
     // Handle move operations
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizePreview(null);
     if (!over || !activeData?.event) return;
 
@@ -419,6 +424,7 @@ export const DayView: React.FC<DayViewProps> = ({
 
   const handleDragCancel = () => {
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizingEvent(null);
     setMovePreview(null);
     setResizePreview(null);
@@ -513,7 +519,8 @@ export const DayView: React.FC<DayViewProps> = ({
           {draggedEvent ? (
             <Box
               sx={{
-                padding: '4px 8px',
+                boxSizing: 'border-box',
+                padding: '4px',
                 backgroundColor: cssVarWithFallback(
                   '--color-primary',
                   CSS_THEME_HEX_FALLBACK.primary,
@@ -523,8 +530,7 @@ export const DayView: React.FC<DayViewProps> = ({
                   CSS_THEME_HEX_FALLBACK.onPrimary,
                 ),
                 borderRadius: '4px',
-                minWidth: '120px',
-                width: isMobile ? 'calc(100vw - 150px)' : '300px',
+                width: draggedEventWidth ? `${draggedEventWidth}px` : (isMobile ? 'calc(100vw - 150px)' : '300px'),
                 height: `${getDragOverlayHeight(draggedEvent)}px`,
                 opacity: 0.8,
                 boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
