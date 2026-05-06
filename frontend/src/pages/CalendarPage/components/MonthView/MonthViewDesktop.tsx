@@ -13,6 +13,7 @@ import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.d
 import { EventDetailsModal } from '../EventDetailsModal/EventDetailsModal';
 import { MonthViewProps } from './MonthView.types';
 import { EVENT_COLORS, DEFAULT_EVENT_COLOR_KEY } from '../../constants/calendar.constants';
+import { getEventSurfaceText } from '../../utils/get-event-surface-text';
 import styles from './MonthViewDesktop.module.css';
 
 const MAX_EVENTS_PER_DAY = 4;
@@ -114,19 +115,20 @@ export const MonthViewDesktop: React.FC<MonthViewProps> = ({
 
                     <Box className={styles.eventsContainer}>
                       {visibleEvents.map((event) => {
+                        const pillBg = getEventColor(event);
+                        const pillText = getEventSurfaceText(pillBg);
                         const timeStr = format(new Date(event.startDate), 'h:mma');
                         return (
                           <Box
                             key={event.id}
-                            className={styles.eventItem}
+                            className={styles.eventPill}
                             onClick={(mouseEvent) => handleEventClick(event, mouseEvent)}
                             title={`${timeStr} ${event.title}`}
+                            style={{
+                              backgroundColor: pillBg,
+                              color: pillText.foreground,
+                            }}
                           >
-                            <Box
-                              className={styles.eventDot}
-                              style={{ backgroundColor: getEventColor(event) }}
-                            />
-                            <Typography className={styles.eventTime}>{timeStr}</Typography>
                             <Typography className={styles.eventTitle} noWrap>
                               {event.title}
                             </Typography>

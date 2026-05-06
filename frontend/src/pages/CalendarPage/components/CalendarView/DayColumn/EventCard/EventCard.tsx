@@ -160,6 +160,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   return (
     <Paper
       ref={setNodeRef}
+      data-event-card
       className={`${styles.eventCard} ${isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${layout.event.isRecurring ? styles.recurring : ''}`}
       onClick={handleClick}
       style={style}

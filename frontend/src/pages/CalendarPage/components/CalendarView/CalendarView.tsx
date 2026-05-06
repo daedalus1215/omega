@@ -33,10 +33,7 @@ import {
   closestCenter,
 } from '@dnd-kit/core';
 import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.dtos';
-import {
-  CSS_THEME_HEX_FALLBACK,
-  cssVarWithFallback,
-} from '../../../../constants/css-theme-fallbacks';
+import { getEventSurfaceText } from '../../utils/get-event-surface-text';
 import { EventDetailsModal } from '../EventDetailsModal/EventDetailsModal';
 import { useEventLayouts } from '../../hooks/useEventLayouts';
 import { DayColumn } from './DayColumn/DayColumn';
@@ -61,7 +58,7 @@ import {
   ResizeDirection,
 } from '../../utils/event-resize.utils';
 import { snapToTimeSlot } from '../../utils/drag-modifiers.utils';
-import { CALENDAR_CONSTANTS } from '../../constants/calendar.constants';
+import { CALENDAR_CONSTANTS, EVENT_COLORS, DEFAULT_EVENT_COLOR_KEY } from '../../constants/calendar.constants';
 import styles from './CalendarView.module.css';
 
 type CalendarViewProps = {
@@ -115,6 +112,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [draggedEvent, setDraggedEvent] =
     useState<CalendarEventResponseDto | null>(null);
+  const [draggedEventWidth, setDraggedEventWidth] = useState<number | null>(null);
   const [resizingEvent, setResizingEvent] = useState<{
     event: CalendarEventResponseDto;
     direction: ResizeDirection;
@@ -301,6 +299,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const direction = data?.direction as ResizeDirection;
         setResizingEvent({ event: eventData, direction });
       } else {
+        const target = event.activatorEvent?.target as HTMLElement | null;
+        const cardElement = target?.closest('[data-event-card]') as HTMLElement | null;
+        setDraggedEventWidth(cardElement ? cardElement.getBoundingClientRect().width : null);
         setDraggedEvent(eventData);
       }
     }
@@ -484,6 +485,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Handle move operations (existing logic)
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizePreview(null);
     if (!over || !activeData?.event) {
       return;
@@ -530,8 +532,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleDragCancel = () => {
-    // Clear all drag/resize state on cancel
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizingEvent(null);
     setMovePreview(null);
     setResizePreview(null);
@@ -713,28 +715,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </Box>
         <DragOverlay>
           {draggedEvent ? (() => {
-            // Calculate event height based on duration
             const startDate = new Date(draggedEvent.startDate);
             const endDate = new Date(draggedEvent.endDate);
             const durationMinutes = differenceInMinutes(endDate, startDate);
             const heightPixels = (durationMinutes / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
             const minHeight = (CALENDAR_CONSTANTS.DRAG_SNAP_INTERVAL / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+            const overlayColor = draggedEvent.color || EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value;
+            const overlaySurface = getEventSurfaceText(overlayColor);
             
             return (
               <Box
                 sx={{
-                  padding: '4px 8px',
-                  backgroundColor: cssVarWithFallback(
-                    '--color-primary',
-                    CSS_THEME_HEX_FALLBACK.primary,
-                  ),
-                  color: cssVarWithFallback(
-                    '--color-on-primary',
-                    CSS_THEME_HEX_FALLBACK.onPrimary,
-                  ),
+                  boxSizing: 'border-box',
+                  padding: '4px',
+                  backgroundColor: overlayColor,
+                  color: overlaySurface.foreground,
                   borderRadius: '4px',
-                  minWidth: '120px',
-                  width: '150px',
+                  width: draggedEventWidth ? `${draggedEventWidth}px` : '150px',
                   height: `${Math.max(minHeight, heightPixels)}px`,
                   opacity: 0.8,
                   boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',

@@ -36,10 +36,7 @@ import {
 } from '@dnd-kit/core';
 import { differenceInMinutes } from 'date-fns';
 import { CalendarEventResponseDto } from '../../../../api/dtos/calendar-events.dtos';
-import {
-  CSS_THEME_HEX_FALLBACK,
-  cssVarWithFallback,
-} from '../../../../constants/css-theme-fallbacks';
+import { getEventSurfaceText } from '../../utils/get-event-surface-text';
 import { useEventLayouts } from '../../hooks/useEventLayouts';
 import { useUpdateCalendarEvent } from '../../hooks/useUpdateCalendarEvent';
 import { DayColumn } from '../CalendarView/DayColumn/DayColumn';
@@ -58,7 +55,7 @@ import {
   ResizeDirection,
 } from '../../utils/event-resize.utils';
 import { snapToTimeSlot } from '../../utils/drag-modifiers.utils';
-import { CALENDAR_CONSTANTS } from '../../constants/calendar.constants';
+import { CALENDAR_CONSTANTS, EVENT_COLORS, DEFAULT_EVENT_COLOR_KEY } from '../../constants/calendar.constants';
 import { EventDetailsModal } from '../EventDetailsModal/EventDetailsModal';
 import styles from './DayView.module.css';
 
@@ -86,6 +83,7 @@ export const DayView: React.FC<DayViewProps> = ({
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [draggedEvent, setDraggedEvent] =
     useState<CalendarEventResponseDto | null>(null);
+  const [draggedEventWidth, setDraggedEventWidth] = useState<number | null>(null);
   const [resizingEvent, setResizingEvent] = useState<{
     event: CalendarEventResponseDto;
     direction: ResizeDirection;
@@ -253,6 +251,9 @@ export const DayView: React.FC<DayViewProps> = ({
         const direction = data?.direction as ResizeDirection;
         setResizingEvent({ event: eventData, direction });
       } else {
+        const target = event.activatorEvent?.target as HTMLElement | null;
+        const cardElement = target?.closest('[data-event-card]') as HTMLElement | null;
+        setDraggedEventWidth(cardElement ? cardElement.getBoundingClientRect().width : null);
         setDraggedEvent(eventData);
       }
     }
@@ -378,6 +379,7 @@ export const DayView: React.FC<DayViewProps> = ({
 
     // Handle move operations
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizePreview(null);
     if (!over || !activeData?.event) return;
 
@@ -419,6 +421,7 @@ export const DayView: React.FC<DayViewProps> = ({
 
   const handleDragCancel = () => {
     setDraggedEvent(null);
+    setDraggedEventWidth(null);
     setResizingEvent(null);
     setMovePreview(null);
     setResizePreview(null);
@@ -510,21 +513,18 @@ export const DayView: React.FC<DayViewProps> = ({
         </Box>
 
         <DragOverlay>
-          {draggedEvent ? (
+          {draggedEvent ? (() => {
+            const overlayColor = draggedEvent.color || EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value;
+            const overlaySurface = getEventSurfaceText(overlayColor);
+            return (
             <Box
               sx={{
-                padding: '4px 8px',
-                backgroundColor: cssVarWithFallback(
-                  '--color-primary',
-                  CSS_THEME_HEX_FALLBACK.primary,
-                ),
-                color: cssVarWithFallback(
-                  '--color-on-primary',
-                  CSS_THEME_HEX_FALLBACK.onPrimary,
-                ),
+                boxSizing: 'border-box',
+                padding: '4px',
+                backgroundColor: overlayColor,
+                color: overlaySurface.foreground,
                 borderRadius: '4px',
-                minWidth: '120px',
-                width: isMobile ? 'calc(100vw - 150px)' : '300px',
+                width: draggedEventWidth ? `${draggedEventWidth}px` : (isMobile ? 'calc(100vw - 150px)' : '300px'),
                 height: `${getDragOverlayHeight(draggedEvent)}px`,
                 opacity: 0.8,
                 boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
@@ -565,7 +565,8 @@ export const DayView: React.FC<DayViewProps> = ({
                 </Typography>
               )}
             </Box>
-          ) : null}
+            );
+          })() : null}
         </DragOverlay>
       </DndContext>
 
