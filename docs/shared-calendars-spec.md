@@ -120,16 +120,19 @@ The rest of this document specs every class per phase: **NEW** = create, **UPDAT
 
 ### 5.1 Database migrations (NEW)
 
-Location: `backend/src/typeorm/migrations/` (numbered after `1777769518082`).
+Location: `backend/src/typeorm/migrations/`. Each file is prefixed with a real `{unixtimestamp}` (generated at authoring time, strictly increasing in the order below). The `{table-name}` token is the literal table the migration acts on.
 
-| File | Responsibility |
+| File (`{unixtimestamp}-` prefix) | Responsibility |
 |------|----------------|
-| `1780000000001-create-calendars-table.ts` | Create `calendars`. |
-| `1780000000002-create-calendar-members-table.ts` | Create `calendar_members` + unique index `(calendar_id, user_id)`. |
-| `1780000000003-add-calendar-id-to-calendar-events.ts` | Add nullable `calendar_id` to `calendar_events`. |
-| `1780000000004-add-calendar-id-to-recurring-events.ts` | Add nullable `calendar_id` to `recurring_events`. |
-| `1780000000005-backfill-personal-calendars.ts` | **Data migration** (see below). |
-| `1780000000006-make-calendar-id-not-null.ts` | SQLite table-rebuild to enforce `NOT NULL` + FK + index on both event tables. |
+| `{unixtimestamp}-create__calendars_table.ts` | Create `calendars`. |
+| `{unixtimestamp}-create__calendar_members_table.ts` | Create `calendar_members` + unique index `(calendar_id, user_id)`. |
+| `{unixtimestamp}-alter__add_calendar_id_to__calendar_events_table.ts` | Add nullable `calendar_id` to `calendar_events`. |
+| `{unixtimestamp}-alter__add_calendar_id_to__recurring_events_table.ts` | Add nullable `calendar_id` to `recurring_events`. |
+| `{unixtimestamp}-backfill__personal__calendars_table.ts` | **Data migration** (see below). |
+| `{unixtimestamp}-alter__calendar_id_not_null__calendar_events_table.ts` | SQLite table-rebuild to enforce `NOT NULL` + FK + index on `calendar_events`. |
+| `{unixtimestamp}-alter__calendar_id_not_null__recurring_events_table.ts` | SQLite table-rebuild to enforce `NOT NULL` + FK + index on `recurring_events`. |
+
+> Naming convention: `{unixtimestamp}-{verb}__{detail}__{table-name}_table.ts` where `{verb}` ∈ `create | alter | backfill`. Two separate `not_null` rebuilds (one per event table) keep each table-rebuild migration single-purpose and independently reversible.
 
 **Backfill logic (`...005`), raw SQL inside `up()`:**
 
@@ -140,7 +143,7 @@ Location: `backend/src/typeorm/migrations/` (numbered after `1777769518082`).
    - `UPDATE recurring_events SET calendar_id = :newCalendarId WHERE user_id = :userId AND calendar_id IS NULL`.
 2. `down()` reverses: null out `calendar_id`, delete members, delete `is_personal` calendars.
 
-> SQLite cannot `ALTER COLUMN ... SET NOT NULL` in place. `...006` follows TypeORM's create-new-table → copy → drop → rename pattern, written explicitly. Run order matters: `001-004` (schema) → `005` (data) → `006` (constraint).
+> SQLite cannot `ALTER COLUMN ... SET NOT NULL` in place. The two `alter__calendar_id_not_null__*` migrations follow TypeORM's create-new-table → copy → drop → rename pattern, written explicitly. Run order (enforced by ascending timestamp) matters: **schema adds** (`create__*`, `alter__add_calendar_id_to__*`) → **backfill** (`backfill__personal__calendars_table`) → **constraints** (`alter__calendar_id_not_null__*`).
 
 ### 5.2 `calendars` module — domain entities (NEW, pure, no TypeORM)
 
@@ -426,7 +429,7 @@ calendars/
 ```
 
 ### NEW — migrations (P1)
-`1780000000001` … `1780000000006` (see §5.1).
+Seven files, `{unixtimestamp}-` prefixed (see §5.1): `create__calendars_table`, `create__calendar_members_table`, `alter__add_calendar_id_to__calendar_events_table`, `alter__add_calendar_id_to__recurring_events_table`, `backfill__personal__calendars_table`, `alter__calendar_id_not_null__calendar_events_table`, `alter__calendar_id_not_null__recurring_events_table`.
 
 ### UPDATED — backend
 ```
@@ -474,3 +477,57 @@ share modal + invitations inbox components      NEW   P3
 ## 10. Recommended first PR
 
 Phase 1 only, on a branch off `main`, in this order: migrations → `calendars` module (entities/repos/aggregator/provision TS) → rewire `calendar-events` repos+service+TSs → users provisioning → update specs → **dry-run migration on a DB copy** → verify gate (§5.11). Nothing user-visible ships, but the data model is now shareable.
+
+---
+
+## 11. Architectural invariants & fitness functions
+
+This feature introduces omega's **first cross-domain boundary** (`calendar-events` → `calendars` via one aggregator). That boundary is only valuable if it cannot silently erode. The `.cursor/rules/*.mdc` files state these rules as *prose* (rationale, "the why"); this section defines them as **fitness functions** — mechanically checkable invariants, "the enforced what." Until the tooling is wired (deferred — see §11.3), these are part of the Phase 1 **definition-of-done** and must be checked in code review.
+
+### 11.1 Invariants this feature must preserve
+
+| # | Invariant | Rationale |
+|---|-----------|-----------|
+| I1 | `calendars/domain/**` must not import `typeorm` (or any TypeORM symbol). | Domain-layer purity (architecture.mdc §"DDD + TypeORM"). TypeORM is confined to `infra/`. |
+| I2 | `calendar-events/**` may import from `calendars/` **only** the `CalendarAccessAggregator` (`calendars/domain/aggregators/calendar-access.aggregator.ts`). No imports of `calendars/**/infra/**`, `calendars/**/domain/entities/**`, or `calendars/**/domain/services/**`. | Cross-domain communication only via aggregators; no cross-domain entity/repo pollination (architecture.mdc §"No Cross-Domain Pollination"). This is the rule that keeps the new module decoupled. |
+| I3 | `users/**` may import from `calendars/` **only** the `CalendarAccessAggregator`. | Same boundary rule for the provisioning dependency (§5.9). |
+| I4 | `**/apps/actions/**` must not import `**/infra/repositories/**`. | Actions call Services, never repositories directly (DI hierarchy). Note: the pre-existing `FetchCalendarEventsAction` injects `EventReminderRepository` — a **known existing violation**; do not extend the pattern, and treat it as tech-debt to fix, not a precedent. |
+| I5 | No `*.transaction.script.ts` imports another `*.transaction.script.ts`. | No same-level injection; orchestration belongs in a Service/Aggregator (architecture.mdc §"Key Rules Summary"). |
+| I6 | `calendars/**/domain/entities/**` must not import the `User` class (or any other domain's entity). Membership references `user_id` as a bare integer FK only. | No cross-domain entity references (§3.3). |
+
+### 11.2 Fitness functions (to encode when tooling is adopted)
+
+Recommended tool: **dependency-cruiser** (CI-runnable, the canonical TS architecture-fitness tool). Each invariant maps to one `forbidden` rule. Sketch:
+
+```js
+// .dependency-cruiser.js  (illustrative — author when §11.3 is actioned)
+forbidden: [
+  { name: 'domain-no-typeorm',                       // I1
+    from: { path: 'src/calendars/domain' },
+    to:   { dependencyTypes: ['npm'], path: 'typeorm' } },
+  { name: 'calendar-events-crossdomain-aggregator-only', // I2
+    from: { path: 'src/calendar-events' },
+    to:   { path: 'src/calendars',
+            pathNot: 'src/calendars/domain/aggregators/calendar-access\\.aggregator' } },
+  { name: 'users-crossdomain-aggregator-only',        // I3
+    from: { path: 'src/users' },
+    to:   { path: 'src/calendars',
+            pathNot: 'src/calendars/domain/aggregators/calendar-access\\.aggregator' } },
+  { name: 'actions-no-repositories',                  // I4
+    from: { path: 'apps/actions' },
+    to:   { path: 'infra/repositories' } },
+  { name: 'no-ts-to-ts',                              // I5
+    from: { path: '\\.transaction\\.script\\.ts$' },
+    to:   { path: '\\.transaction\\.script\\.ts$' } },
+]
+```
+
+(`ts-arch`/`arch-unit-ts` Jest assertions are an acceptable alternative if the team prefers fitness functions expressed as tests.)
+
+### 11.3 Governance / docs consolidation — recommended, deferred
+
+Separately recommended but **not** part of this feature (deferred by decision): consolidate rule docs onto a single source of truth — a root `AGENTS.md` as the canonical, tool-agnostic entry point, with `docs/architecture.md` holding the detailed DDD/DI rules (migrated from `.cursor/rules/architecture.mdc`), and the `.cursor/rules/*.mdc` reduced to thin pointers (`alwaysApply: true` + a reference) to avoid drift. The `constitution.md` / `values.md` split is considered over-structured for this repo and is not recommended at this time.
+
+### 11.4 Phase 1 definition-of-done addendum
+
+In addition to §5.11, Phase 1 is not done until invariants **I1–I3, I5, I6** hold for all new/changed code (verified in review; I4 tracked as pre-existing debt).
