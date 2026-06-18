@@ -40,6 +40,7 @@ import { FetchEventRemindersAction } from './apps/actions/fetch-event-reminders-
 import { ReminderScheduler } from './apps/schedulers/reminder-scheduler/reminder.scheduler';
 import { SharedKernelModule } from '../shared-kernel/shared-kernel.module';
 import { UsersModule } from '../users/users.module';
+import { CalendarsModule } from '../calendars/calendars.module';
 
 /**
  * Calendar Events module: encapsulates all calendar event-related logic, actions, and persistence.
@@ -54,6 +55,7 @@ import { UsersModule } from '../users/users.module';
     ]),
     SharedKernelModule,
     UsersModule,
+    CalendarsModule,
   ],
   providers: [
     CalendarEventRepository,

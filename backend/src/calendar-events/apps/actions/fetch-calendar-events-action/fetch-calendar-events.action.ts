@@ -79,6 +79,7 @@ export class FetchCalendarEventsAction {
     return events.map(
       (event: {
         id: number;
+        calendarId: number;
         userId: number;
         recurringEventId?: number;
         instanceDate?: Date;
