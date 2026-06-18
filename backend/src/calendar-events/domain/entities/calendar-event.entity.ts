@@ -7,7 +7,8 @@
  */
 export type CalendarEvent = {
   id: number;
-  userId: number;
+  calendarId: number; // Calendar this event belongs to
+  userId: number; // Creator of the event (created_by label)
   recurringEventId?: number; // undefined for one-time events
   instanceDate?: Date; // Date of this instance (for recurring events)
   title: string;

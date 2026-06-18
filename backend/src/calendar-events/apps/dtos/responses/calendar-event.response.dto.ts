@@ -3,6 +3,7 @@ import { EventReminderResponseDto } from '../../actions/fetch-event-reminders-ac
 
 export class CalendarEventResponseDto {
   id: number;
+  calendarId: number;
   userId: number;
   title: string;
   description?: string;
@@ -17,6 +18,7 @@ export class CalendarEventResponseDto {
 
   constructor(event: CalendarEvent, reminders?: EventReminderResponseDto[]) {
     this.id = event.id;
+    this.calendarId = event.calendarId;
     this.userId = event.userId;
     this.title = event.title;
     this.description = event.description;
