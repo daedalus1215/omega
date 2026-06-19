@@ -42,13 +42,13 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setOpenCreateEventModal = useCallback(
     (fn: (() => void) | null) => setOpenCreateEventModalState(() => fn),
-    [],
+    []
   );
 
   const { calendars, isLoading: isLoadingCalendars } = useCalendars();
   const [hiddenCalendarIds, setHiddenCalendarIds] = useState<number[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<number | null>(
-    null,
+    null
   );
 
   // Default the create target to the personal calendar once calendars load.
@@ -62,14 +62,14 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const isCalendarVisible = useCallback(
     (calendarId: number) => !hiddenCalendarIds.includes(calendarId),
-    [hiddenCalendarIds],
+    [hiddenCalendarIds]
   );
 
   const toggleCalendarVisibility = useCallback((calendarId: number) => {
     setHiddenCalendarIds(prev =>
       prev.includes(calendarId)
         ? prev.filter(id => id !== calendarId)
-        : [...prev, calendarId],
+        : [...prev, calendarId]
     );
   }, []);
 
