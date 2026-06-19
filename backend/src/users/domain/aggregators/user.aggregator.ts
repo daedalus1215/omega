@@ -50,4 +50,16 @@ export class UserAggregator {
     }
     return user.username;
   }
+
+  /**
+   * Resolve a username to a user id.
+   * Used for cross-domain operations such as inviting a user by username.
+   */
+  async findUserIdByUsername(username: string): Promise<number | null> {
+    const user = await this.userRepository.findByUsername(username);
+    if (!user) {
+      return null;
+    }
+    return user.id;
+  }
 }

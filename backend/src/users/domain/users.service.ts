@@ -15,6 +15,8 @@ import { UpdateUsernameCommand } from './transaction-scripts/update-username-TS/
 import { UpdatePasswordCommand } from './transaction-scripts/update-password-TS/update-password.command';
 import type { DisabledRegistrationContext } from '../../security-events/domain/aggregators/security-event.aggregator';
 import { SecurityEventAggregator } from '../../security-events/domain/aggregators/security-event.aggregator';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { USER_REGISTERED_EVENT } from '../../shared-kernel/domain/events/user-registered.event';
 
 @Injectable()
 export class UsersService {
@@ -23,7 +25,8 @@ export class UsersService {
     private readonly updateUsernameTransactionScript: UpdateUsernameTransactionScript,
     private readonly updatePasswordTransactionScript: UpdatePasswordTransactionScript,
     private readonly configService: ConfigService,
-    private readonly securityEventAggregator: SecurityEventAggregator
+    private readonly securityEventAggregator: SecurityEventAggregator,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   /**
@@ -65,6 +68,11 @@ export class UsersService {
       username,
       password: hashedPassword,
     });
+
+    // Provision the user's personal calendar out-of-band (the calendars module
+    // listens for this) to avoid a users->calendars module dependency. The
+    // calendar read paths also self-heal, so this is belt-and-suspenders.
+    this.eventEmitter.emit(USER_REGISTERED_EVENT, { userId: savedUser.id });
 
     return omit(savedUser, ['password']);
   }

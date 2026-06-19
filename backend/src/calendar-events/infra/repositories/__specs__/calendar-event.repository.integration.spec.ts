@@ -59,6 +59,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should create a one-time calendar event', async () => {
       // Arrange
       const eventData: Partial<CalendarEvent> = {
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Team Meeting',
         description: 'Weekly standup',
@@ -87,6 +88,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const recurringEventRepo = dataSource.getRepository(RecurringEventEntity);
       const recurringEvent = await recurringEventRepo.save({
         id: generateRandomNumbers(),
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Recurring Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -99,6 +101,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       const instanceDate = new Date('2024-01-15T00:00:00Z');
       const eventData: Partial<CalendarEvent> = {
+        calendarId: testUserId,
         userId: testUserId,
         recurringEventId: recurringEvent.id,
         instanceDate,
@@ -125,6 +128,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should create event with optional fields', async () => {
       // Arrange
       const eventData: Partial<CalendarEvent> = {
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Minimal Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -150,6 +154,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const recurringEventRepo = dataSource.getRepository(RecurringEventEntity);
       const recurringEvent = await recurringEventRepo.save({
         id: generateRandomNumbers(),
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Recurring Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -162,6 +167,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       const instanceDate = new Date('2024-01-15T00:00:00Z');
       const eventData: Partial<CalendarEvent> = {
+        calendarId: testUserId,
         userId: testUserId,
         recurringEventId: recurringEvent.id,
         instanceDate,
@@ -189,6 +195,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const recurringEventRepo = dataSource.getRepository(RecurringEventEntity);
       const recurringEvent = await recurringEventRepo.save({
         id: generateRandomNumbers(),
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Recurring Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -201,6 +208,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       const instanceDate = new Date('2024-01-15T00:00:00Z');
       const eventData: Partial<CalendarEvent> = {
+        calendarId: testUserId,
         userId: testUserId,
         recurringEventId: recurringEvent.id,
         instanceDate,
@@ -228,6 +236,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should create one-time event when recurringEventId is not provided', async () => {
       // Arrange
       const eventData: Partial<CalendarEvent> = {
+        calendarId: testUserId,
         userId: testUserId,
         title: 'One-time Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -248,36 +257,42 @@ describe('CalendarEventRepository Integration Tests', () => {
     beforeEach(async () => {
       const events: Partial<CalendarEvent>[] = [
         {
+          calendarId: testUserId,
           userId: testUserId,
           title: 'Event Before Range',
           startDate: new Date('2024-01-10T10:00:00Z'),
           endDate: new Date('2024-01-10T11:00:00Z'),
         },
         {
+          calendarId: testUserId,
           userId: testUserId,
           title: 'Event In Range Start',
           startDate: new Date('2024-01-15T10:00:00Z'),
           endDate: new Date('2024-01-15T11:00:00Z'),
         },
         {
+          calendarId: testUserId,
           userId: testUserId,
           title: 'Event In Range Middle',
           startDate: new Date('2024-01-20T10:00:00Z'),
           endDate: new Date('2024-01-20T11:00:00Z'),
         },
         {
+          calendarId: testUserId,
           userId: testUserId,
           title: 'Event In Range End',
           startDate: new Date('2024-01-25T10:00:00Z'),
           endDate: new Date('2024-01-25T11:00:00Z'),
         },
         {
+          calendarId: testUserId,
           userId: testUserId,
           title: 'Event After Range',
           startDate: new Date('2024-02-01T10:00:00Z'),
           endDate: new Date('2024-02-01T11:00:00Z'),
         },
         {
+          calendarId: testUserId,
           userId: testUserId,
           title: 'Long Event Overlapping',
           startDate: new Date('2024-01-10T10:00:00Z'),
@@ -297,7 +312,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       // Act
       const results = await target.findByDateRange(
-        testUserId,
+        [testUserId],
         startDate,
         endDate
       );
@@ -319,7 +334,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       // Act
       const results = await target.findByDateRange(
-        testUserId,
+        [testUserId],
         startDate,
         endDate
       );
@@ -336,6 +351,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       // Arrange
       const otherUserId = generateRandomNumbers();
       await target.create({
+        calendarId: otherUserId,
         userId: otherUserId,
         title: 'Other User Event',
         startDate: new Date('2024-01-20T10:00:00Z'),
@@ -347,7 +363,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       // Act
       const results = await target.findByDateRange(
-        testUserId,
+        [testUserId],
         startDate,
         endDate
       );
@@ -364,6 +380,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const recurringEventRepo = dataSource.getRepository(RecurringEventEntity);
       const recurringEvent = await recurringEventRepo.save({
         id: generateRandomNumbers(),
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Recurring Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -382,6 +399,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       for (const date of dates) {
         await target.create({
+          calendarId: testUserId,
           userId: testUserId,
           recurringEventId: recurringEvent.id,
           instanceDate: date,
@@ -425,6 +443,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const recurringEventRepo = dataSource.getRepository(RecurringEventEntity);
       const recurringEvent = await recurringEventRepo.save({
         id: generateRandomNumbers(),
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Recurring Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -443,6 +462,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       for (const date of dates) {
         await target.create({
+          calendarId: testUserId,
           userId: testUserId,
           recurringEventId: recurringEvent.id,
           instanceDate: date,
@@ -490,6 +510,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const recurringEventRepo = dataSource.getRepository(RecurringEventEntity);
       const recurringEvent = await recurringEventRepo.save({
         id: generateRandomNumbers(),
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Recurring Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -510,6 +531,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       for (const date of dates) {
         await target.create({
+          calendarId: testUserId,
           userId: testUserId,
           recurringEventId: recurringEvent.id,
           instanceDate: date,
@@ -555,6 +577,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const recurringEventRepo = dataSource.getRepository(RecurringEventEntity);
       const recurringEvent = await recurringEventRepo.save({
         id: generateRandomNumbers(),
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Recurring Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -574,6 +597,7 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       for (const date of dates) {
         await target.create({
+          calendarId: testUserId,
           userId: testUserId,
           recurringEventId: recurringEvent.id,
           instanceDate: date,
@@ -606,6 +630,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should find event by ID without user check', async () => {
       // Arrange
       const created = await target.create({
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Test Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -637,6 +662,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should find event by ID and user ID', async () => {
       // Arrange
       const created = await target.create({
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Test Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -644,7 +670,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       });
 
       // Act
-      const result = await target.findById(created.id, testUserId);
+      const result = await target.findById(created.id, [testUserId]);
 
       // Assert
       expect(result).not.toBeNull();
@@ -657,7 +683,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const nonExistentId = generateRandomNumbers();
 
       // Act
-      const result = await target.findById(nonExistentId, testUserId);
+      const result = await target.findById(nonExistentId, [testUserId]);
 
       // Assert
       expect(result).toBeNull();
@@ -666,6 +692,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should return null when event belongs to different user', async () => {
       // Arrange
       const created = await target.create({
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Test Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -675,7 +702,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const otherUserId = generateRandomNumbers();
 
       // Act
-      const result = await target.findById(created.id, otherUserId);
+      const result = await target.findById(created.id, [otherUserId]);
 
       // Assert
       expect(result).toBeNull();
@@ -686,6 +713,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should update an existing event', async () => {
       // Arrange
       const created = await target.create({
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Original Title',
         description: 'Original Description',
@@ -699,7 +727,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       };
 
       // Act
-      const result = await target.update(created.id, testUserId, updates);
+      const result = await target.update(created.id, [testUserId], updates);
 
       // Assert
       expect(result.id).toBe(created.id);
@@ -718,13 +746,14 @@ describe('CalendarEventRepository Integration Tests', () => {
 
       // Act & Assert
       await expect(
-        target.update(nonExistentId, testUserId, updates)
+        target.update(nonExistentId, [testUserId], updates)
       ).rejects.toThrow('Calendar event not found');
     });
 
     it('should throw error when event belongs to different user', async () => {
       // Arrange
       const created = await target.create({
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Test Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -737,17 +766,17 @@ describe('CalendarEventRepository Integration Tests', () => {
       };
 
       // Verify the event exists with the original userId
-      const existingEvent = await target.findById(created.id, testUserId);
+      const existingEvent = await target.findById(created.id, [testUserId]);
       expect(existingEvent).not.toBeNull();
       expect(existingEvent?.userId).toBe(testUserId);
 
       // Verify the event is NOT found with the other userId
-      const eventWithOtherUser = await target.findById(created.id, otherUserId);
+      const eventWithOtherUser = await target.findById(created.id, [otherUserId]);
       expect(eventWithOtherUser).toBeNull();
 
       // Act & Assert
       await expect(
-        target.update(created.id, otherUserId, updates)
+        target.update(created.id, [otherUserId], updates)
       ).rejects.toThrow('Calendar event not found');
     });
   });
@@ -756,6 +785,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should delete an existing event', async () => {
       // Arrange
       const created = await target.create({
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Test Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -763,10 +793,10 @@ describe('CalendarEventRepository Integration Tests', () => {
       });
 
       // Act
-      await target.delete(created.id, testUserId);
+      await target.delete(created.id, [testUserId]);
 
       // Assert
-      const result = await target.findById(created.id, testUserId);
+      const result = await target.findById(created.id, [testUserId]);
       expect(result).toBeNull();
     });
 
@@ -775,7 +805,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const nonExistentId = generateRandomNumbers();
 
       // Act & Assert
-      await expect(target.delete(nonExistentId, testUserId)).rejects.toThrow(
+      await expect(target.delete(nonExistentId, [testUserId])).rejects.toThrow(
         'Calendar event not found'
       );
     });
@@ -783,6 +813,7 @@ describe('CalendarEventRepository Integration Tests', () => {
     it('should throw error when event belongs to different user', async () => {
       // Arrange
       const created = await target.create({
+        calendarId: testUserId,
         userId: testUserId,
         title: 'Test Event',
         startDate: new Date('2024-01-15T10:00:00Z'),
@@ -792,7 +823,7 @@ describe('CalendarEventRepository Integration Tests', () => {
       const otherUserId = generateRandomNumbers();
 
       // Act & Assert
-      await expect(target.delete(created.id, otherUserId)).rejects.toThrow(
+      await expect(target.delete(created.id, [otherUserId])).rejects.toThrow(
         'Calendar event not found'
       );
     });
