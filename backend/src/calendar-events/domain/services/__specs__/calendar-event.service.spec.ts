@@ -18,6 +18,7 @@ import { EventReminder } from '../../entities/event-reminder.entity';
 import { CalendarEventRepository } from '../../../infra/repositories/calendar-event.repository';
 import { RecurringEventRepository } from '../../../infra/repositories/recurring-event.repository';
 import { EventReminderRepository } from '../../../infra/repositories/event-reminder.repository';
+import { CalendarAccessAggregator } from 'src/calendars/domain/aggregators/calendar-access.aggregator';
 import {
   generateRandomNumbers,
   createMock,
@@ -50,6 +51,7 @@ describe('CalendarEventService', () => {
 
   const mockEvent: CalendarEvent = {
     id: generateRandomNumbers(),
+    calendarId: 10,
     userId: mockUser.userId,
     title: 'Team Meeting',
     description: 'Weekly standup',
@@ -172,6 +174,14 @@ describe('CalendarEventService', () => {
           provide: EventReminderRepository,
           useValue: mockEventReminderRepository,
         },
+        {
+          provide: CalendarAccessAggregator,
+          useValue: {
+            getMemberCalendarIds: jest.fn().mockResolvedValue([10]),
+            getOrCreatePersonalCalendarId: jest.fn().mockResolvedValue(10),
+            isMember: jest.fn().mockResolvedValue(true),
+          },
+        },
       ],
     }).compile();
 
@@ -202,7 +212,7 @@ describe('CalendarEventService', () => {
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(
         mockCreateCalendarEventTransactionScript.apply
-      ).toHaveBeenCalledWith(validCommand, mockManager);
+      ).toHaveBeenCalledWith({ ...validCommand, calendarId: 10 }, mockManager);
       expect(
         mockCreateEventReminderTransactionScript.apply
       ).not.toHaveBeenCalled();
@@ -236,7 +246,10 @@ describe('CalendarEventService', () => {
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
       expect(
         mockCreateCalendarEventTransactionScript.apply
-      ).toHaveBeenCalledWith(commandWithReminder, mockManager);
+      ).toHaveBeenCalledWith(
+        { ...commandWithReminder, calendarId: 10 },
+        mockManager
+      );
       expect(
         mockCreateEventReminderTransactionScript.apply
       ).toHaveBeenCalledWith(
@@ -245,6 +258,7 @@ describe('CalendarEventService', () => {
           reminderMinutes: 60,
           user: mockUser,
         },
+        [10],
         mockManager
       );
     });
@@ -281,6 +295,7 @@ describe('CalendarEventService', () => {
           reminderMinutes: 0,
           user: mockUser,
         },
+        [10],
         mockManager
       );
     });
