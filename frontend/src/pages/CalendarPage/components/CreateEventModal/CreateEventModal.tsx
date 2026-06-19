@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   TextField,
@@ -9,8 +9,13 @@ import {
   FormControlLabel,
   Checkbox,
   Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { BottomSheet } from '../../../../components/BottomSheet/BottomSheet';
+import { CalendarContext } from '../../../../contexts/CalendarContext';
 import { useCreateCalendarEvent } from '../../hooks/useCreateCalendarEvent';
 import { useCreateRecurringEvent } from '../../hooks/useCreateRecurringEvent';
 import {
@@ -21,7 +26,10 @@ import { format } from 'date-fns';
 import { RecurrencePatternForm } from '../RecurrencePatternForm/RecurrencePatternForm';
 import { ReminderField } from '../EventDetailsModal/ReminderField/ReminderField';
 import { ColorPicker } from '../ColorPicker/ColorPicker';
-import { DEFAULT_EVENT_COLOR_KEY, EVENT_COLORS } from '../../constants/calendar.constants';
+import {
+  DEFAULT_EVENT_COLOR_KEY,
+  EVENT_COLORS,
+} from '../../constants/calendar.constants';
 
 type CreateEventModalProps = {
   isOpen: boolean;
@@ -46,6 +54,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 }) => {
   const createMutation = useCreateCalendarEvent();
   const createRecurringMutation = useCreateRecurringEvent();
+  const { calendars, selectedCalendarId, setSelectedCalendarId } =
+    useContext(CalendarContext);
   const [isRecurring, setIsRecurring] = useState(false);
   const [formData, setFormData] = useState<CreateCalendarEventRequest>({
     title: '',
@@ -54,7 +64,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
     endDate: format(
       new Date(defaultDate.getTime() + 60 * 60 * 1000),
-      "yyyy-MM-dd'T'HH:mm"
+      "yyyy-MM-dd'T'HH:mm",
     ),
   });
   const [recurrenceData, setRecurrenceData] = useState<{
@@ -87,7 +97,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
           new Date(defaultDate.getTime() + 60 * 60 * 1000),
-          "yyyy-MM-dd'T'HH:mm"
+          "yyyy-MM-dd'T'HH:mm",
         ),
       });
       setReminderMinutes(null);
@@ -167,7 +177,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             ? new Date(recurrenceData.recurrenceEndDate).toISOString()
             : undefined,
           noEndDate: recurrenceData.noEndDate,
-          reminderMinutes: reminderMinutes !== null ? reminderMinutes : undefined,
+          reminderMinutes:
+            reminderMinutes !== null ? reminderMinutes : undefined,
+          calendarId: selectedCalendarId ?? undefined,
         });
       } else {
         await createMutation.mutateAsync({
@@ -176,7 +188,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           color: formData.color,
           startDate: new Date(formData.startDate).toISOString(),
           endDate: new Date(formData.endDate).toISOString(),
-          reminderMinutes: reminderMinutes !== null ? reminderMinutes : undefined,
+          reminderMinutes:
+            reminderMinutes !== null ? reminderMinutes : undefined,
+          calendarId: selectedCalendarId ?? undefined,
         });
       }
       onClose();
@@ -187,7 +201,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
           new Date(defaultDate.getTime() + 60 * 60 * 1000),
-          "yyyy-MM-dd'T'HH:mm"
+          "yyyy-MM-dd'T'HH:mm",
         ),
       });
       setRecurrenceData({
@@ -214,7 +228,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
           new Date(defaultDate.getTime() + 60 * 60 * 1000),
-          "yyyy-MM-dd'T'HH:mm"
+          "yyyy-MM-dd'T'HH:mm",
         ),
       });
       setReminderMinutes(null);
@@ -238,6 +252,28 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         </Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
+            {calendars.length > 1 && (
+              <FormControl
+                fullWidth
+                disabled={
+                  createMutation.isPending || createRecurringMutation.isPending
+                }
+              >
+                <InputLabel id="target-calendar-label">Calendar</InputLabel>
+                <Select
+                  labelId="target-calendar-label"
+                  label="Calendar"
+                  value={selectedCalendarId ?? ''}
+                  onChange={e => setSelectedCalendarId(Number(e.target.value))}
+                >
+                  {calendars.map(calendar => (
+                    <MenuItem key={calendar.id} value={calendar.id}>
+                      {calendar.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <TextField
               label="Title"
               value={formData.title}
@@ -271,7 +307,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               value={formData.color}
               onChange={color => setFormData({ ...formData, color })}
               isEditing={true}
-              disabled={createMutation.isPending || createRecurringMutation.isPending}
+              disabled={
+                createMutation.isPending || createRecurringMutation.isPending
+              }
             />
             <TextField
               label="Start Date & Time"
