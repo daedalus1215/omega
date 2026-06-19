@@ -19,7 +19,10 @@ export class FetchCalendarEventsTransactionScript {
    * Includes both regular calendar events and instances from recurring events.
    * Validates date range and ensures user can only access their own events.
    */
-  async apply(command: FetchCalendarEventsCommand): Promise<CalendarEvent[]> {
+  async apply(
+    command: FetchCalendarEventsCommand,
+    calendarIds: number[]
+  ): Promise<CalendarEvent[]> {
     if (command.startDate > command.endDate) {
       throw new Error('Start date must be before end date');
     }
@@ -33,10 +36,11 @@ export class FetchCalendarEventsTransactionScript {
       throw new Error('Unauthorized: Cannot access other users events');
     }
 
-    // Fetch all calendar events (one-time and instances) for the user in date range
+    // Fetch all calendar events (one-time and instances) across the caller's
+    // calendars in the date range.
     // Note: Instance generation is handled by the service layer before calling this script
     const allEvents = await this.calendarEventRepository.findByDateRange(
-      command.userId,
+      calendarIds,
       command.startDate,
       command.endDate
     );
