@@ -11,7 +11,7 @@ export const fetchCalendars = async (): Promise<CalendarResponseDto[]> => {
 };
 
 export const createCalendar = async (
-  calendar: CreateCalendarRequest,
+  calendar: CreateCalendarRequest
 ): Promise<CalendarResponseDto> => {
   const { data } = await api.post<CalendarResponseDto>('/calendars', calendar);
   return data;
@@ -19,11 +19,11 @@ export const createCalendar = async (
 
 export const updateCalendar = async (
   id: number,
-  calendar: UpdateCalendarRequest,
+  calendar: UpdateCalendarRequest
 ): Promise<CalendarResponseDto> => {
   const { data } = await api.patch<CalendarResponseDto>(
     `/calendars/${id}`,
-    calendar,
+    calendar
   );
   return data;
 };
