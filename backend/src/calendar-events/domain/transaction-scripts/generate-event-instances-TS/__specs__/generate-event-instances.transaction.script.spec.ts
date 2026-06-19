@@ -25,6 +25,7 @@ describe('GenerateEventInstancesTransactionScript', () => {
 
   const mockRecurringEvent: RecurringEvent = {
     id: generateRandomNumbers(),
+    calendarId: 10,
     userId: generateRandomNumbers(),
     title: 'Test Recurring Event',
     description: 'Test Description',
@@ -486,6 +487,7 @@ describe('GenerateEventInstancesTransactionScript', () => {
       const existingInstances: CalendarEvent[] = [
         {
           id: 200,
+          calendarId: 10,
           userId: recurringEvent.userId,
           recurringEventId: recurringEvent.id,
           instanceDate: instanceDate1,
@@ -497,6 +499,7 @@ describe('GenerateEventInstancesTransactionScript', () => {
         },
         {
           id: 201,
+          calendarId: 10,
           userId: recurringEvent.userId,
           recurringEventId: recurringEvent.id,
           instanceDate: instanceDate2,
