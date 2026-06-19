@@ -25,6 +25,7 @@ describe('UpdateEventReminderTransactionScript', () => {
 
   const mockCalendarEvent: CalendarEvent = {
     id: generateRandomNumbers(),
+    calendarId: 10,
     userId: mockUser.userId,
     title: 'Team Meeting',
     description: 'Weekly standup',
@@ -110,7 +111,7 @@ describe('UpdateEventReminderTransactionScript', () => {
       ]);
       mockEventReminderRepository.update.mockResolvedValue(updatedReminder);
 
-      const result = await target.apply(validCommand);
+      const result = await target.apply(validCommand, [10]);
 
       expect(result).toEqual(updatedReminder);
       expect(mockEventReminderRepository.findById).toHaveBeenCalledWith(
@@ -121,7 +122,7 @@ describe('UpdateEventReminderTransactionScript', () => {
       );
       expect(mockCalendarEventRepository.findById).toHaveBeenCalledWith(
         mockExistingReminder.calendarEventId,
-        mockUser.userId
+        [10]
       );
       expect(mockValidator.validateCalendarEventExists).toHaveBeenCalledWith(
         mockCalendarEvent
@@ -151,10 +152,10 @@ describe('UpdateEventReminderTransactionScript', () => {
         throw new NotFoundException('Event reminder not found');
       });
 
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         NotFoundException
       );
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         'Event reminder not found'
       );
       expect(mockEventReminderRepository.update).not.toHaveBeenCalled();
@@ -169,10 +170,10 @@ describe('UpdateEventReminderTransactionScript', () => {
         throw new NotFoundException('Calendar event not found');
       });
 
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         NotFoundException
       );
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         'Calendar event not found'
       );
       expect(mockEventReminderRepository.update).not.toHaveBeenCalled();
@@ -194,7 +195,7 @@ describe('UpdateEventReminderTransactionScript', () => {
         }
       );
 
-      await expect(target.apply(invalidCommand)).rejects.toThrow(
+      await expect(target.apply(invalidCommand, [10])).rejects.toThrow(
         'Reminder minutes must be non-negative'
       );
       expect(mockEventReminderRepository.update).not.toHaveBeenCalled();
@@ -223,7 +224,7 @@ describe('UpdateEventReminderTransactionScript', () => {
         );
       });
 
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         'Reminder with this timing already exists for this event'
       );
       expect(mockEventReminderRepository.update).not.toHaveBeenCalled();
@@ -254,7 +255,7 @@ describe('UpdateEventReminderTransactionScript', () => {
       ]);
       mockEventReminderRepository.update.mockResolvedValue(updatedReminder);
 
-      const result = await target.apply(validCommand);
+      const result = await target.apply(validCommand, [10]);
 
       expect(result).toEqual(updatedReminder);
       expect(mockEventReminderRepository.update).toHaveBeenCalled();
@@ -281,7 +282,7 @@ describe('UpdateEventReminderTransactionScript', () => {
       ]);
       mockEventReminderRepository.update.mockResolvedValue(updatedReminder);
 
-      const result = await target.apply(commandWithZero);
+      const result = await target.apply(commandWithZero, [10]);
 
       expect(result).toEqual(updatedReminder);
       expect(mockEventReminderRepository.update).toHaveBeenCalledWith(

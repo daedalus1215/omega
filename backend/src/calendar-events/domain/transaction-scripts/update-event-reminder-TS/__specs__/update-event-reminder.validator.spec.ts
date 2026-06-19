@@ -47,6 +47,7 @@ describe('UpdateEventReminderValidator', () => {
     it('should not throw when calendar event exists', () => {
       const event: CalendarEvent = {
         id: generateRandomNumbers(),
+        calendarId: 10,
         userId: generateRandomNumbers(),
         title: 'Test Event',
         startDate: new Date(),

@@ -24,12 +24,13 @@ export class CreateEventReminderTransactionScript {
    */
   async apply(
     command: CreateEventReminderCommand,
+    calendarIds: number[],
     manager?: EntityManager
   ): Promise<EventReminder> {
-    // Verify the calendar event exists and belongs to the user
+    // Verify the calendar event exists and is visible to the user
     const event = await this.calendarEventRepository.findById(
       command.calendarEventId,
-      command.user.userId
+      calendarIds
     );
     if (!event) {
       throw new NotFoundException('Calendar event not found');
