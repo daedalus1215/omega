@@ -33,8 +33,12 @@ export class CreateRecurringEventTransactionScript {
       command.noEndDate
     );
 
+    if (command.calendarId === undefined) {
+      throw new Error('Calendar is required');
+    }
     // Convert domain entity to infrastructure entity
     const domainEvent: Partial<RecurringEvent> = {
+      calendarId: command.calendarId,
       userId: command.user.userId,
       title: command.title.trim(),
       description: command.description?.trim(),

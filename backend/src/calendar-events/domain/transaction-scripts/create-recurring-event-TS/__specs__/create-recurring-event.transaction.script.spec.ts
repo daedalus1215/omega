@@ -23,6 +23,7 @@ describe('CreateRecurringEventTransactionScript', () => {
   };
 
   const validCommand: CreateRecurringEventCommand = {
+    calendarId: 10,
     title: 'Weekly Team Meeting',
     description: 'Standup meeting',
     startDate: new Date('2024-01-15T10:00:00Z'),
@@ -85,6 +86,7 @@ describe('CreateRecurringEventTransactionScript', () => {
     it('should create a recurring event with valid command', async () => {
       const mockDomainEvent: RecurringEvent = {
         id: generateRandomNumbers(),
+        calendarId: 10,
         userId: mockUser.userId,
         title: validCommand.title,
         description: validCommand.description,
@@ -145,6 +147,7 @@ describe('CreateRecurringEventTransactionScript', () => {
 
       const mockDomainEvent: RecurringEvent = {
         id: generateRandomNumbers(),
+        calendarId: 10,
         userId: mockUser.userId,
         title: noEndDateCommand.title,
         description: noEndDateCommand.description,

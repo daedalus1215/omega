@@ -17,6 +17,7 @@ export class RecurringEventToInfrastructureConverter {
     const pattern = domain.recurrencePattern;
     return {
       id: domain.id,
+      calendarId: domain.calendarId,
       userId: domain.userId,
       title: domain.title,
       description: domain.description,

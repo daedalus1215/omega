@@ -23,6 +23,7 @@ export class RecurringEventToDomainConverter {
     };
     return {
       id: infra.id,
+      calendarId: infra.calendarId,
       userId: infra.userId,
       title: infra.title,
       description: infra.description,

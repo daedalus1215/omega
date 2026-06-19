@@ -12,4 +12,7 @@ export type CreateRecurringEventCommand = {
   noEndDate: boolean;
   reminderMinutes?: number;
   user: AuthUser;
+  // Target calendar. Optional on the wire; the service defaults it to the
+  // user's personal calendar when omitted.
+  calendarId?: number;
 };
