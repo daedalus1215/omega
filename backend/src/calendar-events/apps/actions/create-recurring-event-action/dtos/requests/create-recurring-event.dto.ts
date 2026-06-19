@@ -154,4 +154,9 @@ export class CreateRecurringEventRequestDto {
   @IsInt()
   @Min(0)
   reminderMinutes?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  calendarId?: number;
 }

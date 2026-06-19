@@ -52,6 +52,7 @@ export class CreateCalendarEventAction {
       endDate: new Date(dto.endDate),
       user,
       reminderMinutes: dto.reminderMinutes,
+      calendarId: dto.calendarId,
     };
     const event = await this.calendarEventService.createCalendarEvent(command);
     return new CalendarEventResponseDto(event);
