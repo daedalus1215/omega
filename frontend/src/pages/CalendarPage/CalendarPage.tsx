@@ -41,7 +41,7 @@ export const CalendarPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCalendarsManagerOpen, setIsCalendarsManagerOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | undefined>(
-    undefined,
+    undefined
   );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -106,12 +106,12 @@ export const CalendarPage: React.FC = () => {
 
   const { events, isLoading, error, refetch } = useCalendarEvents(
     getStartDate(),
-    getEndDate(),
+    getEndDate()
   );
 
   // Hide events belonging to calendars the user has toggled off.
   const visibleEvents = events.filter(event =>
-    isCalendarVisible(event.calendarId),
+    isCalendarVisible(event.calendarId)
   );
 
   // Simple handler - just update the date range
@@ -138,7 +138,7 @@ export const CalendarPage: React.FC = () => {
     (view: 'day') => {
       setView(view);
     },
-    [setView],
+    [setView]
   );
 
   const handleCreateEvent = () => {

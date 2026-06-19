@@ -64,7 +64,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
     endDate: format(
       new Date(defaultDate.getTime() + 60 * 60 * 1000),
-      "yyyy-MM-dd'T'HH:mm",
+      "yyyy-MM-dd'T'HH:mm"
     ),
   });
   const [recurrenceData, setRecurrenceData] = useState<{
@@ -97,7 +97,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
           new Date(defaultDate.getTime() + 60 * 60 * 1000),
-          "yyyy-MM-dd'T'HH:mm",
+          "yyyy-MM-dd'T'HH:mm"
         ),
       });
       setReminderMinutes(null);
@@ -201,7 +201,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
           new Date(defaultDate.getTime() + 60 * 60 * 1000),
-          "yyyy-MM-dd'T'HH:mm",
+          "yyyy-MM-dd'T'HH:mm"
         ),
       });
       setRecurrenceData({
@@ -228,7 +228,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
           new Date(defaultDate.getTime() + 60 * 60 * 1000),
-          "yyyy-MM-dd'T'HH:mm",
+          "yyyy-MM-dd'T'HH:mm"
         ),
       });
       setReminderMinutes(null);
