@@ -17,10 +17,13 @@ export class UpdateCalendarEventTransactionScript {
    * Update a calendar event.
    * Validates business rules and updates the event.
    */
-  async apply(command: UpdateCalendarEventCommand): Promise<CalendarEvent> {
+  async apply(
+    command: UpdateCalendarEventCommand,
+    calendarIds: number[]
+  ): Promise<CalendarEvent> {
     const existingEvent = await this.calendarEventRepository.findById(
       command.eventId,
-      command.user.userId
+      calendarIds
     );
     if (!existingEvent) {
       throw new NotFoundException('Calendar event not found');
@@ -36,7 +39,7 @@ export class UpdateCalendarEventTransactionScript {
     }
     const updatedEvent = await this.calendarEventRepository.update(
       command.eventId,
-      command.user.userId,
+      calendarIds,
       {
         title: command.title.trim(),
         description: command.description?.trim(),

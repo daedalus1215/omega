@@ -26,10 +26,13 @@ export class DeleteCalendarEventTransactionScript {
    * If deleting a recurring event instance, creates a recurrence exception
    * to prevent it from being regenerated on the next fetch.
    */
-  async apply(command: DeleteCalendarEventCommand): Promise<void> {
+  async apply(
+    command: DeleteCalendarEventCommand,
+    calendarIds: number[]
+  ): Promise<void> {
     const calendarEvent = await this.calendarEventRepository.findById(
       command.eventId,
-      command.user.userId
+      calendarIds
     );
     if (!calendarEvent) {
       throw new NotFoundException('Calendar event not found');
@@ -99,10 +102,7 @@ export class DeleteCalendarEventTransactionScript {
     }
 
     // Delete the calendar event instance
-    await this.calendarEventRepository.delete(
-      command.eventId,
-      command.user.userId
-    );
+    await this.calendarEventRepository.delete(command.eventId, calendarIds);
     this.logger.debug('Deleted calendar event:', {
       eventId: command.eventId,
       userId: command.user.userId,
