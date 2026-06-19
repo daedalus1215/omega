@@ -23,6 +23,7 @@ describe('CreateCalendarEventTransactionScript', () => {
     description: 'Weekly standup',
     startDate: new Date('2024-01-15T10:00:00Z'),
     endDate: new Date('2024-01-15T11:00:00Z'),
+    calendarId: 10,
     user: mockUser,
   };
 
@@ -54,6 +55,7 @@ describe('CreateCalendarEventTransactionScript', () => {
     it('should create a calendar event with valid command', async () => {
       const mockEvent: CalendarEvent = {
         id: generateRandomNumbers(),
+        calendarId: 10,
         userId: mockUser.userId,
         title: validCommand.title,
         description: validCommand.description,
@@ -70,6 +72,7 @@ describe('CreateCalendarEventTransactionScript', () => {
       expect(result).toEqual(mockEvent);
       expect(mockCalendarEventRepository.create).toHaveBeenCalledWith(
         {
+          calendarId: 10,
           userId: mockUser.userId,
           title: validCommand.title,
           description: validCommand.description,
@@ -89,6 +92,7 @@ describe('CreateCalendarEventTransactionScript', () => {
 
       const mockEvent: CalendarEvent = {
         id: generateRandomNumbers(),
+        calendarId: 10,
         userId: mockUser.userId,
         title: 'Team Meeting',
         description: 'Weekly standup',
@@ -104,6 +108,7 @@ describe('CreateCalendarEventTransactionScript', () => {
 
       expect(mockCalendarEventRepository.create).toHaveBeenCalledWith(
         {
+          calendarId: 10,
           userId: mockUser.userId,
           title: 'Team Meeting',
           description: 'Weekly standup',
@@ -118,6 +123,7 @@ describe('CreateCalendarEventTransactionScript', () => {
       const mockManager = createMock<EntityManager>();
       const mockEvent: CalendarEvent = {
         id: generateRandomNumbers(),
+        calendarId: 10,
         userId: mockUser.userId,
         title: validCommand.title,
         description: validCommand.description,
@@ -211,6 +217,7 @@ describe('CreateCalendarEventTransactionScript', () => {
 
       const mockEvent: CalendarEvent = {
         id: generateRandomNumbers(),
+        calendarId: 10,
         userId: mockUser.userId,
         title: validCommand.title,
         startDate: validCommand.startDate,
@@ -225,6 +232,7 @@ describe('CreateCalendarEventTransactionScript', () => {
 
       expect(mockCalendarEventRepository.create).toHaveBeenCalledWith(
         {
+          calendarId: 10,
           userId: mockUser.userId,
           title: validCommand.title,
           description: undefined,
