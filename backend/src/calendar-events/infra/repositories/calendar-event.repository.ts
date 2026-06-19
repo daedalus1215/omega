@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryFailedError, EntityManager } from 'typeorm';
+import { Repository, QueryFailedError, EntityManager, In } from 'typeorm';
 import { toUTCDateString } from '../../domain/utils/date-utc.utils';
 import { CalendarEventEntity } from '../entities/calendar-event.entity';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
@@ -84,18 +84,21 @@ export class CalendarEventRepository {
   }
 
   /**
-   * Find calendar events by date range for a specific user.
+   * Find calendar events by date range across the given calendars.
    * Returns events that overlap with the date range (events that start before endDate and end after startDate).
    * Includes both one-time events and recurring event instances.
    */
   async findByDateRange(
-    userId: number,
+    calendarIds: number[],
     startDate: Date,
     endDate: Date
   ): Promise<CalendarEvent[]> {
+    if (calendarIds.length === 0) {
+      return [];
+    }
     const entities = await this.repository
       .createQueryBuilder('calendar_event')
-      .where('calendar_event.user_id = :userId', { userId })
+      .where('calendar_event.calendar_id IN (:...calendarIds)', { calendarIds })
       .andWhere('calendar_event.start_date <= :endDate', { endDate })
       .andWhere('calendar_event.end_date >= :startDate', { startDate })
       .orderBy('calendar_event.start_date', 'ASC')
@@ -139,6 +142,13 @@ export class CalendarEventRepository {
   }
 
   /**
+   * Count calendar events belonging to a calendar.
+   */
+  async countByCalendarId(calendarId: number): Promise<number> {
+    return await this.repository.count({ where: { calendarId } });
+  }
+
+  /**
    * Find a calendar event by ID only (for internal use like cron jobs).
    */
   async findByIdOnly(id: number): Promise<CalendarEvent | null> {
@@ -152,11 +162,17 @@ export class CalendarEventRepository {
   }
 
   /**
-   * Find a calendar event by ID and user ID.
+   * Find a calendar event by ID, scoped to calendars the caller can access.
    */
-  async findById(id: number, userId: number): Promise<CalendarEvent | null> {
+  async findById(
+    id: number,
+    calendarIds: number[]
+  ): Promise<CalendarEvent | null> {
+    if (calendarIds.length === 0) {
+      return null;
+    }
     const entity = await this.repository.findOne({
-      where: { id, userId },
+      where: { id, calendarId: In(calendarIds) },
     });
     if (!entity) {
       return null;
@@ -165,16 +181,19 @@ export class CalendarEventRepository {
   }
 
   /**
-   * Update a calendar event.
+   * Update a calendar event, scoped to calendars the caller can access.
    */
   async update(
     id: number,
-    userId: number,
+    calendarIds: number[],
     updates: Partial<CalendarEvent>
   ): Promise<CalendarEvent> {
-    const entity = await this.repository.findOne({
-      where: { id, userId },
-    });
+    const entity =
+      calendarIds.length === 0
+        ? null
+        : await this.repository.findOne({
+            where: { id, calendarId: In(calendarIds) },
+          });
     if (!entity) {
       throw new Error('Calendar event not found');
     }
@@ -187,10 +206,16 @@ export class CalendarEventRepository {
   }
 
   /**
-   * Delete a calendar event by ID and user ID.
+   * Delete a calendar event by ID, scoped to calendars the caller can access.
    */
-  async delete(id: number, userId: number): Promise<void> {
-    const result = await this.repository.delete({ id, userId });
+  async delete(id: number, calendarIds: number[]): Promise<void> {
+    if (calendarIds.length === 0) {
+      throw new Error('Calendar event not found');
+    }
+    const result = await this.repository.delete({
+      id,
+      calendarId: In(calendarIds),
+    });
     if (result.affected === 0) {
       throw new Error('Calendar event not found');
     }
@@ -204,6 +229,7 @@ export class CalendarEventRepository {
   ): Partial<CalendarEventEntity> {
     return {
       id: domain.id,
+      calendarId: domain.calendarId,
       userId: domain.userId,
       recurringEventId: domain.recurringEventId,
       instanceDate: domain.instanceDate,
@@ -226,6 +252,7 @@ export class CalendarEventRepository {
   private infrastructureToDomain(infra: CalendarEventEntity): CalendarEvent {
     return {
       id: infra.id,
+      calendarId: infra.calendarId,
       userId: infra.userId,
       recurringEventId: infra.recurringEventId,
       instanceDate: infra.instanceDate,

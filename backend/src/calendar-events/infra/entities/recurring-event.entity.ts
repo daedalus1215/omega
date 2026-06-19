@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 /**
@@ -11,9 +12,13 @@ import {
  * TypeORM entity for database persistence.
  */
 @Entity({ name: 'recurring_events' })
+@Index(['calendarId'])
 export class RecurringEventEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
+
+  @Column({ name: 'calendar_id', type: 'int' })
+  calendarId: number;
 
   @Column({ name: 'user_id', type: 'int' })
   userId: number;

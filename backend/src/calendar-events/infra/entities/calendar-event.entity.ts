@@ -22,9 +22,13 @@ import { RecurringEventEntity } from './recurring-event.entity';
 @Unique(['recurringEventId', 'instanceDate'])
 @Index(['recurringEventId'])
 @Index(['instanceDate'])
+@Index(['calendarId'])
 export class CalendarEventEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
+
+  @Column({ name: 'calendar_id', type: 'int' })
+  calendarId: number;
 
   @Column({ name: 'user_id', type: 'int' })
   userId: number;
