@@ -23,7 +23,10 @@ export class DeleteRecurringEventTransactionScript {
    * Event instances are automatically deleted via CASCADE foreign key constraint.
    * If the recurring event doesn't exist, still deletes any orphaned instances (idempotent delete).
    */
-  async apply(command: DeleteRecurringEventCommand): Promise<void> {
+  async apply(
+    command: DeleteRecurringEventCommand,
+    calendarIds: number[]
+  ): Promise<void> {
     const existingEvent = await this.recurringEventRepository.findById(
       command.recurringEventId,
       command.user.userId
@@ -40,10 +43,7 @@ export class DeleteRecurringEventTransactionScript {
       // Delete all orphaned instances for this user
       for (const instance of orphanedInstances) {
         if (instance.userId === command.user.userId) {
-          await this.calendarEventRepository.delete(
-            instance.id,
-            command.user.userId
-          );
+          await this.calendarEventRepository.delete(instance.id, calendarIds);
         }
       }
 
@@ -67,10 +67,7 @@ export class DeleteRecurringEventTransactionScript {
     // Delete all instances for this user
     for (const instance of instances) {
       if (instance.userId === command.user.userId) {
-        await this.calendarEventRepository.delete(
-          instance.id,
-          command.user.userId
-        );
+        await this.calendarEventRepository.delete(instance.id, calendarIds);
       }
     }
 

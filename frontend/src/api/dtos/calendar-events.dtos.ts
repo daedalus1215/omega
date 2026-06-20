@@ -8,6 +8,7 @@ export type EventReminderResponseDto = {
 
 export type CalendarEventResponseDto = {
   id: number;
+  calendarId: number;
   userId: number;
   title: string;
   description?: string;
@@ -37,6 +38,7 @@ export type CreateCalendarEventRequest = {
   endDate: string;
   reminders?: CreateEventReminderRequest[];
   reminderMinutes?: number;
+  calendarId?: number;
 };
 
 export type UpdateCalendarEventRequest = {
@@ -66,6 +68,7 @@ export type CreateRecurringEventRequest = {
   recurrenceEndDate?: string;
   noEndDate: boolean;
   reminderMinutes?: number;
+  calendarId?: number;
 };
 
 export type RecurringEventResponseDto = {

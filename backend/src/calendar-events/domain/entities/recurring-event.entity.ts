@@ -6,7 +6,8 @@ import { RecurrencePattern } from './recurrence-pattern.value-object';
  */
 export type RecurringEvent = {
   id: number;
-  userId: number;
+  calendarId: number; // Calendar this recurring event belongs to
+  userId: number; // Creator of the recurring event (created_by label)
   title: string;
   description?: string;
   color?: string;

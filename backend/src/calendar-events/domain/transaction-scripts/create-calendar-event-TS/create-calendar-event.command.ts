@@ -8,4 +8,7 @@ export type CreateCalendarEventCommand = {
   endDate: Date;
   user: AuthUser;
   reminderMinutes?: number;
+  // Target calendar. Optional on the wire; the service defaults it to the
+  // user's personal calendar when omitted.
+  calendarId?: number;
 };

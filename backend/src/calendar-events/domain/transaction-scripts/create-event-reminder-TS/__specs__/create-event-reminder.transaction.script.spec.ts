@@ -24,6 +24,7 @@ describe('CreateEventReminderTransactionScript', () => {
 
   const mockCalendarEvent: CalendarEvent = {
     id: generateRandomNumbers(),
+    calendarId: 10,
     userId: mockUser.userId,
     title: 'Team Meeting',
     description: 'Weekly standup',
@@ -86,12 +87,12 @@ describe('CreateEventReminderTransactionScript', () => {
       mockEventReminderRepository.findByEventId.mockResolvedValue([]);
       mockEventReminderRepository.create.mockResolvedValue(mockReminder);
 
-      const result = await target.apply(validCommand);
+      const result = await target.apply(validCommand, [10]);
 
       expect(result).toEqual(mockReminder);
       expect(mockCalendarEventRepository.findById).toHaveBeenCalledWith(
         mockCalendarEvent.id,
-        mockUser.userId
+        [10]
       );
       expect(mockEventReminderRepository.findByEventId).toHaveBeenCalledWith(
         mockCalendarEvent.id
@@ -119,7 +120,7 @@ describe('CreateEventReminderTransactionScript', () => {
       mockEventReminderRepository.findByEventId.mockResolvedValue([]);
       mockEventReminderRepository.create.mockResolvedValue(mockReminder);
 
-      await target.apply(validCommand, mockManager);
+      await target.apply(validCommand, [10], mockManager);
 
       expect(mockEventReminderRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -133,10 +134,10 @@ describe('CreateEventReminderTransactionScript', () => {
     it('should throw NotFoundException when calendar event does not exist', async () => {
       mockCalendarEventRepository.findById.mockResolvedValue(null);
 
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         NotFoundException
       );
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         'Calendar event not found'
       );
       expect(mockEventReminderRepository.create).not.toHaveBeenCalled();
@@ -145,7 +146,7 @@ describe('CreateEventReminderTransactionScript', () => {
     it('should throw NotFoundException when calendar event belongs to different user', async () => {
       mockCalendarEventRepository.findById.mockResolvedValue(null);
 
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         NotFoundException
       );
       expect(mockEventReminderRepository.create).not.toHaveBeenCalled();
@@ -159,7 +160,7 @@ describe('CreateEventReminderTransactionScript', () => {
 
       mockCalendarEventRepository.findById.mockResolvedValue(mockCalendarEvent);
 
-      await expect(target.apply(invalidCommand)).rejects.toThrow(
+      await expect(target.apply(invalidCommand, [10])).rejects.toThrow(
         'Reminder minutes must be non-negative'
       );
       expect(mockEventReminderRepository.create).not.toHaveBeenCalled();
@@ -179,7 +180,7 @@ describe('CreateEventReminderTransactionScript', () => {
         existingReminder,
       ]);
 
-      await expect(target.apply(validCommand)).rejects.toThrow(
+      await expect(target.apply(validCommand, [10])).rejects.toThrow(
         'Reminder with this timing already exists for this event'
       );
       expect(mockEventReminderRepository.create).not.toHaveBeenCalled();
@@ -208,7 +209,7 @@ describe('CreateEventReminderTransactionScript', () => {
       ]);
       mockEventReminderRepository.create.mockResolvedValue(newReminder);
 
-      const result = await target.apply(validCommand);
+      const result = await target.apply(validCommand, [10]);
 
       expect(result).toEqual(newReminder);
       expect(mockEventReminderRepository.create).toHaveBeenCalled();
@@ -232,7 +233,7 @@ describe('CreateEventReminderTransactionScript', () => {
       mockEventReminderRepository.findByEventId.mockResolvedValue([]);
       mockEventReminderRepository.create.mockResolvedValue(mockReminder);
 
-      const result = await target.apply(commandWithZero);
+      const result = await target.apply(commandWithZero, [10]);
 
       expect(result).toEqual(mockReminder);
       expect(mockEventReminderRepository.create).toHaveBeenCalled();

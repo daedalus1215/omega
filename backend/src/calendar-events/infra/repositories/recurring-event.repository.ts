@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { RecurringEventEntity } from '../entities/recurring-event.entity';
 
 /**
@@ -54,11 +54,23 @@ export class RecurringEventRepository {
   }
 
   /**
-   * Find all recurring events for a user.
+   * Count recurring events belonging to a calendar.
    */
-  async findByUserId(userId: number): Promise<RecurringEventEntity[]> {
+  async countByCalendarId(calendarId: number): Promise<number> {
+    return await this.repository.count({ where: { calendarId } });
+  }
+
+  /**
+   * Find all recurring events across the given calendars.
+   */
+  async findByCalendarIds(
+    calendarIds: number[]
+  ): Promise<RecurringEventEntity[]> {
+    if (calendarIds.length === 0) {
+      return [];
+    }
     return await this.repository.find({
-      where: { userId },
+      where: { calendarId: In(calendarIds) },
       order: { createdAt: 'DESC' },
     });
   }

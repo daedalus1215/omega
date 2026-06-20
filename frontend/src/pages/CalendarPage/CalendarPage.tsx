@@ -1,11 +1,15 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Fab } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  CalendarMonth as CalendarMonthIcon,
+} from '@mui/icons-material';
 import { CalendarView } from './components/CalendarView/CalendarView';
 import { DayView } from './components/DayView/DayView';
 import { MonthView } from './components/MonthView/MonthView';
 import { CalendarToolbar } from './components/CalendarToolbar/CalendarToolbar';
 import { CreateEventModal } from './components/CreateEventModal/CreateEventModal';
+import { CalendarsManager } from './components/CalendarsManager/CalendarsManager';
 import { useCalendarEvents } from './hooks/useCalendarEvents';
 import { useCalendarView } from './hooks/useCalendarView';
 import { subDays, addDays, startOfDay, endOfDay, format } from 'date-fns';
@@ -35,12 +39,13 @@ export const CalendarPage: React.FC = () => {
   });
   const [currentDate, setCurrentDate] = useState<Date>(today);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCalendarsManagerOpen, setIsCalendarsManagerOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | undefined>(
     undefined
   );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const { setCalendarMonthLabel, setOpenCreateEventModal } =
+  const { setCalendarMonthLabel, setOpenCreateEventModal, isCalendarVisible } =
     React.useContext(CalendarContext);
 
   const { currentView, setView } = useCalendarView();
@@ -104,6 +109,11 @@ export const CalendarPage: React.FC = () => {
     getEndDate()
   );
 
+  // Hide events belonging to calendars the user has toggled off.
+  const visibleEvents = events.filter(event =>
+    isCalendarVisible(event.calendarId)
+  );
+
   // Simple handler - just update the date range
   // CalendarView handles scroll position adjustment via useLayoutEffect
   const handleLoadMoreDays = useCallback((direction: 'left' | 'right') => {
@@ -124,9 +134,12 @@ export const CalendarPage: React.FC = () => {
     setCurrentDate(date);
   }, []);
 
-  const handleViewChange = useCallback((view: 'day') => {
-    setView(view);
-  }, [setView]);
+  const handleViewChange = useCallback(
+    (view: 'day') => {
+      setView(view);
+    },
+    [setView]
+  );
 
   const handleCreateEvent = () => {
     setCreateEventDate(undefined);
@@ -163,7 +176,7 @@ export const CalendarPage: React.FC = () => {
         return (
           <DayView
             currentDate={currentDate}
-            events={events}
+            events={visibleEvents}
             isLoading={isLoading}
             onDateChange={handleDateChange}
             onTimeSlotClick={handleTimeSlotClick}
@@ -173,7 +186,7 @@ export const CalendarPage: React.FC = () => {
         return (
           <MonthView
             currentDate={currentDate}
-            events={events}
+            events={visibleEvents}
             isLoading={isLoading}
             onDateChange={handleDateChange}
             onViewChange={handleViewChange}
@@ -185,7 +198,7 @@ export const CalendarPage: React.FC = () => {
           <CalendarView
             startDate={dayRange.startDate}
             endDate={dayRange.endDate}
-            events={events}
+            events={visibleEvents}
             isLoading={isLoading}
             onLoadMoreDays={handleLoadMoreDays}
             onTimeSlotClick={handleTimeSlotClick}
@@ -207,10 +220,7 @@ export const CalendarPage: React.FC = () => {
         onViewChange={setView}
       />
 
-
-      <Box className={styles.calendarContent}>
-        {renderCalendarView()}
-      </Box>
+      <Box className={styles.calendarContent}>{renderCalendarView()}</Box>
 
       {!isMobile && (
         <Fab
@@ -227,10 +237,27 @@ export const CalendarPage: React.FC = () => {
           <AddIcon />
         </Fab>
       )}
+      <Fab
+        size="medium"
+        aria-label="manage calendars"
+        onClick={() => setIsCalendarsManagerOpen(true)}
+        sx={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '2rem',
+          zIndex: 1000,
+        }}
+      >
+        <CalendarMonthIcon />
+      </Fab>
       <CreateEventModal
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}
         defaultDate={createEventDate || new Date()}
+      />
+      <CalendarsManager
+        isOpen={isCalendarsManagerOpen}
+        onClose={() => setIsCalendarsManagerOpen(false)}
       />
     </Box>
   );

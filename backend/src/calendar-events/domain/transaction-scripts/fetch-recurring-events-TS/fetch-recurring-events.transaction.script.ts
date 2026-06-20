@@ -15,11 +15,12 @@ export class FetchRecurringEventsTransactionScript {
   ) {}
 
   /**
-   * Fetch all recurring events for a user and convert them to domain entities.
+   * Fetch all recurring events across the given calendars and convert them to
+   * domain entities.
    */
-  async apply(userId: number): Promise<RecurringEvent[]> {
+  async apply(calendarIds: number[]): Promise<RecurringEvent[]> {
     const recurringEventEntities =
-      await this.recurringEventRepository.findByUserId(userId);
+      await this.recurringEventRepository.findByCalendarIds(calendarIds);
 
     return recurringEventEntities.map(entity =>
       this.recurringEventToDomainConverter.apply(entity)

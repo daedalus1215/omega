@@ -19,10 +19,13 @@ export class FetchCalendarEventTransactionScript {
    * Handles both one-time events and recurring event instances (now in single table).
    * Throws NotFoundException if event doesn't exist or doesn't belong to user.
    */
-  async apply(command: FetchCalendarEventCommand): Promise<CalendarEvent> {
+  async apply(
+    command: FetchCalendarEventCommand,
+    calendarIds: number[]
+  ): Promise<CalendarEvent> {
     const calendarEvent = await this.calendarEventRepository.findById(
       command.eventId,
-      command.user.userId
+      calendarIds
     );
     // @TODO: Can be moved to a validator
     if (!calendarEvent) {

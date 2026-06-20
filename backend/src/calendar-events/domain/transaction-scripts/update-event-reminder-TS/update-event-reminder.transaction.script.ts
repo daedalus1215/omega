@@ -21,17 +21,20 @@ export class UpdateEventReminderTransactionScript {
    * Update an event reminder.
    * Validates business rules and updates the reminder.
    */
-  async apply(command: UpdateEventReminderCommand): Promise<EventReminder> {
+  async apply(
+    command: UpdateEventReminderCommand,
+    calendarIds: number[]
+  ): Promise<EventReminder> {
     // Verify the reminder exists
     const existingReminder = await this.eventReminderRepository.findById(
       command.reminderId
     );
     this.validator.validateReminderExists(existingReminder);
 
-    // Verify the calendar event belongs to the user
+    // Verify the calendar event is visible to the user
     const event = await this.calendarEventRepository.findById(
       existingReminder.calendarEventId,
-      command.user.userId
+      calendarIds
     );
     this.validator.validateCalendarEventExists(event);
 

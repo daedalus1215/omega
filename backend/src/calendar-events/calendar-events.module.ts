@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CalendarEventEntity } from './infra/entities/calendar-event.entity';
 import { RecurringEventEntity } from './infra/entities/recurring-event.entity';
@@ -40,6 +40,8 @@ import { FetchEventRemindersAction } from './apps/actions/fetch-event-reminders-
 import { ReminderScheduler } from './apps/schedulers/reminder-scheduler/reminder.scheduler';
 import { SharedKernelModule } from '../shared-kernel/shared-kernel.module';
 import { UsersModule } from '../users/users.module';
+import { CalendarsModule } from '../calendars/calendars.module';
+import { CalendarEventsAggregator } from './domain/aggregators/calendar-events.aggregator';
 
 /**
  * Calendar Events module: encapsulates all calendar event-related logic, actions, and persistence.
@@ -54,6 +56,7 @@ import { UsersModule } from '../users/users.module';
     ]),
     SharedKernelModule,
     UsersModule,
+    forwardRef(() => CalendarsModule),
   ],
   providers: [
     CalendarEventRepository,
@@ -79,6 +82,7 @@ import { UsersModule } from '../users/users.module';
     DeleteEventReminderTransactionScript,
     FetchEventRemindersTransactionScript,
     ReminderScheduler,
+    CalendarEventsAggregator,
   ],
   controllers: [
     FetchCalendarEventsAction,
@@ -98,6 +102,7 @@ import { UsersModule } from '../users/users.module';
     RecurringEventRepository,
     RecurrenceExceptionRepository,
     EventReminderRepository,
+    CalendarEventsAggregator,
   ],
 })
 export class CalendarEventsModule {}

@@ -63,6 +63,7 @@ export class CreateRecurringEventAction {
       noEndDate: dto.noEndDate,
       reminderMinutes: dto.reminderMinutes,
       user,
+      calendarId: dto.calendarId,
     };
     const event =
       await this.recurringEventService.createRecurringEvent(command);

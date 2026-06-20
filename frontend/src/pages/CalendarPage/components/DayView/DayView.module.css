@@ -67,6 +67,10 @@
   min-width: 0;
 }
 
+.dayColumnContainer > * {
+  border-right: none;
+}
+
 /* Mobile adjustments */
 @media (max-width: 600px) {
   .header {

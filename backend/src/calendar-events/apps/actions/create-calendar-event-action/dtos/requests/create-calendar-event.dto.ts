@@ -37,4 +37,10 @@ export class CreateCalendarEventRequestDto {
   @IsInt()
   @Min(0)
   reminderMinutes?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  calendarId?: number;
 }

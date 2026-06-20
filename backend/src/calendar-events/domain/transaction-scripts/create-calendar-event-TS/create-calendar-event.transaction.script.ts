@@ -33,8 +33,12 @@ export class CreateCalendarEventTransactionScript {
     if (command.startDate >= command.endDate) {
       throw new Error('End date must be after start date');
     }
+    if (command.calendarId === undefined) {
+      throw new Error('Calendar is required');
+    }
     const event = await this.calendarEventRepository.create(
       {
+        calendarId: command.calendarId,
         userId: command.user.userId,
         title: command.title.trim(),
         description: command.description?.trim(),

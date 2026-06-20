@@ -119,6 +119,7 @@ export class GenerateEventInstancesTransactionScript {
       );
 
       const instance = await this.calendarEventRepository.createInstance({
+        calendarId: recurringEvent.calendarId,
         userId: recurringEvent.userId,
         recurringEventId: recurringEvent.id,
         instanceDate,

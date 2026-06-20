@@ -18,7 +18,10 @@ export class DeleteEventReminderTransactionScript {
    * Delete an event reminder.
    * Validates business rules and deletes the reminder.
    */
-  async apply(command: DeleteEventReminderCommand): Promise<void> {
+  async apply(
+    command: DeleteEventReminderCommand,
+    calendarIds: number[]
+  ): Promise<void> {
     // Verify the reminder exists
     const existingReminder = await this.eventReminderRepository.findById(
       command.reminderId
@@ -27,10 +30,10 @@ export class DeleteEventReminderTransactionScript {
       throw new NotFoundException('Event reminder not found');
     }
 
-    // Verify the calendar event belongs to the user
+    // Verify the calendar event is visible to the user
     const event = await this.calendarEventRepository.findById(
       existingReminder.calendarEventId,
-      command.user.userId
+      calendarIds
     );
     if (!event) {
       throw new NotFoundException('Calendar event not found');

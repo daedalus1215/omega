@@ -19,11 +19,14 @@ export class FetchEventRemindersTransactionScript {
    * Fetch reminders for a calendar event.
    * Validates that the event exists and belongs to the user.
    */
-  async apply(command: FetchEventRemindersCommand): Promise<EventReminder[]> {
-    // Verify the calendar event exists and belongs to the user
+  async apply(
+    command: FetchEventRemindersCommand,
+    calendarIds: number[]
+  ): Promise<EventReminder[]> {
+    // Verify the calendar event exists and is visible to the user
     const event = await this.calendarEventRepository.findById(
       command.calendarEventId,
-      command.user.userId
+      calendarIds
     );
     if (!event) {
       throw new NotFoundException('Calendar event not found');
