@@ -22,8 +22,8 @@ export const ChangeUsernameForm: React.FC = () => {
     setSuccessMessage(null);
 
     // Validate username format
-    if (newUsername.trim().length < 4 || newUsername.trim().length > 20) {
-      setValidationError('Username must be between 4 and 20 characters');
+    if (newUsername.trim().length < 4) {
+      setValidationError('Username must be more than 4 characters');
       return;
     }
 

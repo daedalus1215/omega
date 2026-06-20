@@ -9,9 +9,11 @@ import {
 export class RegisterUserRequestDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(4)
-  @MaxLength(20)
-  @IsEmail()
+  @MaxLength(200)
+  @IsEmail(
+    { require_tld: true, allow_ip_domain: false },
+    { message: 'username must be a valid email address' }
+  )
   readonly username: string;
 
   @IsString()

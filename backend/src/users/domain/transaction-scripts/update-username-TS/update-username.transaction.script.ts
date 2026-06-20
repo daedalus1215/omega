@@ -35,7 +35,7 @@ export class UpdateUsernameTransactionScript {
       newUsername.trim().length < 4 ||
       newUsername.trim().length > 20
     ) {
-      throw new Error('Username must be between 4 and 20 characters');
+      throw new Error('Username must be more than 4 characters.');
     }
 
     const trimmedUsername = newUsername.trim();
