@@ -64,6 +64,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         sx={{
           display: 'flex',
           flexWrap: 'wrap',
+          justifyContent: 'center',
           gap: 1,
           mt: 1,
         }}

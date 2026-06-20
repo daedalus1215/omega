@@ -43,6 +43,7 @@
 }
 
 .navItem {
+  position: relative;
   padding: 0.5rem 0.75rem !important;
   margin: 0.25rem 0 !important;
   border-radius: 6px !important;
@@ -54,20 +55,40 @@
 }
 
 .navItem.active {
-  background-color: var(--color-overlay-stronger) !important;
+  background-color: var(--color-primary-light) !important;
+}
+
+/* Left accent rail marking the active route. Animates in from the center. */
+.navItem.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--color-primary);
+  transition: height 0.2s ease-in-out;
 }
 
 .navIcon {
   min-width: 40px !important;
   color: var(--color-text-secondary);
   opacity: 0.7;
-  transition: opacity 0.2s ease-in-out;
+  transition:
+    opacity 0.2s ease-in-out,
+    color 0.2s ease-in-out;
 }
 
-.navItem:hover .navIcon,
-.navItem.active .navIcon {
+.navItem:hover .navIcon {
   opacity: 1;
   color: var(--color-text);
+}
+
+.navItem.active .navIcon {
+  opacity: 1;
+  color: var(--color-primary);
 }
 
 .resizeHandle {

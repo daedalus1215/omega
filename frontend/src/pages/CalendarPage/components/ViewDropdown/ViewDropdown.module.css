@@ -1,3 +1,10 @@
+/* Desktop segmented control. Inner button styling comes from the MUI theme
+   (MuiToggleButton/MuiToggleButtonGroup overrides in theme.ts). */
+.segmented {
+  border: 1px solid var(--color-border);
+}
+
+/* Mobile dropdown. Menu paper/item styling comes from the MUI theme. */
 .formControl {
   min-width: 100px;
 }
@@ -20,41 +27,9 @@
   color: var(--color-text-secondary);
 }
 
-.menuPaper {
-  background-color: var(--color-card-bg) !important;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  margin-top: 4px;
-}
-
-.menuItem {
-  color: var(--color-text);
-  font-size: 0.875rem;
-  padding: 8px 16px;
-}
-
-.menuItem:hover {
-  background-color: var(--color-primary-light) !important;
-}
-
-.menuItem:global(.Mui-selected) {
-  background-color: var(--color-primary-light-2) !important;
-  color: var(--color-primary);
-}
-
-.menuItem:global(.Mui-disabled) {
-  color: var(--color-text-muted);
-  opacity: 0.5;
-}
-
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .formControl {
     min-width: 80px;
-  }
-
-  .menuItem {
-    font-size: 0.8125rem;
-    padding: 6px 12px;
   }
 }
