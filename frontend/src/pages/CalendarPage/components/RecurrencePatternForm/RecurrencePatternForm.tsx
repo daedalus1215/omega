@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   FormControl,
@@ -74,6 +74,23 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
     value.recurrenceEndDate || ''
   );
 
+  // Visual input states for number fields - allows showing empty while internal value defaults to 1
+  const [intervalInput, setIntervalInput] = useState<string>(
+    String(value.recurrencePattern.interval)
+  );
+  const [dayOfMonthInput, setDayOfMonthInput] = useState<string>(
+    value.recurrencePattern.dayOfMonth ? String(value.recurrencePattern.dayOfMonth) : ''
+  );
+
+  // Sync visual input state when external value changes (edit mode)
+  useEffect(() => {
+    setPattern(value.recurrencePattern);
+    setNoEndDate(value.noEndDate);
+    setRecurrenceEndDate(value.recurrenceEndDate || '');
+    setIntervalInput(String(value.recurrencePattern.interval));
+    setDayOfMonthInput(value.recurrencePattern.dayOfMonth ? String(value.recurrencePattern.dayOfMonth) : '');
+  }, [value.recurrencePattern, value.noEndDate, value.recurrenceEndDate]);
+
   const notifyChange = (
     newPattern: RecurrencePatternDto,
     newNoEndDate: boolean,
@@ -103,13 +120,26 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
       newPattern.monthOfYear = undefined;
     }
     setPattern(newPattern);
+    setIntervalInput('1');
+    setDayOfMonthInput('');
     notifyChange(newPattern, noEndDate, recurrenceEndDate);
   };
 
-  const handleIntervalChange = (interval: number) => {
-    const newPattern = { ...pattern, interval: Math.max(1, interval) };
-    setPattern(newPattern);
-    notifyChange(newPattern, noEndDate, recurrenceEndDate);
+  const handleIntervalChange = (rawValue: string) => {
+    setIntervalInput(rawValue);
+    if (rawValue === '') {
+      // Visually empty, but pattern stays at 1 internally
+      const newPattern = { ...pattern, interval: 1 };
+      setPattern(newPattern);
+      notifyChange(newPattern, noEndDate, recurrenceEndDate);
+    } else {
+      const parsed = parseInt(rawValue, 10);
+      if (!isNaN(parsed)) {
+        const newPattern = { ...pattern, interval: Math.max(1, parsed) };
+        setPattern(newPattern);
+        notifyChange(newPattern, noEndDate, recurrenceEndDate);
+      }
+    }
   };
 
   const handleDayOfWeekToggle = (day: number) => {
@@ -122,10 +152,21 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
     notifyChange(newPattern, noEndDate, recurrenceEndDate);
   };
 
-  const handleDayOfMonthChange = (day: number) => {
-    const newPattern = { ...pattern, dayOfMonth: day };
-    setPattern(newPattern);
-    notifyChange(newPattern, noEndDate, recurrenceEndDate);
+  const handleDayOfMonthChange = (rawValue: string) => {
+    setDayOfMonthInput(rawValue);
+    if (rawValue === '') {
+      // Visually empty, but pattern uses undefined (backend defaults as needed)
+      const newPattern = { ...pattern, dayOfMonth: undefined };
+      setPattern(newPattern);
+      notifyChange(newPattern, noEndDate, recurrenceEndDate);
+    } else {
+      const parsed = parseInt(rawValue, 10);
+      if (!isNaN(parsed)) {
+        const newPattern = { ...pattern, dayOfMonth: parsed };
+        setPattern(newPattern);
+        notifyChange(newPattern, noEndDate, recurrenceEndDate);
+      }
+    }
   };
 
   const handleMonthOfYearChange = (month: number) => {
@@ -173,8 +214,8 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
       <TextField
         label="Repeat Every"
         type="number"
-        value={pattern.interval}
-        onChange={e => handleIntervalChange(parseInt(e.target.value) || 1)}
+        value={intervalInput}
+        onChange={e => handleIntervalChange(e.target.value)}
         inputProps={{ min: 1 }}
         fullWidth
         margin="normal"
@@ -217,8 +258,8 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
         <TextField
           label="Day of Month"
           type="number"
-          value={pattern.dayOfMonth || ''}
-          onChange={e => handleDayOfMonthChange(parseInt(e.target.value) || 1)}
+          value={dayOfMonthInput}
+          onChange={e => handleDayOfMonthChange(e.target.value)}
           inputProps={{ min: 1, max: 31 }}
           fullWidth
           margin="normal"
