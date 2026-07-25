@@ -83,13 +83,14 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
   );
 
   // Sync visual input state when external value changes (edit mode)
+  // NOTE: Do NOT include value.recurrencePattern.interval or value.recurrencePattern.dayOfMonth
+  // in the deps — those are updated by our own notifyChange calls and would re-snaps the
+  // visual input back to the semantic value on every keystroke.
   useEffect(() => {
     setPattern(value.recurrencePattern);
     setNoEndDate(value.noEndDate);
     setRecurrenceEndDate(value.recurrenceEndDate || '');
-    setIntervalInput(String(value.recurrencePattern.interval));
-    setDayOfMonthInput(value.recurrencePattern.dayOfMonth ? String(value.recurrencePattern.dayOfMonth) : '');
-  }, [value.recurrencePattern, value.noEndDate, value.recurrenceEndDate]);
+  }, [value.recurrencePattern.type, value.noEndDate, value.recurrenceEndDate]);
 
   const notifyChange = (
     newPattern: RecurrencePatternDto,
@@ -155,8 +156,8 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
   const handleDayOfMonthChange = (rawValue: string) => {
     setDayOfMonthInput(rawValue);
     if (rawValue === '') {
-      // Visually empty, but pattern uses undefined (backend defaults as needed)
-      const newPattern = { ...pattern, dayOfMonth: undefined };
+      // Visually empty, but pattern defaults to 1 internally
+      const newPattern = { ...pattern, dayOfMonth: 1 };
       setPattern(newPattern);
       notifyChange(newPattern, noEndDate, recurrenceEndDate);
     } else {
@@ -213,10 +214,10 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
 
       <TextField
         label="Repeat Every"
-        type="number"
+        type="text"
+        inputMode="numeric"
         value={intervalInput}
         onChange={e => handleIntervalChange(e.target.value)}
-        inputProps={{ min: 1 }}
         fullWidth
         margin="normal"
         helperText={`Repeat every ${pattern.interval} ${pattern.type.toLowerCase()}(s)`}
@@ -257,10 +258,10 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
       {pattern.type === 'MONTHLY' && (
         <TextField
           label="Day of Month"
-          type="number"
+          type="text"
+          inputMode="numeric"
           value={dayOfMonthInput}
           onChange={e => handleDayOfMonthChange(e.target.value)}
-          inputProps={{ min: 1, max: 31 }}
           fullWidth
           margin="normal"
           helperText="Day of the month (1-31)"
