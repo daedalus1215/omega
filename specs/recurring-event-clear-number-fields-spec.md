@@ -1,10 +1,9 @@
 ---
-title: "Spec: Allow Clearing Number Fields in Recurrence Pattern Form"
-status: ready
+title: 'Spec: Allow Clearing Number Fields in Recurrence Pattern Form'
+status: implemented
 project: omega
 scope: frontend
 component: RecurrencePatternForm
-author: spec-writer
 date: 2026-07-25
 ---
 
@@ -12,154 +11,117 @@ date: 2026-07-25
 
 ## Summary
 
-Enable users to visually clear the numeric input fields ("Repeat Every" and "Day of Month") in the recurring event form without the value snapping back to `1`. When a cleared field is submitted, it defaults to `1` internally.
+Let users clear the "Repeat Every" and "Day of Month" fields in the recurring event
+form without the value snapping back to `1`, so an existing value can be deleted
+before typing a new one.
 
-## Problem Statement
+## Problem
 
-In `RecurrencePatternForm.tsx`, the `onChange` handlers use `parseInt(e.target.value) || 1` which causes:
-- `parseInt('')` returns `NaN`
-- `NaN || 1` evaluates to `1`
-- User clears the field → value instantly snaps back to `1`
-
-This creates a frustrating UX where users cannot delete the existing value before typing a new one.
-
-## Current Implementation (Buggy)
+Both `onChange` handlers used `parseInt(e.target.value) || 1`. Since `parseInt('')`
+is `NaN` and `NaN || 1` is `1`, backspacing to empty instantly restored `1` and the
+field could never appear blank.
 
 ```tsx
-// Lines 208-214: Repeat Every field
+// Before
 <TextField
   label="Repeat Every"
   type="number"
-  value={pattern.interval}                    // ❌ Uses pattern value directly
-  onChange={e => handleIntervalChange(parseInt(e.target.value) || 1)}  // ❌ Snap-back
+  value={pattern.interval}
+  onChange={e => handleIntervalChange(parseInt(e.target.value) || 1)}
   inputProps={{ min: 1 }}
-  ...
-/>
-
-// Lines 248-259: Day of Month field
-<TextField
-  label="Day of Month"
-  type="number"
-  value={pattern.dayOfMonth || ''}            // ❌ Uses pattern value directly
-  onChange={e => handleDayOfMonthChange(parseInt(e.target.value) || 1)}  // ❌ Snap-back
-  inputProps={{ min: 1, max: 31 }}
-  ...
 />
 ```
 
-## Proposed Fix
+## Solution
 
-The component already has local input state variables defined (lines 77-83). The fix is to:
+Each numeric field keeps its raw text in local state, separate from the semantic
+value in the pattern. The text buffer holds the one thing the pattern cannot
+express — that the user has cleared the box — while the pattern stays valid
+throughout the edit.
 
-1. Use the input state variables (`intervalInput`, `dayOfMonthInput`) for `value` prop
-2. Pass raw string value to handlers instead of parsed int
+Everything else stays in the parent. `CreateEventModal` owns `recurrenceData` and
+passes it back down as `value`, so the component reads the pattern straight from
+props and reports every edit through `onChange`. No mirrored copy, no sync effect.
 
-### Updated Implementation
+Because the fields are `type="text"` (a `type="number"` box cannot display an empty
+string reliably across browsers while still holding a value), the browser no longer
+filters input. A shared parser rejects any keystroke that is not a plain in-range
+number, so the box can never display something different from what would be
+submitted:
 
 ```tsx
-// Lines 77-83: Already defined
-const [intervalInput, setIntervalInput] = useState<string>(
-  String(value.recurrencePattern.interval)
-);
-const [dayOfMonthInput, setDayOfMonthInput] = useState<string>(
-  value.recurrencePattern.dayOfMonth ? String(value.recurrencePattern.dayOfMonth) : ''
-);
-
-// Lines 119-134: Handler already handles empty strings
-const handleIntervalChange = (rawValue: string) => {
-  setIntervalInput(rawValue);                  // ✅ Update visual state
-  if (rawValue === '') {
-    const newPattern = { ...pattern, interval: 1 };
-    setPattern(newPattern);
-    notifyChange(newPattern, noEndDate, recurrenceEndDate);
-  } else {
-    const parsed = parseInt(rawValue, 10);
-    if (!isNaN(parsed)) {
-      const newPattern = { ...pattern, interval: Math.max(1, parsed) };
-      setPattern(newPattern);
-      notifyChange(newPattern, noEndDate, recurrenceEndDate);
-    }
-  }
+const parseNumericInput = (
+  raw: string,
+  min: number,
+  max = Number.MAX_SAFE_INTEGER
+): number | 'empty' | null => {
+  if (raw === '') return 'empty';
+  if (!/^\d+$/.test(raw)) return null;
+  const parsed = parseInt(raw, 10);
+  return parsed >= min && parsed <= max ? parsed : null;
 };
-
-// Lines 146-161: Handler already handles empty strings
-const handleDayOfMonthChange = (rawValue: string) => {
-  setDayOfMonthInput(rawValue);                // ✅ Update visual state
-  if (rawValue === '') {
-    const newPattern = { ...pattern, dayOfMonth: undefined };
-    setPattern(newPattern);
-    notifyChange(newPattern, noEndDate, recurrenceEndDate);
-  } else {
-    const parsed = parseInt(rawValue, 10);
-    if (!isNaN(parsed)) {
-      const newPattern = { ...pattern, dayOfMonth: parsed };
-      setPattern(newPattern);
-      notifyChange(newPattern, noEndDate, recurrenceEndDate);
-    }
-  }
-};
-
-// Updated TextField for Repeat Every (line ~208)
-<TextField
-  label="Repeat Every"
-  type="number"
-  value={intervalInput}                       // ✅ Use input state
-  onChange={e => handleIntervalChange(e.target.value)}  // ✅ Pass raw string
-  inputProps={{ min: 1 }}
-  ...
-/>
-
-// Updated TextField for Day of Month (line ~252)
-<TextField
-  label="Day of Month"
-  type="number"
-  value={dayOfMonthInput}                     // ✅ Use input state
-  onChange={e => handleDayOfMonthChange(e.target.value)}  // ✅ Pass raw string
-  inputProps={{ min: 1, max: 31 }}
-  ...
-/>
 ```
 
-## Acceptance Criteria
+Bounds mirror the backend DTO (`create-recurring-event.dto.ts`): `interval` is
+`@Min(1)` with no maximum; `dayOfMonth` is `@Min(1) @Max(31)`.
 
-| # | Criterion | Test |
-|---|-----------|------|
-| 1 | Clearing "Repeat Every" shows empty visually | Delete all digits → field appears empty |
-| 2 | Clearing "Day of Month" shows empty visually | Delete all digits → field appears empty |
-| 3 | Submitting cleared "Repeat Every" sends `interval: 1` | Submit form → payload has `interval: 1` |
-| 4 | Submitting cleared "Day of Month" sends `dayOfMonth: 1` | Submit form → payload has `dayOfMonth: 1` |
-| 5 | Typing valid numbers (2, 3, etc.) works | Type "3" → field shows "3", submits `3` |
-| 6 | Existing behavior preserved | Change recurrence type → fields reset correctly |
-| 7 | No TypeScript errors | `tsc --noEmit` passes |
-| 8 | No lint warnings | `eslint` passes |
+## Behavior
 
-## Files Changed
+| Field | Blank means | Rationale |
+|-------|-------------|-----------|
+| Repeat Every | `interval: 1` | A recurrence has no meaningful "no interval"; 1 is the identity value. |
+| Day of Month | `dayOfMonth: undefined` | `rrule-pattern.utils.ts` omits `bymonthday` when unset, so the event recurs on its start date's day. |
+
+Blank Day of Month deliberately does **not** submit `1`. Forcing the 1st would mean
+an event starting Mar 15 silently recurs on the 1st, and it would make an untouched
+field behave differently from a cleared one. The helper text states the fallback.
+
+## Edge cases
+
+| Input | Result |
+|-------|--------|
+| Letters, symbols, `12x` | Keystroke rejected; box unchanged |
+| `-5`, `0` | Rejected (below `min`) |
+| `45` in Day of Month | Rejected (above 31) |
+| Cleared, then tab away | Box stays empty; pattern holds the field's blank default |
+| Recurrence type switched | `handleTypeChange` resets both buffers |
+
+## Acceptance criteria
+
+| # | Criterion |
+|---|-----------|
+| 1 | Clearing either field leaves it visually empty |
+| 2 | Cleared "Repeat Every" submits `interval: 1` |
+| 3 | Cleared "Day of Month" submits `dayOfMonth: undefined` |
+| 4 | Out-of-range and non-numeric input is rejected, never displayed |
+| 5 | Values > 1 still work (e.g. "every 2 weeks") |
+| 6 | Switching recurrence type resets both fields |
+| 7 | `npm run build` (tsc + vite) passes |
+
+## Decisions
+
+Resolved with the requester before implementation:
+
+- **Both fields** are in scope; "Repeat Every" is the primary pain point since it
+  shows for every recurrence type.
+- **Cleared fields stay visually blank** and fall back to a default on submit,
+  rather than showing a validation error or a placeholder label.
+- **`interval` > 1 is valid** ("every 2 weeks"); only the clear behavior was broken.
+- **No calendar-aware Day of Month validation** — `rrule` already skips months that
+  lack the requested day (e.g. Feb 30).
+- **Frontend-only**; no DTO or backend changes.
+- **Superseded:** an earlier round specified blank Day of Month → `1`. Changed to
+  `undefined` to preserve the existing start-date fallback and keep untouched and
+  cleared fields consistent.
+
+## Files changed
 
 | File | Change |
 |------|--------|
-| `frontend/src/pages/CalendarPage/components/RecurrencePatternForm/RecurrencePatternForm.tsx` | Use input state for value props; pass raw strings to handlers |
+| `frontend/src/pages/CalendarPage/components/RecurrencePatternForm/RecurrencePatternForm.tsx` | Raw-text buffers for numeric fields; component made fully controlled; input parsing/bounds added |
 
-## Q&A Reference
+## Testing
 
-See `recurring-event-number-field-qa.md` for full Q&A:
-- **Both fields affected:** Repeat Every + Day of Month
-- **Clear behavior:** Option A (visually empty, defaults to 1 on submit)
-- **Interval validation:** Interval ≥ 1 valid (e.g., "every 2 weeks")
-- **Day of Month validation:** No frontend validation; rrule handles server-side
-- **Backend changes:** None required
-
-## Edge Cases
-
-| Case | Behavior |
-|------|----------|
-| User types non-numeric | Ignored (isNaN check) |
-| User types `0` | Clamped to `1` via `Math.max(1, parsed)` |
-| User clears then tabs away | Shows empty, internal value is `1` |
-| Switching recurrence type | Resets inputs via `handleTypeChange` (already implemented) |
-
-## Implementation Notes
-
-1. The component already has the correct handler logic — only the `value` and `onChange` props need updating
-2. The `handleTypeChange` function (line 114-115) already resets input states: `setIntervalInput('1'); setDayOfMonthInput('');`
-3. No backend changes — the DTOs remain unchanged
-4. No new dependencies required
+Covered by manual verification and `npm run build`. The frontend has no test runner
+(no vitest/jest, no test files), so there is no automated coverage — worth adding
+separately.
