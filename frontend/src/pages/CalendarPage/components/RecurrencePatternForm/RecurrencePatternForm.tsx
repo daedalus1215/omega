@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   FormControl,
@@ -15,17 +15,15 @@ import {
 import { RecurrencePatternDto } from '../../../../api/dtos/calendar-events.dtos';
 import styles from './RecurrencePatternForm.module.css';
 
+type RecurrenceValue = {
+  recurrencePattern: RecurrencePatternDto;
+  recurrenceEndDate?: string;
+  noEndDate: boolean;
+};
+
 type RecurrencePatternFormProps = {
-  value: {
-    recurrencePattern: RecurrencePatternDto;
-    recurrenceEndDate?: string;
-    noEndDate: boolean;
-  };
-  onChange: (value: {
-    recurrencePattern: RecurrencePatternDto;
-    recurrenceEndDate?: string;
-    noEndDate: boolean;
-  }) => void;
+  value: RecurrenceValue;
+  onChange: (value: RecurrenceValue) => void;
   errors?: {
     recurrencePattern?: string;
     recurrenceEndDate?: string;
@@ -57,90 +55,89 @@ const MONTHS = [
   { value: 12, label: 'December' },
 ];
 
+const MAX_DAY_OF_MONTH = 31;
+
+/**
+ * Interprets the raw text of a numeric field.
+ *
+ * Returns `null` when the text is not a plain in-range number, which the caller
+ * treats as "reject this keystroke" — the box can then never display something
+ * different from what would be submitted. An empty box is always accepted; it
+ * means "unset", which each field maps to its own default.
+ */
+const parseNumericInput = (
+  raw: string,
+  min: number,
+  max = Number.MAX_SAFE_INTEGER
+): number | 'empty' | null => {
+  if (raw === '') return 'empty';
+  if (!/^\d+$/.test(raw)) return null;
+  const parsed = parseInt(raw, 10);
+  return parsed >= min && parsed <= max ? parsed : null;
+};
+
 /**
  * Form component for configuring recurrence patterns for calendar events.
  * Supports daily, weekly, monthly, and yearly recurrence patterns with various options.
+ *
+ * Fully controlled: the pattern lives in `value` and every edit is reported through
+ * `onChange`. The only local state is the raw text of the two numeric fields, which
+ * holds something `value` cannot represent — that the user has cleared the box.
  */
 export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
   value,
   onChange,
   errors,
 }) => {
-  const [pattern, setPattern] = useState<RecurrencePatternDto>(
-    value.recurrencePattern
-  );
-  const [noEndDate, setNoEndDate] = useState(value.noEndDate);
-  const [recurrenceEndDate, setRecurrenceEndDate] = useState(
-    value.recurrenceEndDate || ''
+  const { recurrencePattern: pattern, noEndDate } = value;
+  const recurrenceEndDate = value.recurrenceEndDate || '';
+
+  const [intervalInput, setIntervalInput] = useState(String(pattern.interval));
+  const [dayOfMonthInput, setDayOfMonthInput] = useState(
+    pattern.dayOfMonth ? String(pattern.dayOfMonth) : ''
   );
 
-  // Visual input states for number fields - allows showing empty while internal value defaults to 1
-  const [intervalInput, setIntervalInput] = useState<string>(
-    String(value.recurrencePattern.interval)
-  );
-  const [dayOfMonthInput, setDayOfMonthInput] = useState<string>(
-    value.recurrencePattern.dayOfMonth ? String(value.recurrencePattern.dayOfMonth) : ''
-  );
-
-  // Sync visual input state when external value changes (edit mode)
-  // NOTE: Do NOT include value.recurrencePattern.interval or value.recurrencePattern.dayOfMonth
-  // in the deps — those are updated by our own notifyChange calls and would re-snaps the
-  // visual input back to the semantic value on every keystroke.
-  useEffect(() => {
-    setPattern(value.recurrencePattern);
-    setNoEndDate(value.noEndDate);
-    setRecurrenceEndDate(value.recurrenceEndDate || '');
-  }, [value.recurrencePattern.type, value.noEndDate, value.recurrenceEndDate]);
-
-  const notifyChange = (
-    newPattern: RecurrencePatternDto,
-    newNoEndDate: boolean,
-    newRecurrenceEndDate: string
-  ) => {
+  const notifyChange = (next: Partial<RecurrenceValue>) => {
+    const newNoEndDate = next.noEndDate ?? noEndDate;
+    const newEndDate = next.recurrenceEndDate ?? recurrenceEndDate;
     onChange({
-      recurrencePattern: newPattern,
-      recurrenceEndDate: newNoEndDate
-        ? undefined
-        : newRecurrenceEndDate || undefined,
+      recurrencePattern: next.recurrencePattern ?? pattern,
+      recurrenceEndDate: newNoEndDate ? undefined : newEndDate || undefined,
       noEndDate: newNoEndDate,
     });
+  };
+
+  const updatePattern = (changes: Partial<RecurrencePatternDto>) => {
+    notifyChange({ recurrencePattern: { ...pattern, ...changes } });
   };
 
   const handleTypeChange = (
     newType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
   ) => {
-    const newPattern: RecurrencePatternDto = {
-      type: newType,
-      interval: 1,
-    };
+    const newPattern: RecurrencePatternDto = { type: newType, interval: 1 };
     if (newType === 'WEEKLY') {
       newPattern.daysOfWeek = [];
-    } else if (newType === 'MONTHLY') {
-      newPattern.dayOfMonth = undefined;
-    } else if (newType === 'YEARLY') {
-      newPattern.monthOfYear = undefined;
     }
-    setPattern(newPattern);
     setIntervalInput('1');
     setDayOfMonthInput('');
-    notifyChange(newPattern, noEndDate, recurrenceEndDate);
+    notifyChange({ recurrencePattern: newPattern });
   };
 
-  const handleIntervalChange = (rawValue: string) => {
-    setIntervalInput(rawValue);
-    if (rawValue === '') {
-      // Visually empty, but pattern stays at 1 internally
-      const newPattern = { ...pattern, interval: 1 };
-      setPattern(newPattern);
-      notifyChange(newPattern, noEndDate, recurrenceEndDate);
-    } else {
-      const parsed = parseInt(rawValue, 10);
-      if (!isNaN(parsed)) {
-        const newPattern = { ...pattern, interval: Math.max(1, parsed) };
-        setPattern(newPattern);
-        notifyChange(newPattern, noEndDate, recurrenceEndDate);
-      }
-    }
+  const handleIntervalChange = (raw: string) => {
+    const parsed = parseNumericInput(raw, 1);
+    if (parsed === null) return;
+    setIntervalInput(raw);
+    // An empty box still means "every 1", so the pattern stays valid mid-edit.
+    updatePattern({ interval: parsed === 'empty' ? 1 : parsed });
+  };
+
+  const handleDayOfMonthChange = (raw: string) => {
+    const parsed = parseNumericInput(raw, 1, MAX_DAY_OF_MONTH);
+    if (parsed === null) return;
+    setDayOfMonthInput(raw);
+    // Unset means "same day as the event's start date" — that is what the backend
+    // does when dayOfMonth is omitted, so leave it off rather than forcing the 1st.
+    updatePattern({ dayOfMonth: parsed === 'empty' ? undefined : parsed });
   };
 
   const handleDayOfWeekToggle = (day: number) => {
@@ -148,44 +145,11 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
     const newDays = currentDays.includes(day)
       ? currentDays.filter(d => d !== day)
       : [...currentDays, day].sort();
-    const newPattern = { ...pattern, daysOfWeek: newDays };
-    setPattern(newPattern);
-    notifyChange(newPattern, noEndDate, recurrenceEndDate);
-  };
-
-  const handleDayOfMonthChange = (rawValue: string) => {
-    setDayOfMonthInput(rawValue);
-    if (rawValue === '') {
-      // Visually empty, but pattern defaults to 1 internally
-      const newPattern = { ...pattern, dayOfMonth: 1 };
-      setPattern(newPattern);
-      notifyChange(newPattern, noEndDate, recurrenceEndDate);
-    } else {
-      const parsed = parseInt(rawValue, 10);
-      if (!isNaN(parsed)) {
-        const newPattern = { ...pattern, dayOfMonth: parsed };
-        setPattern(newPattern);
-        notifyChange(newPattern, noEndDate, recurrenceEndDate);
-      }
-    }
+    updatePattern({ daysOfWeek: newDays });
   };
 
   const handleMonthOfYearChange = (month: number) => {
-    const newPattern = { ...pattern, monthOfYear: month };
-    setPattern(newPattern);
-    notifyChange(newPattern, noEndDate, recurrenceEndDate);
-  };
-
-  const handleNoEndDateChange = (checked: boolean) => {
-    const newRecurrenceEndDate = checked ? '' : recurrenceEndDate;
-    setNoEndDate(checked);
-    setRecurrenceEndDate(newRecurrenceEndDate);
-    notifyChange(pattern, checked, newRecurrenceEndDate);
-  };
-
-  const handleRecurrenceEndDateChange = (date: string) => {
-    setRecurrenceEndDate(date);
-    notifyChange(pattern, noEndDate, date);
+    updatePattern({ monthOfYear: month });
   };
 
   return (
@@ -216,6 +180,7 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
         label="Repeat Every"
         type="text"
         inputMode="numeric"
+        placeholder="1"
         value={intervalInput}
         onChange={e => handleIntervalChange(e.target.value)}
         fullWidth
@@ -247,9 +212,9 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
               />
             ))}
           </Stack>
-          {pattern.daysOfWeek && pattern.daysOfWeek.length === 0 && (
+          {pattern.daysOfWeek?.length === 0 && (
             <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-              Please select at least one day
+              {errors?.recurrencePattern || 'Please select at least one day'}
             </Typography>
           )}
         </Box>
@@ -264,7 +229,7 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
           onChange={e => handleDayOfMonthChange(e.target.value)}
           fullWidth
           margin="normal"
-          helperText="Day of the month (1-31)"
+          helperText="Day of the month (1-31). Leave blank to use the start date's day."
         />
       )}
 
@@ -293,7 +258,7 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
           control={
             <Checkbox
               checked={noEndDate}
-              onChange={e => handleNoEndDateChange(e.target.checked)}
+              onChange={e => notifyChange({ noEndDate: e.target.checked })}
             />
           }
           label="No end date"
@@ -303,7 +268,7 @@ export const RecurrencePatternForm: React.FC<RecurrencePatternFormProps> = ({
             label="End Date"
             type="date"
             value={recurrenceEndDate}
-            onChange={e => handleRecurrenceEndDateChange(e.target.value)}
+            onChange={e => notifyChange({ recurrenceEndDate: e.target.value })}
             fullWidth
             margin="normal"
             InputLabelProps={{ shrink: true }}
