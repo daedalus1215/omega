@@ -29,11 +29,13 @@ import { RecurringEventService } from './domain/services/recurring-event.service
 import { RecurringEventToInfrastructureConverter } from './domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-infrastructure.converter';
 import { RecurringEventToDomainConverter } from './domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-domain.converter';
 import { CreateEventReminderTransactionScript } from './domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script';
+import { SyncEventRemindersTransactionScript } from './domain/transaction-scripts/sync-event-reminders-TS/sync-event-reminders.transaction.script';
 import { UpdateEventReminderTransactionScript } from './domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.transaction.script';
 import { UpdateEventReminderValidator } from './domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator';
 import { DeleteEventReminderTransactionScript } from './domain/transaction-scripts/delete-event-reminder-TS/delete-event-reminder.transaction.script';
 import { FetchEventRemindersTransactionScript } from './domain/transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.transaction.script';
 import { CreateEventReminderAction } from './apps/actions/create-event-reminder-action/create-event-reminder.action';
+import { SyncEventRemindersAction } from './apps/actions/sync-event-reminders-action/sync-event-reminders.action';
 import { UpdateEventReminderAction } from './apps/actions/update-event-reminder-action/update-event-reminder.action';
 import { DeleteEventReminderAction } from './apps/actions/delete-event-reminder-action/delete-event-reminder.action';
 import { FetchEventRemindersAction } from './apps/actions/fetch-event-reminders-action/fetch-event-reminders.action';
@@ -77,6 +79,7 @@ import { CalendarEventsAggregator } from './domain/aggregators/calendar-events.a
     RecurringEventToInfrastructureConverter,
     RecurringEventToDomainConverter,
     CreateEventReminderTransactionScript,
+    SyncEventRemindersTransactionScript,
     UpdateEventReminderTransactionScript,
     UpdateEventReminderValidator,
     DeleteEventReminderTransactionScript,
@@ -93,6 +96,7 @@ import { CalendarEventsAggregator } from './domain/aggregators/calendar-events.a
     CreateRecurringEventAction,
     DeleteRecurringEventAction,
     CreateEventReminderAction,
+    SyncEventRemindersAction,
     UpdateEventReminderAction,
     DeleteEventReminderAction,
     FetchEventRemindersAction,

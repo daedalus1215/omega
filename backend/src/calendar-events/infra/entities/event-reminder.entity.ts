@@ -7,14 +7,20 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  Unique,
 } from 'typeorm';
 import { CalendarEventEntity } from './calendar-event.entity';
 
 /**
  * Infrastructure entity for EventReminder.
  * TypeORM entity for database persistence.
+ * An event may have many reminders, but only one per distinct offset.
  */
 @Entity({ name: 'event_reminders' })
+@Unique('UQ_event_reminders_event_minutes', [
+  'calendarEventId',
+  'reminderMinutes',
+])
 @Index(['calendarEventId'])
 export class EventReminderEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
@@ -27,7 +33,7 @@ export class EventReminderEntity {
   reminderMinutes: number; // Minutes before event start
 
   @Column({ name: 'sent_at', type: 'datetime', nullable: true })
-  sentAt?: Date;
+  sentAt?: Date | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;

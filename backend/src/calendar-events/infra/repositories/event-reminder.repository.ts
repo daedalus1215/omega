@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, EntityManager } from 'typeorm';
 import { EventReminderEntity } from '../entities/event-reminder.entity';
+import { CalendarEventEntity } from '../entities/calendar-event.entity';
 import { EventReminder } from '../../domain/entities/event-reminder.entity';
 import { Logger } from 'nestjs-pino';
 
@@ -97,8 +98,8 @@ export class EventReminderRepository {
   /**
    * Delete an event reminder by ID.
    */
-  async delete(id: number): Promise<void> {
-    const result = await this.repository.delete({ id });
+  async delete(id: number, manager?: EntityManager): Promise<void> {
+    const result = await this.getRepository(manager).delete({ id });
     if (result.affected === 0) {
       throw new Error('Event reminder not found');
     }
@@ -112,19 +113,53 @@ export class EventReminderRepository {
   }
 
   /**
-   * Map domain entity to infrastructure entity.
+   * Find unsent reminders whose event starts within the given window.
+   *
+   * Replaces an unbounded scan of every unsent reminder in the database. The
+   * bounds come from the scheduler: events that already started longer ago than
+   * the grace period can no longer be delivered, and events further out than
+   * MAX_REMINDER_MINUTES cannot be due yet. Joining the event also lets the
+   * caller avoid a per-reminder lookup.
+   *
+   * Reminders whose event no longer exists are excluded by the join. They can
+   * never be delivered, so leaving them unselected retires them quietly.
    */
-  /**
-   * Find all reminders that need to be sent (not yet sent).
-   */
-  async findPendingReminders(): Promise<EventReminder[]> {
+  async findDueCandidates(
+    lowerBound: Date,
+    upperBound: Date
+  ): Promise<EventReminder[]> {
     const entities = await this.repository
       .createQueryBuilder('reminder')
-      .where('reminder.sent_at IS NULL')
-      .orderBy('reminder.calendar_event_id', 'ASC')
+      .innerJoin(
+        CalendarEventEntity,
+        'event',
+        'event.id = reminder.calendarEventId'
+      )
+      .where('reminder.sentAt IS NULL')
+      .andWhere('event.startDate >= :lowerBound', { lowerBound })
+      .andWhere('event.startDate <= :upperBound', { upperBound })
+      .orderBy('reminder.calendarEventId', 'ASC')
       .getMany();
     return entities.map(entity => this.infrastructureToDomain(entity));
   }
+
+  /**
+   * Clear sentAt for every reminder on an event, so they are eligible to send
+   * again. Used when an event moves and its reminders must fire at new times.
+   */
+  async resetSentAtByEventId(
+    calendarEventId: number,
+    manager?: EntityManager
+  ): Promise<void> {
+    await this.getRepository(manager).update(
+      { calendarEventId },
+      { sentAt: null }
+    );
+  }
+
+  /**
+   * Map domain entity to infrastructure entity.
+   */
 
   /**
    * Mark a reminder as sent.
