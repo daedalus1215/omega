@@ -5,6 +5,7 @@ import {
   createEventReminder,
   updateEventReminder,
   deleteEventReminder,
+  syncEventReminders,
 } from '../../../api/requests/calendar-events.requests';
 import {
   EventReminderResponseDto,
@@ -30,7 +31,7 @@ export const useEventReminders = (eventId: number | null) => {
   const createMutation = useMutation({
     mutationFn: (data: CreateEventReminderRequest) =>
       createEventReminder(eventId!, data),
-    onSuccess: (newReminder) => {
+    onSuccess: newReminder => {
       queryClient.setQueryData<EventReminderResponseDto[]>(
         REMINDERS_QUERY_KEY(eventId!),
         (old = []) => [...old, newReminder]
@@ -39,9 +40,14 @@ export const useEventReminders = (eventId: number | null) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ reminderId, data }: { reminderId: number; data: UpdateEventReminderRequest }) =>
-      updateEventReminder(eventId!, reminderId, data),
-    onSuccess: (updatedReminder) => {
+    mutationFn: ({
+      reminderId,
+      data,
+    }: {
+      reminderId: number;
+      data: UpdateEventReminderRequest;
+    }) => updateEventReminder(eventId!, reminderId, data),
+    onSuccess: updatedReminder => {
       queryClient.setQueryData<EventReminderResponseDto[]>(
         REMINDERS_QUERY_KEY(eventId!),
         (old = []) =>
@@ -60,6 +66,25 @@ export const useEventReminders = (eventId: number | null) => {
       );
     },
   });
+
+  const syncMutation = useMutation({
+    mutationFn: (reminderMinutes: number[]) =>
+      syncEventReminders(eventId!, reminderMinutes),
+    onSuccess: syncedReminders => {
+      queryClient.setQueryData<EventReminderResponseDto[]>(
+        REMINDERS_QUERY_KEY(eventId!),
+        syncedReminders
+      );
+    },
+  });
+
+  /** Replace the event's reminders with exactly these offsets. */
+  const syncReminders = useCallback(
+    async (reminderMinutes: number[]) => {
+      return syncMutation.mutateAsync(reminderMinutes);
+    },
+    [syncMutation]
+  );
 
   const createReminder = useCallback(
     async (data: CreateEventReminderRequest) => {
@@ -89,8 +114,10 @@ export const useEventReminders = (eventId: number | null) => {
     createReminder,
     updateReminder,
     removeReminder,
+    syncReminders,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isSyncing: syncMutation.isPending,
   };
 };

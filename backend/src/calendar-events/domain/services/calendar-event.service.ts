@@ -15,6 +15,8 @@ import { GenerateEventInstancesTransactionScript } from '../transaction-scripts/
 import { FetchRecurringEventsTransactionScript } from '../transaction-scripts/fetch-recurring-events-TS/fetch-recurring-events.transaction.script';
 import { CreateEventReminderTransactionScript } from '../transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script';
 import { CreateEventReminderCommand } from '../transaction-scripts/create-event-reminder-TS/create-event-reminder.command';
+import { SyncEventRemindersCommand } from '../transaction-scripts/sync-event-reminders-TS/sync-event-reminders.command';
+import { SyncEventRemindersTransactionScript } from '../transaction-scripts/sync-event-reminders-TS/sync-event-reminders.transaction.script';
 import { UpdateEventReminderTransactionScript } from '../transaction-scripts/update-event-reminder-TS/update-event-reminder.transaction.script';
 import { UpdateEventReminderCommand } from '../transaction-scripts/update-event-reminder-TS/update-event-reminder.command';
 import { DeleteEventReminderTransactionScript } from '../transaction-scripts/delete-event-reminder-TS/delete-event-reminder.transaction.script';
@@ -43,6 +45,7 @@ export class CalendarEventService {
     private readonly generateEventInstancesTransactionScript: GenerateEventInstancesTransactionScript,
     private readonly fetchRecurringEventsTransactionScript: FetchRecurringEventsTransactionScript,
     private readonly createEventReminderTransactionScript: CreateEventReminderTransactionScript,
+    private readonly syncEventRemindersTransactionScript: SyncEventRemindersTransactionScript,
     private readonly updateEventReminderTransactionScript: UpdateEventReminderTransactionScript,
     private readonly deleteEventReminderTransactionScript: DeleteEventReminderTransactionScript,
     private readonly fetchEventRemindersTransactionScript: FetchEventRemindersTransactionScript,
@@ -139,13 +142,12 @@ export class CalendarEventService {
         manager
       );
 
-      if (
-        command.reminderMinutes !== undefined &&
-        command.reminderMinutes !== null
-      ) {
+      // Deduplicated so a repeated offset does not trip the uniqueness rule.
+      const reminderOffsets = [...new Set(command.reminderMinutes ?? [])];
+      for (const reminderMinutes of reminderOffsets) {
         const reminderCommand: CreateEventReminderCommand = {
           calendarEventId: event.id,
-          reminderMinutes: command.reminderMinutes,
+          reminderMinutes,
           user: command.user,
         };
         await this.createEventReminderTransactionScript.apply(
@@ -256,6 +258,27 @@ export class CalendarEventService {
         null
       );
     }
+  }
+
+  /**
+   * Replace an event's full set of reminders.
+   *
+   * Unlike the single-reminder endpoints, this does not propagate to the
+   * recurring template. Setting several reminders on one instance is an
+   * override of that instance, and the template only has room for one offset
+   * anyway, so there would be no correct value to write back.
+   */
+  async syncReminders(
+    command: SyncEventRemindersCommand
+  ): Promise<EventReminder[]> {
+    const calendarIds = await this.resolveCalendarIds(command.user.userId);
+    return await this.dataSource.transaction(async manager => {
+      return await this.syncEventRemindersTransactionScript.apply(
+        command,
+        calendarIds,
+        manager
+      );
+    });
   }
 
   /**

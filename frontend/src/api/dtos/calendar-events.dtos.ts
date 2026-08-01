@@ -2,6 +2,7 @@ export type EventReminderResponseDto = {
   id: number;
   calendarEventId: number;
   reminderMinutes: number;
+  sentAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -30,14 +31,18 @@ export type UpdateEventReminderRequest = {
   reminderMinutes: number;
 };
 
+/** Replaces an event's whole reminder set. An empty array clears them all. */
+export type SyncEventRemindersRequest = {
+  reminderMinutes: number[];
+};
+
 export type CreateCalendarEventRequest = {
   title: string;
   description?: string;
   color?: string;
   startDate: string;
   endDate: string;
-  reminders?: CreateEventReminderRequest[];
-  reminderMinutes?: number;
+  reminderMinutes?: number[];
   calendarId?: number;
 };
 
@@ -47,7 +52,6 @@ export type UpdateCalendarEventRequest = {
   color?: string;
   startDate: string;
   endDate: string;
-  reminders?: CreateEventReminderRequest[];
 };
 
 export type RecurrencePatternDto = {

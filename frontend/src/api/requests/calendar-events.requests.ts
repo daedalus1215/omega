@@ -8,6 +8,7 @@ import {
   EventReminderResponseDto,
   CreateEventReminderRequest,
   UpdateEventReminderRequest,
+  SyncEventRemindersRequest,
 } from '../dtos/calendar-events.dtos';
 
 export const fetchCalendarEvents = async (
@@ -89,6 +90,21 @@ export const fetchEventReminders = async (
 ): Promise<EventReminderResponseDto[]> => {
   const { data } = await api.get<EventReminderResponseDto[]>(
     `/calendar-events/${eventId}/reminders`
+  );
+  return data;
+};
+
+/**
+ * Replace an event's reminders in one request. The server diffs against what
+ * is already stored, so reminders that are unchanged keep their sent state.
+ */
+export const syncEventReminders = async (
+  eventId: number,
+  reminderMinutes: number[]
+): Promise<EventReminderResponseDto[]> => {
+  const { data } = await api.put<EventReminderResponseDto[]>(
+    `/calendar-events/${eventId}/reminders`,
+    { reminderMinutes } satisfies SyncEventRemindersRequest
   );
   return data;
 };

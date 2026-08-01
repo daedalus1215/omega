@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -30,7 +30,7 @@ import { useDeleteRecurringEvent } from '../../hooks/useDeleteRecurringEvent';
 import { useEventForm } from '../../hooks/useEventForm';
 import { EventFormFields } from './EventFormFields/EventFormFields';
 import { useEventReminders } from '../../hooks/useEventReminders';
-import { ReminderField } from './ReminderField/ReminderField';
+import { RemindersField } from './RemindersField/RemindersField';
 
 type EventDetailsModalProps = {
   isOpen: boolean;
@@ -89,36 +89,50 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     },
   });
 
-  const {
-    reminders,
-    createReminder,
-    updateReminder,
-    removeReminder,
-  } = useEventReminders(eventId);
+  const { reminders, syncReminders, isSyncing } = useEventReminders(eventId);
 
-  const [selectedReminderMinutes, setSelectedReminderMinutes] = useState<number | null>(null);
+  // Reminders are edited as a draft and written on Save, so a half-finished
+  // edit is not persisted and Cancel can discard it.
+  const savedReminderMinutes = useMemo(
+    () => reminders.map(r => r.reminderMinutes).sort((a, b) => a - b),
+    [reminders]
+  );
+  const [draftReminderMinutes, setDraftReminderMinutes] = useState<number[]>(
+    []
+  );
 
-  // Reset selectedReminderMinutes and editing state when eventId changes
   useEffect(() => {
-    // Reset editing state when switching events
     setIsEditing(false);
-    // Reset selectedReminderMinutes based on actual reminders
-    if (reminders.length > 0) {
-      // Set to the first reminder's minutes if reminders exist
-      setSelectedReminderMinutes(reminders[0].reminderMinutes);
-    } else {
-      // Reset to null if no reminders
-      setSelectedReminderMinutes(null);
+  }, [eventId]);
+
+  // Seed the draft from what is stored, but not while the user is editing it.
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftReminderMinutes(savedReminderMinutes);
     }
-  }, [eventId, reminders]);
+  }, [savedReminderMinutes, isEditing]);
+
+  const hasDuplicateReminders =
+    new Set(draftReminderMinutes).size !== draftReminderMinutes.length;
+
+  const remindersChanged =
+    JSON.stringify([...draftReminderMinutes].sort((a, b) => a - b)) !==
+    JSON.stringify(savedReminderMinutes);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasDuplicateReminders) {
+      return;
+    }
+    if (eventId && remindersChanged) {
+      await syncReminders(draftReminderMinutes);
+    }
     await handleFormSubmit(e);
   };
 
   const handleCancel = () => {
     resetForm();
+    setDraftReminderMinutes(savedReminderMinutes);
     setIsEditing(false);
   };
 
@@ -278,47 +292,19 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             />
             {isEditing && (
               <Box sx={{ mt: 2 }}>
-                <ReminderField
-                  value={selectedReminderMinutes}
-                  onChange={async (minutes) => {
-                    setSelectedReminderMinutes(minutes);
-                    if (minutes !== null && eventId) {
-                      // Find if reminder already exists with this exact timing
-                      const existingReminder = reminders.find(
-                        r => r.reminderMinutes === minutes
-                      );
-                      if (existingReminder) {
-                        // Reminder with this timing already exists, do nothing
-                        return;
-                      }
-                      
-                      // If there's an existing reminder, update it instead of creating a new one
-                      // This ensures we don't have multiple reminders scheduled
-                      if (reminders.length > 0) {
-                        await updateReminder(reminders[0].id, { reminderMinutes: minutes });
-                      } else {
-                        // No existing reminder, create a new one
-                        await createReminder({ reminderMinutes: minutes });
-                      }
-                    } else if (minutes === null && eventId && reminders.length > 0) {
-                      // Remove all reminders if setting to null
-                      for (const reminder of reminders) {
-                        await removeReminder(reminder.id);
-                      }
-                    }
-                  }}
-                  isEditing={isEditing}
-                  existingReminders={reminders}
+                <RemindersField
+                  value={draftReminderMinutes}
+                  onChange={setDraftReminderMinutes}
+                  isEditing
                 />
               </Box>
             )}
-            {!isEditing && reminders.length > 0 && (
+            {!isEditing && savedReminderMinutes.length > 0 && (
               <Box sx={{ mt: 2 }}>
-                <ReminderField
-                  value={null}
+                <RemindersField
+                  value={savedReminderMinutes}
                   onChange={() => {}}
                   isEditing={false}
-                  existingReminders={reminders}
                 />
               </Box>
             )}
@@ -336,7 +322,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   onClick={handleCancel}
                   variant="outlined"
                   startIcon={<CancelIcon />}
-                  disabled={isSubmitting || updateMutation.isPending}
+                  disabled={
+                    isSubmitting || updateMutation.isPending || isSyncing
+                  }
                 >
                   Cancel
                 </Button>
@@ -347,10 +335,12 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   disabled={
                     isSubmitting ||
                     updateMutation.isPending ||
+                    isSyncing ||
+                    hasDuplicateReminders ||
                     !formData.title.trim()
                   }
                 >
-                  {isSubmitting || updateMutation.isPending ? (
+                  {isSubmitting || updateMutation.isPending || isSyncing ? (
                     <CircularProgress size={24} />
                   ) : (
                     'Save'

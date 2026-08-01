@@ -142,6 +142,7 @@ describe('UpdateEventReminderTransactionScript', () => {
         validCommand.reminderId,
         {
           reminderMinutes: validCommand.reminderMinutes,
+          sentAt: null,
         }
       );
     });
@@ -289,7 +290,58 @@ describe('UpdateEventReminderTransactionScript', () => {
         commandWithZero.reminderId,
         {
           reminderMinutes: 0,
+          sentAt: null,
         }
+      );
+    });
+
+    it('should clear sentAt when the offset changes so the reminder fires again', async () => {
+      const alreadySent: EventReminder = {
+        ...mockExistingReminder,
+        sentAt: new Date('2024-01-15T09:30:00Z'),
+      };
+
+      mockEventReminderRepository.findById.mockResolvedValue(alreadySent);
+      mockCalendarEventRepository.findById.mockResolvedValue(mockCalendarEvent);
+      mockEventReminderRepository.findByEventId.mockResolvedValue([
+        alreadySent,
+      ]);
+      mockEventReminderRepository.update.mockResolvedValue({
+        ...alreadySent,
+        reminderMinutes: validCommand.reminderMinutes,
+        sentAt: null,
+      });
+
+      await target.apply(validCommand, [10]);
+
+      expect(mockEventReminderRepository.update).toHaveBeenCalledWith(
+        validCommand.reminderId,
+        expect.objectContaining({ sentAt: null })
+      );
+    });
+
+    it('should preserve sentAt when the offset is unchanged so it is not resent', async () => {
+      const alreadySent: EventReminder = {
+        ...mockExistingReminder,
+        sentAt: new Date('2024-01-15T09:30:00Z'),
+      };
+      const unchangedCommand: UpdateEventReminderCommand = {
+        ...validCommand,
+        reminderMinutes: alreadySent.reminderMinutes,
+      };
+
+      mockEventReminderRepository.findById.mockResolvedValue(alreadySent);
+      mockCalendarEventRepository.findById.mockResolvedValue(mockCalendarEvent);
+      mockEventReminderRepository.findByEventId.mockResolvedValue([
+        alreadySent,
+      ]);
+      mockEventReminderRepository.update.mockResolvedValue(alreadySent);
+
+      await target.apply(unchangedCommand, [10]);
+
+      expect(mockEventReminderRepository.update).toHaveBeenCalledWith(
+        unchangedCommand.reminderId,
+        { reminderMinutes: alreadySent.reminderMinutes }
       );
     });
   });

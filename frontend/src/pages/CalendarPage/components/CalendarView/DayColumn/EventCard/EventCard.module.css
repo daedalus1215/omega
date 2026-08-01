@@ -116,7 +116,7 @@
 .resizeHandle::after {
   content: '';
   width: 20px;
-  height: 3px;
+  height: 10px;
   background-color: var(--event-handle-strong, rgba(255, 255, 255, 0.85));
 }
 

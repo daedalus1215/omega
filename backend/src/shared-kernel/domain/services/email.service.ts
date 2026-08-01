@@ -19,17 +19,30 @@ export class EmailService {
     });
   }
 
+  /**
+   * @param isLate - True when the reminder is being delivered noticeably after
+   *   its scheduled time, so the email can say so rather than appear to be
+   *   sent at the wrong offset.
+   */
   async sendReminderEmail(
     to: string,
     eventTitle: string,
     eventStartDate: Date,
-    reminderMinutes: number
+    reminderMinutes: number,
+    isLate = false
   ): Promise<void> {
     const reminderTime = new Date(
       eventStartDate.getTime() - reminderMinutes * 60 * 1000
     );
     const reminderTimeStr = reminderTime.toLocaleString();
     const eventTimeStr = eventStartDate.toLocaleString();
+
+    const lateNoticeHtml = isLate
+      ? `<p><em>This reminder was scheduled for ${reminderTimeStr} and is being delivered late.</em></p>`
+      : '';
+    const lateNoticeText = isLate
+      ? `\n        Note: this reminder was scheduled for ${reminderTimeStr} and is being delivered late.\n`
+      : '';
 
     const mailOptions = {
       from: this.configService.get<string>('SMTP_FROM'),
@@ -42,17 +55,18 @@ export class EmailService {
         <p><strong>Event Time:</strong> ${eventTimeStr}</p>
         <p><strong>Reminder Set For:</strong> ${reminderMinutes} minute(s) before the event</p>
         <p><strong>Reminder Time:</strong> ${reminderTimeStr}</p>
+        ${lateNoticeHtml}
       `,
       text: `
         Event Reminder
-        
+
         This is a reminder for your upcoming event:
-        
+
         Event: ${eventTitle}
         Event Time: ${eventTimeStr}
         Reminder Set For: ${reminderMinutes} minute(s) before the event
         Reminder Time: ${reminderTimeStr}
-      `,
+${lateNoticeText}      `,
     };
 
     try {

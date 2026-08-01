@@ -19,6 +19,7 @@ export type CalendarEvent = {
   isModified?: boolean; // True if this instance has been individually modified
   titleOverride?: string; // Override title for this instance
   descriptionOverride?: string; // Override description for this instance
+  remindersCustomized?: boolean; // True if the user set this event's reminders explicitly
   createdAt: Date;
   updatedAt: Date;
 };

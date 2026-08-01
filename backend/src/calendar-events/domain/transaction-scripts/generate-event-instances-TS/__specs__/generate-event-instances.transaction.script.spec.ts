@@ -69,7 +69,8 @@ describe('GenerateEventInstancesTransactionScript', () => {
       update: jest.fn(),
       delete: jest.fn(),
       deleteByEventId: jest.fn(),
-      findPendingReminders: jest.fn(),
+      findDueCandidates: jest.fn(),
+      resetSentAtByEventId: jest.fn(),
       markAsSent: jest.fn(),
     });
 
@@ -426,7 +427,9 @@ describe('GenerateEventInstancesTransactionScript', () => {
       ];
 
       (generateInstanceDates as jest.Mock).mockReturnValue(instanceDates);
-      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue([]);
+      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue(
+        []
+      );
       mockCalendarEventRepository.findByRecurringEventId.mockResolvedValue([]);
       // No existing reminders for the newly created instances
       mockEventReminderRepository.findByEventIds.mockResolvedValue([]);
@@ -442,7 +445,7 @@ describe('GenerateEventInstancesTransactionScript', () => {
           } as CalendarEvent;
         }
       );
-      mockEventReminderRepository.create.mockImplementation(async (reminder) => ({
+      mockEventReminderRepository.create.mockImplementation(async reminder => ({
         id: generateRandomNumbers(),
         calendarEventId: reminder.calendarEventId!,
         reminderMinutes: reminder.reminderMinutes!,
@@ -466,6 +469,164 @@ describe('GenerateEventInstancesTransactionScript', () => {
         calendarEventId: 102,
         reminderMinutes: 30,
       });
+    });
+
+    it('should not re-add the series reminder to instances the user has customized', async () => {
+      const recurringEvent: RecurringEvent = {
+        ...mockRecurringEvent,
+        reminderMinutes: 30,
+        recurrencePattern: {
+          type: 'DAILY',
+          interval: 1,
+        },
+      };
+
+      const rangeStart = new Date('2024-01-15T00:00:00Z');
+      const rangeEnd = new Date('2024-01-16T23:59:59Z');
+      const instanceDate1 = startOfDayUTC(new Date('2024-01-15T10:00:00Z'));
+      const instanceDate2 = startOfDayUTC(new Date('2024-01-16T10:00:00Z'));
+
+      // The user cleared every reminder on the first instance. Regenerating one
+      // would silently undo that.
+      const existingInstances: CalendarEvent[] = [
+        {
+          id: 200,
+          calendarId: recurringEvent.calendarId,
+          userId: recurringEvent.userId,
+          recurringEventId: recurringEvent.id,
+          instanceDate: instanceDate1,
+          title: recurringEvent.title,
+          startDate: new Date('2024-01-15T10:00:00Z'),
+          endDate: new Date('2024-01-15T11:00:00Z'),
+          remindersCustomized: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 201,
+          calendarId: recurringEvent.calendarId,
+          userId: recurringEvent.userId,
+          recurringEventId: recurringEvent.id,
+          instanceDate: instanceDate2,
+          title: recurringEvent.title,
+          startDate: new Date('2024-01-16T10:00:00Z'),
+          endDate: new Date('2024-01-16T11:00:00Z'),
+          remindersCustomized: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      (generateInstanceDates as jest.Mock).mockReturnValue([
+        new Date('2024-01-15T10:00:00Z'),
+        new Date('2024-01-16T10:00:00Z'),
+      ]);
+      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue(
+        []
+      );
+      mockCalendarEventRepository.findByRecurringEventId.mockResolvedValue(
+        existingInstances
+      );
+      mockEventReminderRepository.findByEventIds.mockResolvedValue([]);
+      mockEventReminderRepository.create.mockImplementation(async reminder => ({
+        id: generateRandomNumbers(),
+        calendarEventId: reminder.calendarEventId!,
+        reminderMinutes: reminder.reminderMinutes!,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      await target.apply(recurringEvent, rangeStart, rangeEnd);
+
+      expect(mockEventReminderRepository.findByEventIds).toHaveBeenCalledWith([
+        201,
+      ]);
+      expect(mockEventReminderRepository.create).toHaveBeenCalledTimes(1);
+      expect(mockEventReminderRepository.create).toHaveBeenCalledWith({
+        calendarEventId: 201,
+        reminderMinutes: 30,
+      });
+    });
+
+    it('should treat a duplicate reminder race as already done', async () => {
+      const recurringEvent: RecurringEvent = {
+        ...mockRecurringEvent,
+        reminderMinutes: 30,
+        recurrencePattern: {
+          type: 'DAILY',
+          interval: 1,
+        },
+      };
+
+      const rangeStart = new Date('2024-01-15T00:00:00Z');
+      const rangeEnd = new Date('2024-01-15T23:59:59Z');
+
+      (generateInstanceDates as jest.Mock).mockReturnValue([
+        new Date('2024-01-15T10:00:00Z'),
+      ]);
+      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue(
+        []
+      );
+      mockCalendarEventRepository.findByRecurringEventId.mockResolvedValue([]);
+      mockEventReminderRepository.findByEventIds.mockResolvedValue([]);
+      mockCalendarEventRepository.createInstance.mockImplementation(
+        async (instance: Partial<CalendarEvent>) =>
+          ({
+            id: 300,
+            ...instance,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }) as CalendarEvent
+      );
+      // A concurrent fetch inserted the same reminder first.
+      mockEventReminderRepository.create.mockRejectedValue(
+        new Error(
+          'SQLITE_CONSTRAINT: UNIQUE constraint failed: event_reminders.calendar_event_id, event_reminders.reminder_minutes'
+        )
+      );
+
+      await expect(
+        target.apply(recurringEvent, rangeStart, rangeEnd)
+      ).resolves.toHaveLength(1);
+    });
+
+    it('should surface reminder creation failures that are not duplicates', async () => {
+      const recurringEvent: RecurringEvent = {
+        ...mockRecurringEvent,
+        reminderMinutes: 30,
+        recurrencePattern: {
+          type: 'DAILY',
+          interval: 1,
+        },
+      };
+
+      const rangeStart = new Date('2024-01-15T00:00:00Z');
+      const rangeEnd = new Date('2024-01-15T23:59:59Z');
+
+      (generateInstanceDates as jest.Mock).mockReturnValue([
+        new Date('2024-01-15T10:00:00Z'),
+      ]);
+      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue(
+        []
+      );
+      mockCalendarEventRepository.findByRecurringEventId.mockResolvedValue([]);
+      mockEventReminderRepository.findByEventIds.mockResolvedValue([]);
+      mockCalendarEventRepository.createInstance.mockImplementation(
+        async (instance: Partial<CalendarEvent>) =>
+          ({
+            id: 301,
+            ...instance,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }) as CalendarEvent
+      );
+      mockEventReminderRepository.create.mockRejectedValue(
+        new Error('SQLITE_BUSY: database is locked')
+      );
+
+      await expect(
+        target.apply(recurringEvent, rangeStart, rangeEnd)
+      ).rejects.toThrow('database is locked');
     });
 
     it('should backfill reminders for existing instances missing them', async () => {
@@ -516,8 +677,12 @@ describe('GenerateEventInstancesTransactionScript', () => {
         new Date('2024-01-15T14:00:00Z'),
         new Date('2024-01-16T14:00:00Z'),
       ]);
-      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue([]);
-      mockCalendarEventRepository.findByRecurringEventId.mockResolvedValue(existingInstances);
+      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue(
+        []
+      );
+      mockCalendarEventRepository.findByRecurringEventId.mockResolvedValue(
+        existingInstances
+      );
       // Instance 200 already has a reminder, 201 does not
       mockEventReminderRepository.findByEventIds.mockResolvedValue([
         {
@@ -528,7 +693,7 @@ describe('GenerateEventInstancesTransactionScript', () => {
           updatedAt: new Date(),
         },
       ]);
-      mockEventReminderRepository.create.mockImplementation(async (reminder) => ({
+      mockEventReminderRepository.create.mockImplementation(async reminder => ({
         id: generateRandomNumbers(),
         calendarEventId: reminder.calendarEventId!,
         reminderMinutes: reminder.reminderMinutes!,
@@ -566,7 +731,9 @@ describe('GenerateEventInstancesTransactionScript', () => {
       ];
 
       (generateInstanceDates as jest.Mock).mockReturnValue(instanceDates);
-      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue([]);
+      mockRecurrenceExceptionRepository.findByRecurringEventId.mockResolvedValue(
+        []
+      );
       mockCalendarEventRepository.findByRecurringEventId.mockResolvedValue([]);
       mockCalendarEventRepository.createInstance.mockImplementation(
         async (instance: Partial<CalendarEvent>) => {

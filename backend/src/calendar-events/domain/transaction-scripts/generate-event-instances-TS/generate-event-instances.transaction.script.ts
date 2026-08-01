@@ -138,7 +138,10 @@ export class GenerateEventInstancesTransactionScript {
 
     // Ensure all instances have reminders (handles both new and existing).
     // Uses deduplication so it's safe to call on every fetch cycle.
-    if (recurringEvent.reminderMinutes !== undefined && recurringEvent.reminderMinutes !== null) {
+    if (
+      recurringEvent.reminderMinutes !== undefined &&
+      recurringEvent.reminderMinutes !== null
+    ) {
       await this.ensureRemindersExist(
         allInstancesInRange,
         recurringEvent.reminderMinutes
@@ -157,9 +160,13 @@ export class GenerateEventInstancesTransactionScript {
     instances: CalendarEvent[],
     reminderMinutes: number
   ): Promise<void> {
-    if (instances.length === 0) return;
+    // Instances whose reminders the user set explicitly are theirs to manage.
+    // Re-adding the series offset would silently undo their choice, including
+    // clearing every reminder on a single instance.
+    const managedInstances = instances.filter(i => !i.remindersCustomized);
+    if (managedInstances.length === 0) return;
 
-    const instanceIds = instances.map(i => i.id);
+    const instanceIds = managedInstances.map(i => i.id);
     const existingReminders =
       await this.eventReminderRepository.findByEventIds(instanceIds);
 
@@ -167,13 +174,27 @@ export class GenerateEventInstancesTransactionScript {
       existingReminders.map(r => r.calendarEventId)
     );
 
-    for (const instance of instances) {
+    for (const instance of managedInstances) {
       if (instanceIdsWithReminders.has(instance.id)) continue;
 
-      await this.eventReminderRepository.create({
-        calendarEventId: instance.id,
-        reminderMinutes,
-      });
+      try {
+        await this.eventReminderRepository.create({
+          calendarEventId: instance.id,
+          reminderMinutes,
+        });
+      } catch (error) {
+        // This runs on every fetch, so two concurrent fetches can both decide
+        // an instance needs a reminder. The unique index settles it; losing
+        // the race means the reminder already exists, which is the goal.
+        if (!this.isUniqueViolation(error)) {
+          throw error;
+        }
+      }
     }
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    const message = (error as { message?: string })?.message ?? '';
+    return message.includes('UNIQUE constraint failed');
   }
 }
