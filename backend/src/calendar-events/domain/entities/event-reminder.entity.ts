@@ -7,7 +7,7 @@ export type EventReminder = {
   id: number;
   calendarEventId: number;
   reminderMinutes: number; // Minutes before event start
-  sentAt?: Date;
+  sentAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
