@@ -24,7 +24,7 @@ import {
 } from '../../../../api/dtos/calendar-events.dtos';
 import { format } from 'date-fns';
 import { RecurrencePatternForm } from '../RecurrencePatternForm/RecurrencePatternForm';
-import { ReminderField } from '../EventDetailsModal/ReminderField/ReminderField';
+import { RemindersField } from '../EventDetailsModal/RemindersField/RemindersField';
 import { ColorPicker } from '../ColorPicker/ColorPicker';
 import {
   DEFAULT_EVENT_COLOR_KEY,
@@ -78,7 +78,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     },
     noEndDate: true,
   });
-  const [reminderMinutes, setReminderMinutes] = useState<number | null>(null);
+  const [reminderMinutes, setReminderMinutes] = useState<number[]>([]);
   const [validationErrors, setValidationErrors] = useState<{
     title?: string;
     startDate?: string;
@@ -100,7 +100,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           "yyyy-MM-dd'T'HH:mm"
         ),
       });
-      setReminderMinutes(null);
+      setReminderMinutes([]);
     }
   }, [isOpen, defaultDate]);
 
@@ -177,8 +177,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             ? new Date(recurrenceData.recurrenceEndDate).toISOString()
             : undefined,
           noEndDate: recurrenceData.noEndDate,
-          reminderMinutes:
-            reminderMinutes !== null ? reminderMinutes : undefined,
+          // A series carries a single offset, so only the first row applies.
+          reminderMinutes: reminderMinutes[0],
           calendarId: selectedCalendarId ?? undefined,
         });
       } else {
@@ -189,7 +189,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           startDate: new Date(formData.startDate).toISOString(),
           endDate: new Date(formData.endDate).toISOString(),
           reminderMinutes:
-            reminderMinutes !== null ? reminderMinutes : undefined,
+            reminderMinutes.length > 0 ? reminderMinutes : undefined,
           calendarId: selectedCalendarId ?? undefined,
         });
       }
@@ -231,7 +231,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           "yyyy-MM-dd'T'HH:mm"
         ),
       });
-      setReminderMinutes(null);
+      setReminderMinutes([]);
       setRecurrenceData({
         recurrencePattern: {
           type: 'DAILY',
@@ -361,17 +361,26 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               error={!!validationErrors.endDate}
               helperText={validationErrors.endDate}
             />
-            <ReminderField
+            <RemindersField
               value={reminderMinutes}
               onChange={setReminderMinutes}
-              isEditing={true}
+              isEditing
+              singleOnly={isRecurring}
             />
             <Divider sx={{ my: 2 }} />
             <FormControlLabel
               control={
                 <Checkbox
                   checked={isRecurring}
-                  onChange={e => setIsRecurring(e.target.checked)}
+                  onChange={e => {
+                    const recurring = e.target.checked;
+                    setIsRecurring(recurring);
+                    // A series stores one offset, so drop any extra rows
+                    // rather than silently discarding them on submit.
+                    if (recurring) {
+                      setReminderMinutes(current => current.slice(0, 1));
+                    }
+                  }}
                   disabled={
                     createMutation.isPending ||
                     createRecurringMutation.isPending
