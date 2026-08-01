@@ -9,6 +9,7 @@ import { DeleteCalendarEventTransactionScript } from '../../transaction-scripts/
 import { GenerateEventInstancesTransactionScript } from '../../transaction-scripts/generate-event-instances-TS/generate-event-instances.transaction.script';
 import { FetchRecurringEventsTransactionScript } from '../../transaction-scripts/fetch-recurring-events-TS/fetch-recurring-events.transaction.script';
 import { CreateEventReminderTransactionScript } from '../../transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script';
+import { SyncEventRemindersTransactionScript } from '../../transaction-scripts/sync-event-reminders-TS/sync-event-reminders.transaction.script';
 import { UpdateEventReminderTransactionScript } from '../../transaction-scripts/update-event-reminder-TS/update-event-reminder.transaction.script';
 import { DeleteEventReminderTransactionScript } from '../../transaction-scripts/delete-event-reminder-TS/delete-event-reminder.transaction.script';
 import { FetchEventRemindersTransactionScript } from '../../transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.transaction.script';
@@ -37,6 +38,7 @@ describe('CalendarEventService', () => {
   let mockGenerateEventInstancesTransactionScript: jest.Mocked<GenerateEventInstancesTransactionScript>;
   let mockFetchRecurringEventsTransactionScript: jest.Mocked<FetchRecurringEventsTransactionScript>;
   let mockCreateEventReminderTransactionScript: jest.Mocked<CreateEventReminderTransactionScript>;
+  let mockSyncEventRemindersTransactionScript: jest.Mocked<SyncEventRemindersTransactionScript>;
   let mockUpdateEventReminderTransactionScript: jest.Mocked<UpdateEventReminderTransactionScript>;
   let mockDeleteEventReminderTransactionScript: jest.Mocked<DeleteEventReminderTransactionScript>;
   let mockFetchEventRemindersTransactionScript: jest.Mocked<FetchEventRemindersTransactionScript>;
@@ -85,6 +87,9 @@ describe('CalendarEventService', () => {
 
     mockCreateEventReminderTransactionScript =
       createMockWithApply<CreateEventReminderTransactionScript>();
+
+    mockSyncEventRemindersTransactionScript =
+      createMockWithApply<SyncEventRemindersTransactionScript>();
 
     mockUpdateEventReminderTransactionScript =
       createMockWithApply<UpdateEventReminderTransactionScript>();
@@ -149,6 +154,10 @@ describe('CalendarEventService', () => {
         {
           provide: CreateEventReminderTransactionScript,
           useValue: mockCreateEventReminderTransactionScript,
+        },
+        {
+          provide: SyncEventRemindersTransactionScript,
+          useValue: mockSyncEventRemindersTransactionScript,
         },
         {
           provide: UpdateEventReminderTransactionScript,
@@ -221,7 +230,7 @@ describe('CalendarEventService', () => {
     it('should create event with reminder when reminderMinutes is provided', async () => {
       const commandWithReminder: CreateCalendarEventCommand = {
         ...validCommand,
-        reminderMinutes: 60,
+        reminderMinutes: [60],
       };
 
       const mockReminder: EventReminder = {
@@ -266,7 +275,7 @@ describe('CalendarEventService', () => {
     it('should create event with reminder when reminderMinutes is 0', async () => {
       const commandWithZeroReminder: CreateCalendarEventCommand = {
         ...validCommand,
-        reminderMinutes: 0,
+        reminderMinutes: [0],
       };
 
       const mockReminder: EventReminder = {
@@ -303,7 +312,7 @@ describe('CalendarEventService', () => {
     it('should rollback transaction if reminder creation fails', async () => {
       const commandWithReminder: CreateCalendarEventCommand = {
         ...validCommand,
-        reminderMinutes: 60,
+        reminderMinutes: [60],
       };
 
       setupTransactionMock(mockDataSource, [
@@ -324,7 +333,7 @@ describe('CalendarEventService', () => {
     it('should rollback transaction if event creation fails', async () => {
       const commandWithReminder: CreateCalendarEventCommand = {
         ...validCommand,
-        reminderMinutes: 60,
+        reminderMinutes: [60],
       };
 
       setupTransactionMock(mockDataSource, [

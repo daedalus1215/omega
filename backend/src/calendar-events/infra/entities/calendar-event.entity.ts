@@ -86,6 +86,15 @@ export class CalendarEventEntity {
   @Column({ name: 'description_override', type: 'text', nullable: true })
   descriptionOverride?: string; // Override description for this instance
 
+  @Column({
+    name: 'reminders_customized',
+    type: 'boolean',
+    default: false,
+  })
+  // True once the user has set this event's reminders explicitly. Instances
+  // with this flag are left alone by the recurring series reminder generator.
+  remindersCustomized: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;
 

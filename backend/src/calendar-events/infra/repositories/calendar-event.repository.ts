@@ -162,6 +162,33 @@ export class CalendarEventRepository {
   }
 
   /**
+   * Record that the user has set this event's reminders explicitly, so the
+   * recurring series generator stops managing them.
+   */
+  async markRemindersCustomized(
+    id: number,
+    manager?: EntityManager
+  ): Promise<void> {
+    await this.getRepository(manager).update(id, {
+      remindersCustomized: true,
+    });
+  }
+
+  /**
+   * Find calendar events by ID in a single query, without calendar scoping.
+   * Lets callers processing many events avoid a lookup per event.
+   */
+  async findByIdsOnly(ids: number[]): Promise<CalendarEvent[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const entities = await this.repository.find({
+      where: { id: In(ids) },
+    });
+    return entities.map(entity => this.infrastructureToDomain(entity));
+  }
+
+  /**
    * Find a calendar event by ID, scoped to calendars the caller can access.
    */
   async findById(
@@ -241,6 +268,7 @@ export class CalendarEventRepository {
       isModified: domain.isModified,
       titleOverride: domain.titleOverride,
       descriptionOverride: domain.descriptionOverride,
+      remindersCustomized: domain.remindersCustomized,
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
     };
@@ -264,6 +292,7 @@ export class CalendarEventRepository {
       isModified: infra.isModified,
       titleOverride: infra.titleOverride,
       descriptionOverride: infra.descriptionOverride,
+      remindersCustomized: infra.remindersCustomized,
       createdAt: infra.createdAt,
       updatedAt: infra.updatedAt,
     };
