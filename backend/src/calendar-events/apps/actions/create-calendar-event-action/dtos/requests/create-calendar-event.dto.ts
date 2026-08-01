@@ -6,8 +6,15 @@ import {
   MaxLength,
   IsInt,
   Min,
+  Max,
+  IsArray,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import {
+  MAX_REMINDERS_PER_EVENT,
+  MAX_REMINDER_MINUTES,
+} from '../../../../../domain/reminder.constants';
 
 export class CreateCalendarEventRequestDto {
   @IsString()
@@ -32,11 +39,15 @@ export class CreateCalendarEventRequestDto {
   @IsNotEmpty()
   endDate: string;
 
+  /** Offsets in minutes before the event start, one per reminder. */
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_REMINDERS_PER_EVENT)
   @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  reminderMinutes?: number;
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(MAX_REMINDER_MINUTES, { each: true })
+  reminderMinutes?: number[];
 
   @IsOptional()
   @Type(() => Number)
