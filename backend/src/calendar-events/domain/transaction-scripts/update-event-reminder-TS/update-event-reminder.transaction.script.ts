@@ -50,10 +50,17 @@ export class UpdateEventReminderTransactionScript {
       command.reminderMinutes
     );
 
+    // A new offset is a new delivery time, so a reminder already marked sent
+    // becomes eligible again. Unchanged offsets keep sentAt so they are not
+    // resent.
+    const minutesChanged =
+      existingReminder.reminderMinutes !== command.reminderMinutes;
+
     const updatedReminder = await this.eventReminderRepository.update(
       command.reminderId,
       {
         reminderMinutes: command.reminderMinutes,
+        ...(minutesChanged ? { sentAt: null } : {}),
       }
     );
     return updatedReminder;
