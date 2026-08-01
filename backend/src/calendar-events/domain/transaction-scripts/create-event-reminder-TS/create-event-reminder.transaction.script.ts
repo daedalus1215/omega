@@ -1,4 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  MAX_REMINDERS_PER_EVENT,
+  MAX_REMINDER_MINUTES,
+} from '../../reminder.constants';
 import { EntityManager } from 'typeorm';
 import { EventReminderRepository } from '../../../infra/repositories/event-reminder.repository';
 import { CalendarEventRepository } from '../../../infra/repositories/calendar-event.repository';
@@ -40,6 +48,11 @@ export class CreateEventReminderTransactionScript {
     if (command.reminderMinutes < 0) {
       throw new Error('Reminder minutes must be non-negative');
     }
+    if (command.reminderMinutes > MAX_REMINDER_MINUTES) {
+      throw new BadRequestException(
+        `Reminder minutes cannot exceed ${MAX_REMINDER_MINUTES}`
+      );
+    }
 
     // Check if reminder already exists for this event with same minutes
     const existingReminders = await this.eventReminderRepository.findByEventId(
@@ -51,6 +64,11 @@ export class CreateEventReminderTransactionScript {
     if (duplicateReminder) {
       throw new Error(
         'Reminder with this timing already exists for this event'
+      );
+    }
+    if (existingReminders.length >= MAX_REMINDERS_PER_EVENT) {
+      throw new BadRequestException(
+        `An event cannot have more than ${MAX_REMINDERS_PER_EVENT} reminders`
       );
     }
 
