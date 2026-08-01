@@ -1,8 +1,7 @@
 import React from 'react';
 import { TextField, Stack, Typography } from '@mui/material';
-import { UpdateCalendarEventRequest, EventReminderResponseDto } from '../../../../../api/dtos/calendar-events.dtos';
+import { UpdateCalendarEventRequest } from '../../../../../api/dtos/calendar-events.dtos';
 import { ValidationErrors } from '../../../utils/event-form-validation.utils';
-import { ReminderField } from '../ReminderField/ReminderField';
 import { ColorPicker } from '../../ColorPicker/ColorPicker';
 
 type EventFormFieldsProps = {
@@ -83,35 +82,6 @@ export const EventFormFields: React.FC<EventFormFieldsProps> = ({
             : 'Failed to update event'}
         </Typography>
       )}
-    </Stack>
-  );
-};
-
-type EventFormFieldsWithReminderProps = EventFormFieldsProps & {
-  reminderMinutes: number | null;
-  onReminderChange: (reminderMinutes: number | null) => void;
-  existingReminders?: EventReminderResponseDto[];
-};
-
-/**
- * Extended EventFormFields with reminder support.
- * Note: Reminders are managed separately via useEventReminders hook.
- */
-export const EventFormFieldsWithReminder: React.FC<EventFormFieldsWithReminderProps> = ({
-  reminderMinutes,
-  onReminderChange,
-  existingReminders,
-  ...props
-}) => {
-  return (
-    <Stack spacing={2}>
-      <EventFormFields {...props} />
-      <ReminderField
-        value={reminderMinutes}
-        onChange={onReminderChange}
-        isEditing={props.isEditing}
-        existingReminders={existingReminders}
-      />
     </Stack>
   );
 };
