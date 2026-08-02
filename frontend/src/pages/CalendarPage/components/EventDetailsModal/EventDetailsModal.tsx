@@ -106,10 +106,19 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   }, [eventId]);
 
   // Seed the draft from what is stored, but not while the user is editing it.
+  // Bail out when the values already match: savedReminderMinutes is a fresh
+  // array whenever the query result identity changes, so re-seeding blindly
+  // would queue a state update on every render.
   useEffect(() => {
-    if (!isEditing) {
-      setDraftReminderMinutes(savedReminderMinutes);
+    if (isEditing) {
+      return;
     }
+    setDraftReminderMinutes(prev =>
+      prev.length === savedReminderMinutes.length &&
+      prev.every((minutes, index) => minutes === savedReminderMinutes[index])
+        ? prev
+        : savedReminderMinutes
+    );
   }, [savedReminderMinutes, isEditing]);
 
   const hasDuplicateReminders =
