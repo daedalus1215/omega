@@ -15,11 +15,18 @@ import {
 
 const REMINDERS_QUERY_KEY = (eventId: number) => ['event-reminders', eventId];
 
+/**
+ * Shared fallback so `reminders` keeps a stable identity while the query is
+ * disabled or still pending. A fresh `[]` per render would make every consumer
+ * that uses it as an effect/memo dependency re-run on every render.
+ */
+const NO_REMINDERS: EventReminderResponseDto[] = [];
+
 export const useEventReminders = (eventId: number | null) => {
   const queryClient = useQueryClient();
 
   const {
-    data: reminders = [],
+    data: reminders,
     isLoading,
     error,
   } = useQuery<EventReminderResponseDto[]>({
@@ -108,7 +115,7 @@ export const useEventReminders = (eventId: number | null) => {
   );
 
   return {
-    reminders: reminders || [],
+    reminders: reminders ?? NO_REMINDERS,
     isLoading,
     error,
     createReminder,
