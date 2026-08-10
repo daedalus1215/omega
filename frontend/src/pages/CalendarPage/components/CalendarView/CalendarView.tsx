@@ -50,6 +50,7 @@ import { useVirtualizedDays } from '../../hooks/useVirtualizedDays';
 import {
   calculateDropPosition,
   calculateNewEventTimes,
+  findDayColumnAtX,
 } from '../../utils/event-drag.utils';
 import {
   calculateResizePosition,
@@ -315,13 +316,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     const { active } = event;
     const activeData = active.data.current;
-    
-    if (!activeData?.event) {
-      return;
-    }
 
-    const eventToResize = activeData.event as CalendarEventResponseDto;
-    
+    // `active.data` empties out if the card unmounts mid-drag (see handleDragEnd).
+    const eventToResize =
+      (activeData?.event as CalendarEventResponseDto | undefined) ??
+      resizingEvent.event;
+
     // Always use the event's original day - constrain resize to same day
     const eventStart = new Date(eventToResize.startDate);
     const eventDay = startOfDay(eventStart);
@@ -384,19 +384,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     const activeData = active.data.current;
-    const dragType = activeData?.type as string | undefined;
+    // The dragged card can unmount mid-drag: day columns are virtualized, so once the
+    // calendar has auto-scrolled a few columns the source column is torn down. dnd-kit
+    // then hands us an empty `active.data` (it only caches the node, not its data), so
+    // fall back to what we captured in handleDragStart instead of dropping the gesture.
+    const activeEvent =
+      (activeData?.event as CalendarEventResponseDto | undefined) ?? null;
+    const dragType =
+      (activeData?.type as string | undefined) ??
+      (resizingEvent ? 'resize' : draggedEvent ? 'move' : undefined);
 
     // Handle resize operations
     if (dragType === 'resize' && resizingEvent) {
       setResizingEvent(null);
       setResizePreview(null);
-      
-      if (!activeData?.event) {
-        return;
-      }
 
-      const eventToResize = activeData.event as CalendarEventResponseDto;
-      
+      const eventToResize = activeEvent ?? resizingEvent.event;
+
       // Always use the event's original day - constrain resize to same day
       const eventStart = new Date(eventToResize.startDate);
       const eventDay = startOfDay(eventStart);
@@ -487,19 +491,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setDraggedEvent(null);
     setDraggedEventWidth(null);
     setResizePreview(null);
-    if (!over || !activeData?.event) {
-      return;
-    }
-    const eventToMove = activeData.event as CalendarEventResponseDto;
-    const dropDayData = over.data.current;
-    if (!dropDayData?.day) {
-      return;
-    }
-    const dropDay = dropDayData.day as Date;
-    const dayElement = document.querySelector(
-      `[data-day-id="${dropDay.toISOString()}"]`
-    ) as HTMLElement;
-    if (!dayElement) {
+    const eventToMove = activeEvent ?? draggedEvent;
+    if (!eventToMove) {
       return;
     }
     const activeRect =
@@ -507,9 +500,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     if (!activeRect) {
       return;
     }
+
+    // Prefer the droppable dnd-kit resolved. When the calendar auto-scrolls, columns
+    // mount and unmount underneath the pointer and collision detection can come back
+    // empty, so fall back to hit-testing the day columns against the dragged card.
+    const overDay = over?.data.current?.day as Date | undefined;
+    const overDayElement = overDay
+      ? (document.querySelector(
+          `[data-day-id="${overDay.toISOString()}"]`
+        ) as HTMLElement | null)
+      : null;
+    const dropTarget =
+      overDay && overDayElement
+        ? { element: overDayElement, day: overDay }
+        : findDayColumnAtX(activeRect.left + activeRect.width / 2);
+    if (!dropTarget) {
+      setToastSeverity('error');
+      setToastMessage('Could not tell which day the event was dropped on');
+      return;
+    }
+
     const dropTopY = activeRect.top;
-    const dropPosition = calculateDropPosition(dropTopY, dayElement, dropDay);
+    const dropPosition = calculateDropPosition(
+      dropTopY,
+      dropTarget.element,
+      dropTarget.day
+    );
     if (!dropPosition) {
+      setToastSeverity('error');
+      setToastMessage('Could not tell which day the event was dropped on');
       return;
     }
     const { startDate: newStartDate, endDate: newEndDate } = calculateNewEventTimes(

@@ -37,6 +37,40 @@ export const calculateNewEventTimes = (
 };
 
 /**
+ * Find the mounted day column whose horizontal band contains the given X coordinate.
+ * Used as a fallback when dnd-kit reports no droppable for a drop: while the
+ * calendar auto-scrolls horizontally, day columns are virtualized in and out, so
+ * collision detection can end up with stale or missing droppable rects.
+ *
+ * @param clientX - X coordinate relative to viewport
+ * @returns The day column element and its date, or null when none matches
+ */
+export const findDayColumnAtX = (
+  clientX: number
+): { element: HTMLElement; day: Date } | null => {
+  const dayElements = Array.from(
+    document.querySelectorAll('[data-day-id]')
+  ) as HTMLElement[];
+
+  for (const element of dayElements) {
+    const rect = element.getBoundingClientRect();
+    if (clientX >= rect.left && clientX < rect.right) {
+      const dayId = element.getAttribute('data-day-id');
+      if (!dayId) {
+        continue;
+      }
+      const day = new Date(dayId);
+      if (Number.isNaN(day.getTime())) {
+        continue;
+      }
+      return { element, day };
+    }
+  }
+
+  return null;
+};
+
+/**
  * Calculate drop position from mouse/client coordinates within a day column.
  * Snaps to 15-minute intervals for better UX.
  *
