@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { fetchCalendarEvents } from '../../../api/requests/calendar-events.requests';
 import { CalendarEventResponseDto } from '../../../api/dtos/calendar-events.dtos';
 import { addDays } from 'date-fns';
@@ -40,6 +40,10 @@ export const useCalendarEvents = (
       return await fetchCalendarEvents(startDateStr, endDateStr);
     },
     staleTime: 0, // Always refetch when invalidated to ensure fresh data
+    // Infinite horizontal scrolling widens the range (and therefore the query key)
+    // while the user is still interacting. Without this the list blanks out to `[]`
+    // mid-fetch, which unmounts every event card - including one being dragged.
+    placeholderData: keepPreviousData,
   });
 
   return {
