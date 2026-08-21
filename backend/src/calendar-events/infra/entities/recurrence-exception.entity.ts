@@ -28,7 +28,7 @@ export class RecurrenceExceptionEntity {
   @Column({ name: 'exception_date', type: 'date' })
   exceptionDate: Date;
 
-  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
   @ManyToOne(() => RecurringEventEntity, { onDelete: 'CASCADE' })
