@@ -52,7 +52,7 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, document);
   }
   const logger = app.get(Logger);
-  const port = configService.get<number>('PORT') || 3001;
+  const port = configService.get<number>('PORT') || 3000;  // 3000 everywhere on the Docker stack
   await app.listen(port);
   if (httpsOptions) {
     logger.log(`HTTPS enabled on port ${port}`);
