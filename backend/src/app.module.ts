@@ -12,6 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SharedKernelModule } from './shared-kernel/shared-kernel.module';
 import { SecurityEventsModule } from './security-events/security-events.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -73,7 +74,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     LoggingModule,
     SharedKernelModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,
