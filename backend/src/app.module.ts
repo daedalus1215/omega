@@ -12,6 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SharedKernelModule } from './shared-kernel/shared-kernel.module';
 import { SecurityEventsModule } from './security-events/security-events.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -26,7 +27,11 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       isGlobal: true,
       envFilePath: ['.env', `.env.${process.env.NODE_ENV}`],
       validationSchema: Joi.object({
-        DATABASE: Joi.string().required(),
+        DB_HOST: Joi.string().required(),
+        DB_PORT: Joi.number().default(5432),
+        DB_USER: Joi.string().required(),
+        DB_PASSWORD: Joi.string().required(),
+        DB_NAME: Joi.string().required(),
         JWT_SECRET: Joi.string().required(),
         COOKIE_KEY: Joi.string().required(),
         NODE_ENV: Joi.string().required(),
@@ -44,11 +49,21 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        type: 'sqlite',
-        database: configService.get<string>('DATABASE'),
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT') ?? 5432,
+        username: configService.get<string>('DB_USER'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        migrations: [__dirname + '/typeorm/migrations/*{.ts,.js}'],
+        // Deploying IS migrating: the reviewed migrations under typeorm/migrations run at
+        // boot, in order, recorded in the migrations table, identically in every
+        // environment. `synchronize` — which would diff the entities against the live
+        // schema and rewrite it with no migration file and no record — stays off, always.
+        migrationsRun: true,
         synchronize: false,
-        logging: true,
+        logging: process.env.NODE_ENV !== 'production',
       }),
       inject: [ConfigService],
     }),
@@ -59,7 +74,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     LoggingModule,
     SharedKernelModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

@@ -32,10 +32,10 @@ export class RecurringEventEntity {
   @Column({ name: 'color', type: 'varchar', length: 20, nullable: true })
   color?: string;
 
-  @Column({ name: 'start_date', type: 'datetime' })
+  @Column({ name: 'start_date', type: 'timestamptz' })
   startDate: Date;
 
-  @Column({ name: 'end_date', type: 'datetime' })
+  @Column({ name: 'end_date', type: 'timestamptz' })
   endDate: Date;
 
   @Column({ name: 'recurrence_type', type: 'varchar', length: 20 })
@@ -53,7 +53,7 @@ export class RecurringEventEntity {
   @Column({ name: 'month_of_year', type: 'int', nullable: true })
   monthOfYear?: number;
 
-  @Column({ name: 'recurrence_end_date', type: 'datetime', nullable: true })
+  @Column({ name: 'recurrence_end_date', type: 'timestamptz', nullable: true })
   recurrenceEndDate?: Date;
 
   @Column({ name: 'no_end_date', type: 'boolean', default: false })
@@ -65,9 +65,9 @@ export class RecurringEventEntity {
   @Column({ name: 'reminder_minutes', type: 'int', nullable: true })
   reminderMinutes?: number | null;
 
-  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }

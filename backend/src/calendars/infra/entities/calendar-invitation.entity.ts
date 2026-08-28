@@ -45,9 +45,9 @@ export class CalendarInvitationEntity {
   @Column({ name: 'status', type: 'varchar', length: 10, default: 'pending' })
   status: InvitationStatus;
 
-  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @Column({ name: 'responded_at', type: 'datetime', nullable: true })
+  @Column({ name: 'responded_at', type: 'timestamptz', nullable: true })
   respondedAt?: Date;
 }

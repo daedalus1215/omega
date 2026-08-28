@@ -32,13 +32,13 @@ export class EventReminderEntity {
   @Column({ name: 'reminder_minutes', type: 'int' })
   reminderMinutes: number; // Minutes before event start
 
-  @Column({ name: 'sent_at', type: 'datetime', nullable: true })
+  @Column({ name: 'sent_at', type: 'timestamptz', nullable: true })
   sentAt?: Date | null;
 
-  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 
   @ManyToOne(() => CalendarEventEntity, {

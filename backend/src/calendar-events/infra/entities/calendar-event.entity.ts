@@ -61,10 +61,10 @@ export class CalendarEventEntity {
   @Column({ name: 'color', type: 'varchar', length: 20, nullable: true })
   color?: string;
 
-  @Column({ name: 'start_date', type: 'datetime' })
+  @Column({ name: 'start_date', type: 'timestamptz' })
   startDate: Date;
 
-  @Column({ name: 'end_date', type: 'datetime' })
+  @Column({ name: 'end_date', type: 'timestamptz' })
   endDate: Date;
 
   @Column({
@@ -95,10 +95,10 @@ export class CalendarEventEntity {
   // with this flag are left alone by the recurring series reminder generator.
   remindersCustomized: boolean;
 
-  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 
   @ManyToOne(() => RecurringEventEntity, {

@@ -35,6 +35,6 @@ export class CalendarMemberEntity {
   @Column({ name: 'role', type: 'varchar', length: 10 })
   role: CalendarRole;
 
-  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }
