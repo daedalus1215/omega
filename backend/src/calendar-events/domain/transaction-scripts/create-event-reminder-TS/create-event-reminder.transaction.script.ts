@@ -35,10 +35,13 @@ export class CreateEventReminderTransactionScript {
     calendarIds: number[],
     manager?: EntityManager
   ): Promise<EventReminder> {
-    // Verify the calendar event exists and is visible to the user
+    // Verify the calendar event exists and is visible to the user.
+    // Pass the transaction manager so a just-created event (uncommitted on the
+    // default connection) is visible.
     const event = await this.calendarEventRepository.findById(
       command.calendarEventId,
-      calendarIds
+      calendarIds,
+      manager
     );
     if (!event) {
       throw new NotFoundException('Calendar event not found');
@@ -54,9 +57,12 @@ export class CreateEventReminderTransactionScript {
       );
     }
 
-    // Check if reminder already exists for this event with same minutes
+    // Check if reminder already exists for this event with same minutes.
+    // Use the transaction manager so rows created earlier in this same
+    // transaction are visible.
     const existingReminders = await this.eventReminderRepository.findByEventId(
-      command.calendarEventId
+      command.calendarEventId,
+      manager
     );
     const duplicateReminder = existingReminders.find(
       r => r.reminderMinutes === command.reminderMinutes

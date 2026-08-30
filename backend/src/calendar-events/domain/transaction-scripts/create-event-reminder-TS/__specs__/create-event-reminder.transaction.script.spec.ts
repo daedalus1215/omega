@@ -92,10 +92,12 @@ describe('CreateEventReminderTransactionScript', () => {
       expect(result).toEqual(mockReminder);
       expect(mockCalendarEventRepository.findById).toHaveBeenCalledWith(
         mockCalendarEvent.id,
-        [10]
+        [10],
+        undefined
       );
       expect(mockEventReminderRepository.findByEventId).toHaveBeenCalledWith(
-        mockCalendarEvent.id
+        mockCalendarEvent.id,
+        undefined
       );
       expect(mockEventReminderRepository.create).toHaveBeenCalledWith(
         {
@@ -122,6 +124,15 @@ describe('CreateEventReminderTransactionScript', () => {
 
       await target.apply(validCommand, [10], mockManager);
 
+      expect(mockCalendarEventRepository.findById).toHaveBeenCalledWith(
+        mockCalendarEvent.id,
+        [10],
+        mockManager
+      );
+      expect(mockEventReminderRepository.findByEventId).toHaveBeenCalledWith(
+        mockCalendarEvent.id,
+        mockManager
+      );
       expect(mockEventReminderRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           calendarEventId: mockCalendarEvent.id,

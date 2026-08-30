@@ -190,15 +190,19 @@ export class CalendarEventRepository {
 
   /**
    * Find a calendar event by ID, scoped to calendars the caller can access.
+   * @param manager - Optional EntityManager for transaction support. Pass the
+   * transaction's manager when the event was created within the same
+   * transaction, since the default connection cannot see uncommitted rows.
    */
   async findById(
     id: number,
-    calendarIds: number[]
+    calendarIds: number[],
+    manager?: EntityManager
   ): Promise<CalendarEvent | null> {
     if (calendarIds.length === 0) {
       return null;
     }
-    const entity = await this.repository.findOne({
+    const entity = await this.getRepository(manager).findOne({
       where: { id, calendarId: In(calendarIds) },
     });
     if (!entity) {

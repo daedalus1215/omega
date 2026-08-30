@@ -253,7 +253,7 @@ export const CalendarPage: React.FC = () => {
       <CreateEventModal
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}
-        defaultDate={createEventDate || new Date()}
+        defaultDate={createEventDate}
       />
       <CalendarsManager
         isOpen={isCalendarsManagerOpen}
