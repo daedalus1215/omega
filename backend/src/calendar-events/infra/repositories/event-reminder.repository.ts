@@ -38,9 +38,15 @@ export class EventReminderRepository {
 
   /**
    * Find reminders by calendar event ID.
+   * @param manager - Optional EntityManager for transaction support. Pass the
+   * transaction's manager so rows inserted earlier in the same transaction
+   * are visible to the lookup.
    */
-  async findByEventId(calendarEventId: number): Promise<EventReminder[]> {
-    const entities = await this.repository.find({
+  async findByEventId(
+    calendarEventId: number,
+    manager?: EntityManager
+  ): Promise<EventReminder[]> {
+    const entities = await this.getRepository(manager).find({
       where: { calendarEventId },
       order: { reminderMinutes: 'ASC' },
     });

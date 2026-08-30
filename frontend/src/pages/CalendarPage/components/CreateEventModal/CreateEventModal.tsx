@@ -50,23 +50,27 @@ type CreateEventModalProps = {
 export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   isOpen,
   onClose,
-  defaultDate = new Date(),
+  defaultDate,
 }) => {
   const createMutation = useCreateCalendarEvent();
   const createRecurringMutation = useCreateRecurringEvent();
   const { calendars, selectedCalendarId, setSelectedCalendarId } =
     useContext(CalendarContext);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [formData, setFormData] = useState<CreateCalendarEventRequest>({
+  // The form's base date, pinned in state. Reseeding from a fresh Date() on
+  // every page re-render would change the reset effect's deps and wipe an
+  // in-progress form while the modal is open.
+  const [baseDate, setBaseDate] = useState<Date>(defaultDate ?? new Date());
+  const [formData, setFormData] = useState<CreateCalendarEventRequest>(() => ({
     title: '',
     description: '',
     color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
-    startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
+    startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
     endDate: format(
-      new Date(defaultDate.getTime() + 60 * 60 * 1000),
+      new Date(baseDate.getTime() + 60 * 60 * 1000),
       "yyyy-MM-dd'T'HH:mm"
     ),
-  });
+  }));
   const [recurrenceData, setRecurrenceData] = useState<{
     recurrencePattern: RecurrencePatternDto;
     recurrenceEndDate?: string;
@@ -87,22 +91,29 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     recurrenceEndDate?: string;
   }>({});
 
-  // Update form data when defaultDate changes (e.g., when clicking a time slot)
+  // Repin the base date when the modal opens or its default changes
+  // (e.g. a time-slot click).
   useEffect(() => {
-    if (isOpen && defaultDate) {
-      setFormData({
-        title: '',
-        description: '',
-        color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
-        startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
-        endDate: format(
-          new Date(defaultDate.getTime() + 60 * 60 * 1000),
-          "yyyy-MM-dd'T'HH:mm"
-        ),
-      });
-      setReminderMinutes([]);
+    if (isOpen) {
+      setBaseDate(defaultDate ?? new Date());
     }
   }, [isOpen, defaultDate]);
+
+  // Reset the form when the modal opens or its base date changes.
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData({
+      title: '',
+      description: '',
+      color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
+      startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
+      endDate: format(
+        new Date(baseDate.getTime() + 60 * 60 * 1000),
+        "yyyy-MM-dd'T'HH:mm"
+      ),
+    });
+    setReminderMinutes([]);
+  }, [isOpen, baseDate]);
 
   const validateForm = (): boolean => {
     const errors: {
@@ -198,9 +209,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         title: '',
         description: '',
         color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
-        startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
+        startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
-          new Date(defaultDate.getTime() + 60 * 60 * 1000),
+          new Date(baseDate.getTime() + 60 * 60 * 1000),
           "yyyy-MM-dd'T'HH:mm"
         ),
       });
@@ -225,9 +236,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         title: '',
         description: '',
         color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
-        startDate: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
+        startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
-          new Date(defaultDate.getTime() + 60 * 60 * 1000),
+          new Date(baseDate.getTime() + 60 * 60 * 1000),
           "yyyy-MM-dd'T'HH:mm"
         ),
       });
