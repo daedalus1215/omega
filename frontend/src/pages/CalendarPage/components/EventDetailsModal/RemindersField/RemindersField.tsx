@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FormControl,
   FormLabel,
@@ -53,23 +53,55 @@ export const RemindersField: React.FC<RemindersFieldProps> = ({
   singleOnly = false,
 }) => {
   const limit = singleOnly ? 1 : MAX_REMINDERS_PER_EVENT;
+  // Which rows render in custom (number + unit) mode. The mode is explicit
+  // state because a preset value can also be shown as custom once the user
+  // picks that option, so it cannot be derived from the minutes alone.
+  const [customModes, setCustomModes] = useState<boolean[]>(() =>
+    value.map(minutes => !isPreset(minutes))
+  );
+  // Last array this field emitted. A different `value` is an external
+  // replacement (e.g. the draft reseeded from the stored reminders), so the
+  // per-row modes are rederived from it.
+  const lastEmitted = useRef<number[]>(value);
+
+  useEffect(() => {
+    if (value === lastEmitted.current) {
+      return;
+    }
+    lastEmitted.current = value;
+    setCustomModes(value.map(minutes => !isPreset(minutes)));
+  }, [value]);
 
   const duplicateOffsets = new Set(
     value.filter((minutes, index) => value.indexOf(minutes) !== index)
   );
 
-  const replaceAt = (index: number, minutes: number) => {
-    const next = [...value];
-    next[index] = minutes;
+  const emit = (next: number[]) => {
+    lastEmitted.current = next;
     onChange(next);
   };
 
+  const setModeAt = (index: number, isCustom: boolean) => {
+    setCustomModes(modes =>
+      modes.map((mode, i) => (i === index ? isCustom : mode))
+    );
+  };
+
+  const replaceAt = (index: number, minutes: number) => {
+    const next = [...value];
+    next[index] = minutes;
+    emit(next);
+  };
+
   const removeAt = (index: number) => {
-    onChange(value.filter((_, i) => i !== index));
+    emit(value.filter((_, i) => i !== index));
+    setCustomModes(modes => modes.filter((_, i) => i !== index));
   };
 
   const addRow = () => {
-    onChange([...value, nextAvailableOffset(value)]);
+    const offset = nextAvailableOffset(value);
+    emit([...value, offset]);
+    setCustomModes(modes => [...modes, !isPreset(offset)]);
   };
 
   if (!isEditing) {
@@ -123,8 +155,10 @@ export const RemindersField: React.FC<RemindersFieldProps> = ({
           <ReminderRow
             key={index}
             minutes={minutes}
+            isCustom={customModes[index] ?? false}
             isDuplicate={duplicateOffsets.has(minutes)}
             onChange={next => replaceAt(index, next)}
+            onModeChange={isCustom => setModeAt(index, isCustom)}
             onRemove={() => removeAt(index)}
           />
         ))}
@@ -160,8 +194,11 @@ export const RemindersField: React.FC<RemindersFieldProps> = ({
 
 type ReminderRowProps = {
   minutes: number;
+  /** Whether this row renders in custom (number + unit) mode. */
+  isCustom: boolean;
   isDuplicate: boolean;
   onChange: (minutes: number) => void;
+  onModeChange: (isCustom: boolean) => void;
   onRemove: () => void;
 };
 
@@ -171,20 +208,22 @@ type ReminderRowProps = {
  */
 const ReminderRow: React.FC<ReminderRowProps> = ({
   minutes,
+  isCustom,
   isDuplicate,
   onChange,
+  onModeChange,
   onRemove,
 }) => {
-  const custom = !isPreset(minutes);
   const { value: customValue, unit: customUnit } = splitMinutes(minutes);
 
   const handlePresetChange = (selection: string) => {
     if (selection === 'custom') {
-      // Seed the custom inputs from whatever was already selected, so
-      // switching to Custom does not silently change the timing.
-      onChange(minutes);
+      // Keep the current timing: the number and unit inputs seed from it, so
+      // switching to Custom does not silently change when it fires.
+      onModeChange(true);
       return;
     }
+    onModeChange(false);
     onChange(Number(selection));
   };
 
@@ -211,10 +250,10 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
 
   return (
     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-      <FormControl sx={{ minWidth: 160, flex: custom ? 'none' : 1 }}>
+      <FormControl sx={{ minWidth: 160, flex: isCustom ? 'none' : 1 }}>
         <InputLabel>When</InputLabel>
         <Select
-          value={custom ? 'custom' : String(minutes)}
+          value={isCustom ? 'custom' : String(minutes)}
           label="When"
           error={isDuplicate}
           onChange={e => handlePresetChange(String(e.target.value))}
@@ -232,7 +271,7 @@ const ReminderRow: React.FC<ReminderRowProps> = ({
         </Select>
       </FormControl>
 
-      {custom && (
+      {isCustom && (
         <>
           <TextField
             type="number"
