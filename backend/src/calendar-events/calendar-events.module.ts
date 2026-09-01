@@ -13,6 +13,7 @@ import { CreateCalendarEventTransactionScript } from './domain/transaction-scrip
 import { FetchCalendarEventTransactionScript } from './domain/transaction-scripts/fetch-calendar-event-TS/fetch-calendar-event.transaction.script';
 import { UpdateCalendarEventTransactionScript } from './domain/transaction-scripts/update-calendar-event-TS/update-calendar-event.transaction.script';
 import { DeleteCalendarEventTransactionScript } from './domain/transaction-scripts/delete-calendar-event-TS/delete-calendar-event.transaction.script';
+import { SearchCalendarEventsTransactionScript } from './domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.transaction.script';
 import { CalendarEventService } from './domain/services/calendar-event.service';
 import { FetchCalendarEventsAction } from './apps/actions/fetch-calendar-events-action/fetch-calendar-events.action';
 import { CreateCalendarEventAction } from './apps/actions/create-calendar-event-action/create-calendar-event.action';
@@ -39,6 +40,8 @@ import { SyncEventRemindersAction } from './apps/actions/sync-event-reminders-ac
 import { UpdateEventReminderAction } from './apps/actions/update-event-reminder-action/update-event-reminder.action';
 import { DeleteEventReminderAction } from './apps/actions/delete-event-reminder-action/delete-event-reminder.action';
 import { FetchEventRemindersAction } from './apps/actions/fetch-event-reminders-action/fetch-event-reminders.action';
+import { SearchCalendarEventsAction } from './apps/actions/search-calendar-events-action/search-calendar-events.action';
+import { SearchCalendarEventsResponder } from './apps/actions/search-calendar-events-action/search-calendar-events.responder';
 import { ReminderScheduler } from './apps/schedulers/reminder-scheduler/reminder.scheduler';
 import { SharedKernelModule } from '../shared-kernel/shared-kernel.module';
 import { UsersModule } from '../users/users.module';
@@ -70,6 +73,8 @@ import { CalendarEventsAggregator } from './domain/aggregators/calendar-events.a
     FetchCalendarEventTransactionScript,
     UpdateCalendarEventTransactionScript,
     DeleteCalendarEventTransactionScript,
+    SearchCalendarEventsTransactionScript,
+    SearchCalendarEventsResponder,
     CalendarEventService,
     CreateRecurringEventTransactionScript,
     DeleteRecurringEventTransactionScript,
@@ -88,6 +93,7 @@ import { CalendarEventsAggregator } from './domain/aggregators/calendar-events.a
     CalendarEventsAggregator,
   ],
   controllers: [
+    SearchCalendarEventsAction,
     FetchCalendarEventsAction,
     CreateCalendarEventAction,
     FetchCalendarEventAction,

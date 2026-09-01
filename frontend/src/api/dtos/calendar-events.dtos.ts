@@ -90,3 +90,28 @@ export type RecurringEventResponseDto = {
   createdAt: string;
   updatedAt: string;
 };
+
+/**
+ * A single row from the event name search endpoint.
+ * Series results are returned before one-time results.
+ */
+export type SearchCalendarEventsResultDto =
+  | {
+      kind: 'one-time';
+      eventId: number;
+      calendarId: number;
+      title: string;
+      color?: string;
+      startDate: string;
+      endDate: string;
+    }
+  | {
+      kind: 'recurring-series';
+      recurringEventId: number;
+      calendarId: number;
+      title: string;
+      color?: string;
+      nextInstanceId?: number;
+      nextInstanceStartDate?: string;
+      nextInstanceEndDate?: string;
+    };

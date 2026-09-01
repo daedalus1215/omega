@@ -76,6 +76,29 @@ export class RecurringEventRepository {
   }
 
   /**
+   * Search recurring event series by name within the given calendars.
+   * Matches a case-insensitive substring of the query against title,
+   * limited to 20 results.
+   */
+  async searchSeries(
+    calendarIds: number[],
+    query: string
+  ): Promise<RecurringEventEntity[]> {
+    if (calendarIds.length === 0) {
+      return [];
+    }
+    return await this.repository
+      .createQueryBuilder('recurring_event')
+      .where('recurring_event.calendar_id IN (:...calendarIds)', { calendarIds })
+      .andWhere('recurring_event.title ILIKE :pattern', {
+        pattern: `%${query}%`,
+      })
+      .orderBy('recurring_event.start_date', 'ASC')
+      .limit(20)
+      .getMany();
+  }
+
+  /**
    * Update only the reminderMinutes field on a recurring event.
    * Accepts null to clear the value (sets DB column to NULL).
    */

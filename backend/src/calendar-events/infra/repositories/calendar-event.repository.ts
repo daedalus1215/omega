@@ -107,6 +107,32 @@ export class CalendarEventRepository {
   }
 
   /**
+   * Search one-time events by name within the given calendars.
+   * Matches a case-insensitive substring of the query against title or
+   * description, limited to 20 results ordered by start date.
+   */
+  async searchOneTimeEvents(
+    calendarIds: number[],
+    query: string
+  ): Promise<CalendarEvent[]> {
+    if (calendarIds.length === 0) {
+      return [];
+    }
+    const entities = await this.repository
+      .createQueryBuilder('calendar_event')
+      .where('calendar_event.calendar_id IN (:...calendarIds)', { calendarIds })
+      .andWhere('calendar_event.recurring_event_id IS NULL')
+      .andWhere(
+        '(calendar_event.title ILIKE :pattern OR calendar_event.description ILIKE :pattern)',
+        { pattern: `%${query}%` }
+      )
+      .orderBy('calendar_event.start_date', 'ASC')
+      .limit(20)
+      .getMany();
+    return entities.map(entity => this.infrastructureToDomain(entity));
+  }
+
+  /**
    * Find calendar events by recurring event ID.
    * Returns all instances for a specific recurring event.
    */

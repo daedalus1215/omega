@@ -13,6 +13,7 @@ import { SyncEventRemindersTransactionScript } from '../../transaction-scripts/s
 import { UpdateEventReminderTransactionScript } from '../../transaction-scripts/update-event-reminder-TS/update-event-reminder.transaction.script';
 import { DeleteEventReminderTransactionScript } from '../../transaction-scripts/delete-event-reminder-TS/delete-event-reminder.transaction.script';
 import { FetchEventRemindersTransactionScript } from '../../transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.transaction.script';
+import { SearchCalendarEventsTransactionScript } from '../../transaction-scripts/search-calendar-events-TS/search-calendar-events.transaction.script';
 import { CreateCalendarEventCommand } from '../../transaction-scripts/create-calendar-event-TS/create-calendar-event.command';
 import { CalendarEvent } from '../../entities/calendar-event.entity';
 import { EventReminder } from '../../entities/event-reminder.entity';
@@ -42,6 +43,7 @@ describe('CalendarEventService', () => {
   let mockUpdateEventReminderTransactionScript: jest.Mocked<UpdateEventReminderTransactionScript>;
   let mockDeleteEventReminderTransactionScript: jest.Mocked<DeleteEventReminderTransactionScript>;
   let mockFetchEventRemindersTransactionScript: jest.Mocked<FetchEventRemindersTransactionScript>;
+  let mockSearchCalendarEventsTransactionScript: jest.Mocked<SearchCalendarEventsTransactionScript>;
   let mockCalendarEventRepository: jest.Mocked<CalendarEventRepository>;
   let mockRecurringEventRepository: jest.Mocked<RecurringEventRepository>;
   let mockEventReminderRepository: jest.Mocked<EventReminderRepository>;
@@ -99,6 +101,9 @@ describe('CalendarEventService', () => {
 
     mockFetchEventRemindersTransactionScript =
       createMockWithApply<FetchEventRemindersTransactionScript>();
+
+    mockSearchCalendarEventsTransactionScript =
+      createMockWithApply<SearchCalendarEventsTransactionScript>();
 
     mockCalendarEventRepository = createMock<CalendarEventRepository>({
       findById: jest.fn(),
@@ -170,6 +175,10 @@ describe('CalendarEventService', () => {
         {
           provide: FetchEventRemindersTransactionScript,
           useValue: mockFetchEventRemindersTransactionScript,
+        },
+        {
+          provide: SearchCalendarEventsTransactionScript,
+          useValue: mockSearchCalendarEventsTransactionScript,
         },
         {
           provide: CalendarEventRepository,

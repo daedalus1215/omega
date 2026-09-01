@@ -9,10 +9,12 @@ import { DayView } from './components/DayView/DayView';
 import { MonthView } from './components/MonthView/MonthView';
 import { CalendarToolbar } from './components/CalendarToolbar/CalendarToolbar';
 import { CreateEventModal } from './components/CreateEventModal/CreateEventModal';
+import { EventDetailsModal } from './components/EventDetailsModal/EventDetailsModal';
 import { CalendarsManager } from './components/CalendarsManager/CalendarsManager';
 import { useCalendarEvents } from './hooks/useCalendarEvents';
 import { useCalendarView } from './hooks/useCalendarView';
-import { subDays, addDays, startOfDay, endOfDay, format } from 'date-fns';
+import { SearchCalendarEventsResultDto } from '../../api/dtos/calendar-events.dtos';
+import { subDays, addDays, startOfDay, endOfDay, format, parseISO } from 'date-fns';
 import { CALENDAR_CONSTANTS } from './constants/calendar.constants';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { CalendarContext } from '../../contexts/CalendarContext';
@@ -39,6 +41,8 @@ export const CalendarPage: React.FC = () => {
   });
   const [currentDate, setCurrentDate] = useState<Date>(today);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [searchSelectedEventId, setSearchSelectedEventId] =
+    useState<number | null>(null);
   const [isCalendarsManagerOpen, setIsCalendarsManagerOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | undefined>(
     undefined
@@ -146,6 +150,19 @@ export const CalendarPage: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
+  const handleSearchSelect = useCallback(
+    (result: SearchCalendarEventsResultDto) => {
+      if (result.kind === 'one-time') {
+        setCurrentDate(parseISO(result.startDate));
+        setSearchSelectedEventId(result.eventId);
+      } else if (result.nextInstanceId !== undefined) {
+        setCurrentDate(parseISO(result.nextInstanceStartDate!));
+        setSearchSelectedEventId(result.nextInstanceId);
+      }
+    },
+    []
+  );
+
   const handleTimeSlotClick = (date: Date, hour: number) => {
     // Create a date with the clicked hour
     const clickedDate = new Date(date);
@@ -218,6 +235,7 @@ export const CalendarPage: React.FC = () => {
         currentView={currentView}
         onDateChange={handleDateChange}
         onViewChange={setView}
+        onSearchSelect={handleSearchSelect}
       />
 
       <Box className={styles.calendarContent}>{renderCalendarView()}</Box>
@@ -254,6 +272,14 @@ export const CalendarPage: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}
         defaultDate={createEventDate}
+      />
+      <EventDetailsModal
+        isOpen={searchSelectedEventId !== null}
+        onClose={() => {
+          setSearchSelectedEventId(null);
+          refetch();
+        }}
+        eventId={searchSelectedEventId}
       />
       <CalendarsManager
         isOpen={isCalendarsManagerOpen}

@@ -9,6 +9,7 @@ import {
   CreateEventReminderRequest,
   UpdateEventReminderRequest,
   SyncEventRemindersRequest,
+  SearchCalendarEventsResultDto,
 } from '../dtos/calendar-events.dtos';
 
 export const fetchCalendarEvents = async (
@@ -138,6 +139,25 @@ export const deleteEventReminder = async (
 ): Promise<{ success: boolean }> => {
   const { data } = await api.delete<{ success: boolean }>(
     `/calendar-events/${eventId}/reminders/${reminderId}`
+  );
+  return data;
+};
+
+/**
+ * Search one-time events and recurring series by event name.
+ * Returns up to 20 series results (by next occurrence) followed by up to
+ * 20 one-time results (by start date).
+ */
+export const searchCalendarEvents = async (
+  query: string
+): Promise<SearchCalendarEventsResultDto[]> => {
+  const { data } = await api.get<SearchCalendarEventsResultDto[]>(
+    '/calendar-events/search',
+    {
+      params: {
+        query,
+      },
+    }
   );
   return data;
 };

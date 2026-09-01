@@ -1,0 +1,116 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.input {
+  width: 260px;
+}
+
+.input .MuiOutlinedInput-root {
+  font-size: 0.875rem;
+  background-color: var(--color-card-bg-secondary, #ffffff);
+}
+
+.input .MuiOutlinedInput-input.MuiOutlinedInput-adornedStart {
+  padding-left: 2px;
+}
+
+.searchIcon {
+  color: var(--color-text-muted, #a1a1aa);
+  font-size: 1rem;
+  margin-left: 4px;
+}
+
+/* Keep the toolbar from overflowing on very small screens */
+@media (max-width: 480px) {
+  .input {
+    width: auto;
+    min-width: 110px;
+    max-width: 160px;
+  }
+}
+
+.popoverPaper {
+  min-width: 320px;
+  max-width: 420px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border, #e4e4e7);
+  border-radius: var(--border-radius, 8px);
+  box-shadow: 0 8px 24px var(--color-shadow-xl, rgba(0, 0, 0, 0.14));
+  background-color: var(--color-card-bg-secondary, #ffffff);
+}
+
+.listbox {
+  padding: 0.25rem 0;
+}
+
+.resultRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text, #18181b);
+}
+
+.resultRow:hover,
+.activeRow {
+  background-color: var(--color-overlay-medium, rgba(0, 0, 0, 0.05));
+}
+
+.colorDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.repeatIcon {
+  font-size: 1rem;
+  color: var(--color-text-muted, #a1a1aa);
+  flex-shrink: 0;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowTitle {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowMeta {
+  color: var(--color-text-muted, #a1a1aa);
+}
+
+.disabledRow {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.emptyRow {
+  padding: 0.75rem;
+  color: var(--color-text-muted, #a1a1aa);
+  font-size: 0.875rem;
+}
+
+.loadingRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  color: var(--color-text-muted, #a1a1aa);
+  font-size: 0.875rem;
+}

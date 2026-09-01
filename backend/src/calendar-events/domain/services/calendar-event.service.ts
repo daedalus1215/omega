@@ -23,6 +23,9 @@ import { DeleteEventReminderTransactionScript } from '../transaction-scripts/del
 import { DeleteEventReminderCommand } from '../transaction-scripts/delete-event-reminder-TS/delete-event-reminder.command';
 import { FetchEventRemindersTransactionScript } from '../transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.transaction.script';
 import { FetchEventRemindersCommand } from '../transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.command';
+import { SearchCalendarEventsTransactionScript } from '../transaction-scripts/search-calendar-events-TS/search-calendar-events.transaction.script';
+import { SearchCalendarEventsCommand } from '../transaction-scripts/search-calendar-events-TS/search-calendar-events.command';
+import { CalendarEventSearchResult } from '../transaction-scripts/search-calendar-events-TS/search-calendar-events.result';
 import { CalendarEvent } from '../entities/calendar-event.entity';
 import { EventReminder } from '../entities/event-reminder.entity';
 import { CalendarEventRepository } from '../../infra/repositories/calendar-event.repository';
@@ -44,6 +47,7 @@ export class CalendarEventService {
     private readonly deleteCalendarEventTransactionScript: DeleteCalendarEventTransactionScript,
     private readonly generateEventInstancesTransactionScript: GenerateEventInstancesTransactionScript,
     private readonly fetchRecurringEventsTransactionScript: FetchRecurringEventsTransactionScript,
+    private readonly searchCalendarEventsTransactionScript: SearchCalendarEventsTransactionScript,
     private readonly createEventReminderTransactionScript: CreateEventReminderTransactionScript,
     private readonly syncEventRemindersTransactionScript: SyncEventRemindersTransactionScript,
     private readonly updateEventReminderTransactionScript: UpdateEventReminderTransactionScript,
@@ -122,6 +126,56 @@ export class CalendarEventService {
       command,
       calendarIds
     );
+  }
+
+  /**
+   * Search calendar events by name across the caller's calendars.
+   * Returns recurring series (ordered by next occurrence) followed by
+   * one-time events (ordered by start date).
+   * Materializes the next upcoming instance for each matching series so
+   * callers can link to a concrete calendar event.
+   */
+  async searchCalendarEvents(
+    command: SearchCalendarEventsCommand
+  ): Promise<CalendarEventSearchResult[]> {
+    const calendarIds = await this.resolveCalendarIds(command.user.userId);
+    const results = await this.searchCalendarEventsTransactionScript.apply(
+      command,
+      calendarIds
+    );
+    await this.materializeNextInstances(results);
+    return results;
+  }
+
+  /**
+   * Materialize the next upcoming instance for each recurring series search
+   * result so callers can link to a concrete calendar event.
+   */
+  private async materializeNextInstances(
+    results: CalendarEventSearchResult[]
+  ): Promise<void> {
+    for (const result of results) {
+      if (
+        result.kind !== 'recurring-series' ||
+        result.nextOccurrenceDate === undefined
+      ) {
+        continue;
+      }
+      const instances =
+        await this.generateEventInstancesTransactionScript.apply(
+          result.recurrence,
+          result.nextOccurrenceDate,
+          result.nextOccurrenceDate
+        );
+      const nextInstance = instances
+        .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())[0];
+      if (!nextInstance) {
+        continue;
+      }
+      result.nextInstanceId = nextInstance.id;
+      result.nextInstanceStartDate = nextInstance.startDate;
+      result.nextInstanceEndDate = nextInstance.endDate;
+    }
   }
 
   /**

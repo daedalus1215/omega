@@ -3,6 +3,8 @@ import { Box, Typography, IconButton } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ViewDropdown } from '../ViewDropdown/ViewDropdown';
+import { EventSearchBox } from './EventSearchBox/EventSearchBox';
+import { SearchCalendarEventsResultDto } from '../../../../api/dtos/calendar-events.dtos';
 import { CalendarViewMode } from '../../hooks/useCalendarView';
 import { useIsMobile } from '../../../../hooks/useIsMobile';
 import styles from './CalendarToolbar.module.css';
@@ -12,6 +14,7 @@ interface CalendarToolbarProps {
   currentView: CalendarViewMode;
   onDateChange: (date: Date) => void;
   onViewChange: (view: CalendarViewMode) => void;
+  onSearchSelect: (result: SearchCalendarEventsResultDto) => void;
 }
 
 /**
@@ -23,6 +26,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   currentView,
   onDateChange,
   onViewChange,
+  onSearchSelect,
 }) => {
   const isMobile = useIsMobile();
 
@@ -106,6 +110,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
       </Box>
 
       <Box className={styles.rightSection}>
+        <EventSearchBox onSearchSelect={onSearchSelect} />
         <ViewDropdown
           size={isMobile ? 'small' : 'medium'}
           currentView={currentView}
