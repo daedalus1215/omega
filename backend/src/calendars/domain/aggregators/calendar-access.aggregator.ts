@@ -34,6 +34,17 @@ export class CalendarAccessAggregator {
   }
 
   /**
+   * User IDs of every member of the calendar, owner included.
+   * Used by reminder fan-out: delivery is per calendar, not per creator.
+   */
+  async getMemberUserIds(calendarId: number): Promise<number[]> {
+    const members = await this.calendarMemberRepository.findByCalendarId(
+      calendarId
+    );
+    return members.map(member => member.userId);
+  }
+
+  /**
    * Get-or-create the user's personal calendar id.
    * Used as the default target for writes and as a self-healing safety net.
    */
