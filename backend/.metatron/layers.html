@@ -1,0 +1,828 @@
+<!-- arch-views: Does the layering hold? Every file on the plane of its tier — a link that skips a plane is a violation. -->
+<title>Omega Layer Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400&display=swap">
+
+<style>
+/* A deliberately single-world dark scene: the reference is an immersive teal
+   atmosphere, so every colour is painted explicitly rather than theme-swapped. */
+:root {
+  --deep:#3C525A; --mid:#5E787F; --hi:#8CA7AC; --glow:#B3C7CA;
+  --rail:#2B3A42; --panel:#33454D; --panel2:#3D5159; --edge:#526B73;
+  --text:#E7F0F1; --text2:#B3C6CA; --text3:#88A0A6;
+  --ok:#E4EFF1; --warn:#E8A13C; --crit:#E4574F; --cross:#9CD1D8;
+  --shadow:0 2px 4px rgba(0,0,0,.28), 0 18px 44px rgba(0,0,0,.34);
+}
+* { box-sizing:border-box; }
+html, body { background:#33454D; }
+body { margin:0; color:var(--text);
+  font-family:'Archivo',ui-sans-serif,system-ui,sans-serif; font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; }
+.mono { font-family:'IBM Plex Mono',ui-monospace,monospace; }
+.wrap { max-width:1680px; margin:0 auto; padding:0 22px 72px; }
+
+.mast { padding:40px 0 18px; border-bottom:1px solid var(--edge); }
+.eyebrow { font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--text3); margin:0 0 13px; }
+h1 { font-size:clamp(30px,4.6vw,54px); line-height:1.03; letter-spacing:-.03em; font-weight:700; margin:0;
+  text-wrap:balance; }
+.dek { font-family:'Source Serif 4',Georgia,serif; font-size:17.5px; line-height:1.6; color:var(--text2);
+  max-width:64ch; margin:15px 0 0; }
+
+/* --- app chrome --- */
+.app { margin-top:22px; border:1px solid var(--edge); background:var(--panel); box-shadow:var(--shadow); }
+.topbar { display:flex; align-items:center; gap:14px; padding:9px 14px; border-bottom:1px solid var(--edge);
+  background:var(--rail); flex-wrap:wrap; }
+.topbar .brand { font-size:14px; font-weight:600; letter-spacing:-.01em; }
+.seg { display:flex; border:1px solid var(--edge); }
+.seg button { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.05em; padding:5px 13px;
+  background:transparent; color:var(--text3); border:0; cursor:pointer; }
+.seg button.on { background:var(--text); color:var(--rail); }
+.seg button:focus-visible, .tb:focus-visible, input:focus-visible { outline:2px solid var(--cross); outline-offset:2px; }
+.tb { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.04em; padding:5px 11px;
+  background:transparent; border:1px solid var(--edge); color:var(--text3); cursor:pointer; }
+.tb:hover { color:var(--text); border-color:var(--hi); }
+.tb.on { background:var(--warn); border-color:var(--warn); color:#2A1D07; }
+.tb.crit.on { background:var(--crit); border-color:var(--crit); color:#2A0B09; }
+.grow { margin-left:auto; }
+#q { font-family:'IBM Plex Mono',monospace; font-size:11px; padding:5px 10px; background:var(--panel2);
+  border:1px solid var(--edge); color:var(--text); min-width:170px; }
+
+.body { display:grid; grid-template-columns:186px minmax(0,1fr) 320px; }
+@media (max-width:1200px){ .body { grid-template-columns:150px minmax(0,1fr); } .insp { display:none; } }
+@media (max-width:820px){ .body { grid-template-columns:minmax(0,1fr); } .rail { display:none; } }
+
+.rail { border-right:1px solid var(--edge); padding:12px 0; background:var(--rail); }
+.rail h4 { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--text3); margin:0 0 6px; padding:0 13px; }
+.lay { display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:transparent;
+  border:0; border-left:3px solid transparent; padding:6px 12px; cursor:pointer; color:var(--text2);
+  font-family:'IBM Plex Mono',monospace; font-size:11px; }
+.lay:hover { background:var(--panel2); color:var(--text); }
+.lay.sel { background:var(--panel2); color:var(--text); border-left-color:var(--cross); }
+.lay .n { margin-left:auto; opacity:.6; font-variant-numeric:tabular-nums; }
+.lay .sq { width:8px; height:8px; flex:0 0 auto; opacity:.85; }
+.lay.extra { opacity:.55; }
+
+.stage { position:relative; background:#4E676F; min-height:540px; height:min(74vh,820px); overflow:hidden; }
+canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; }
+canvas.drag { cursor:grabbing; }
+.hud { position:absolute; left:12px; bottom:11px; font-family:'IBM Plex Mono',monospace; font-size:10px;
+  color:var(--text3); pointer-events:none; letter-spacing:.03em; text-shadow:0 1px 3px rgba(0,0,0,.5); }
+.crumb { position:absolute; left:14px; top:12px; display:flex; gap:8px; align-items:center; }
+.crumb button { font-family:'IBM Plex Mono',monospace; font-size:11px; padding:5px 11px; cursor:pointer;
+  background:rgba(43,58,66,.82); border:1px solid var(--edge); color:var(--text); }
+.card { position:absolute; right:14px; top:12px; width:246px; background:rgba(43,58,66,.9);
+  border:1px solid var(--edge); padding:12px 13px; box-shadow:var(--shadow); }
+.card .lab { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--text3); margin:0 0 7px; }
+.card .big { display:flex; align-items:baseline; gap:8px; margin-bottom:10px; }
+.card .big b { font-family:'IBM Plex Mono',monospace; font-size:29px; font-weight:600; letter-spacing:-.02em; }
+.card .big span { font-size:12px; color:var(--text2); }
+.sevbar { display:flex; height:7px; margin-bottom:5px; }
+.sevbar i { display:block; }
+.sevleg { display:flex; gap:11px; font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text3); }
+.sevleg b { font-weight:500; }
+.card ul { list-style:none; margin:9px 0 0; padding:9px 0 0; border-top:1px solid var(--edge); }
+.card li { font-size:11.5px; color:var(--text2); padding:3px 0; display:flex; gap:7px; }
+.card li b { font-family:'IBM Plex Mono',monospace; color:var(--text); font-weight:500; margin-left:auto; }
+
+.insp { border-left:1px solid var(--edge); background:var(--panel); overflow:auto;
+  max-height:min(74vh,820px); padding:14px 15px; }
+.insp .empty { font-family:'Source Serif 4',Georgia,serif; font-style:italic; color:var(--text3); font-size:14px; }
+.insp h3 { margin:0 0 3px; font-size:15px; font-weight:600; letter-spacing:-.01em; word-break:break-all; }
+.insp .sub { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text3); word-break:break-all; margin:0 0 11px; }
+.ilab { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--text3); margin:14px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--edge); }
+.kv { list-style:none; margin:0; padding:0; }
+.kv li { display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text2);
+  padding:2.5px 0; }
+.kv li b { color:var(--text); font-weight:500; margin-left:auto; text-align:right; word-break:break-all; }
+.lks { list-style:none; margin:0; padding:0; }
+.lks li { font-family:'IBM Plex Mono',monospace; font-size:10px; padding:3.5px 0; color:var(--text2);
+  border-bottom:1px dotted var(--edge); word-break:break-all; }
+.lks li .t { color:var(--text3); }
+.lks li.skip { color:var(--warn); }
+.lks li.crit { color:var(--crit); }
+.warnbox { border-left:3px solid var(--warn); background:var(--panel2); padding:7px 10px; font-size:12px;
+  color:var(--text2); margin-bottom:7px; }
+.warnbox.crit { border-left-color:var(--crit); }
+pre { margin:0; background:var(--rail); border:1px solid var(--edge); padding:10px 12px; overflow:auto;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; line-height:1.5; color:var(--text2);
+  max-height:210px; white-space:pre-wrap; word-break:break-word; }
+
+section { margin-top:46px; }
+.shead { display:flex; align-items:baseline; gap:13px; border-bottom:1px solid var(--edge);
+  padding-bottom:8px; margin-bottom:17px; flex-wrap:wrap; }
+.shead h2 { font-size:20px; font-weight:600; letter-spacing:-.015em; margin:0; }
+.shead .num { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text3); letter-spacing:.1em; }
+.note { font-family:'Source Serif 4',Georgia,serif; font-size:16px; line-height:1.65; color:var(--text2); max-width:68ch; }
+.note + .note { margin-top:11px; }
+.note strong { color:var(--text); font-weight:400; box-shadow:inset 0 -0.5em 0 rgba(232,161,60,.22); }
+.keys { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:8px; margin-top:15px; }
+.key { border:1px solid var(--edge); background:var(--panel2); padding:9px 12px; }
+.key b { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text); display:block; margin-bottom:2px; }
+.key span { font-size:12px; color:var(--text2); }
+footer { margin-top:56px; padding-top:18px; border-top:1px solid var(--edge); color:var(--text3); }
+@media (prefers-reduced-motion:reduce){ * { transition:none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Layered reference model · 209 files · every one placed on the plane of its tier</p>
+  <h1>Omega Layer Stack</h1>
+  <p class="dek">Every file in the backend, placed on the plane of the architectural layer it belongs to and clustered by its module. The layers are the whole point: <strong>a link that skips a plane is a layering violation you can see as geometry</strong>. Flatten the stack to read it as one graph, or drill into any single layer.</p>
+</header>
+
+<div class="app" data-fullscreen>
+  <div class="topbar">
+    <span class="brand">Omega</span>
+    <div class="seg" role="group" aria-label="View mode">
+      <button id="mFlat">Flat</button>
+      <button id="mStack" class="on">Stacked</button>
+    </div>
+    <button class="tb crit" id="tSkips">isolate the skips</button>
+    <button class="tb on" id="tLinks">links</button>
+    <button class="tb" id="tExtra">wiring · platform · tests</button>
+    <span class="grow"></span>
+    <input id="q" type="search" placeholder="filter files…" aria-label="Filter files">
+    <button class="tb" id="home">reset</button>
+  </div>
+
+  <div class="body" data-fs-grow>
+    <nav class="rail" id="rail"></nav>
+    <div class="stage" id="stage">
+      <canvas id="cv" tabindex="0" aria-label="Interactive stacked-layer view of the Omega backend"></canvas>
+      <div class="crumb" id="crumb"></div>
+      <div class="card" id="card"></div>
+      <div class="hud" id="hud"></div>
+    </div>
+    <aside class="insp" id="insp"></aside>
+  </div>
+</div>
+
+<section>
+  <div class="shead"><span class="num">01</span><h2>Reading the stack</h2></div>
+  <p class="note" data-narr="planes"></p>
+  <p class="note">A file sits on the plane of the pattern it implements, inside the cluster belonging to its module. Cluster positions are identical on every plane, so <strong>a module is a vertical silo</strong> — look straight down a cluster and you see its whole stack.</p>
+  <p class="note">Links are real imports. A link between neighbouring planes is ordinary flow; a link that jumps a plane is not. <span data-narr="layering"></span></p>
+  <div class="keys">
+    <div class="key"><b>drag</b><span>Orbit the stack.</span></div>
+    <div class="key"><b>scroll</b><span>Fly in and out.</span></div>
+    <div class="key"><b>shift + drag</b><span>Pan sideways.</span></div>
+    <div class="key"><b>click a plane</b><span>Drill into that layer alone.</span></div>
+    <div class="key"><b>click a node</b><span>Open the file and its links.</span></div>
+    <div class="key"><b>Esc</b><span>Back out to the full stack.</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="num">02</span><h2>What the geometry exposes</h2></div>
+  <p class="note" data-narr="crossDomain"></p>
+  <p class="note" data-narr="absent"></p>
+  <p class="note" data-narr="cycles"></p>
+</section>
+
+<section>
+  <div class="shead"><span class="num">03</span><h2>Honest limits</h2></div>
+  <p class="note" data-narr="provenance"></p>
+  <p class="note" data-narr="caveats"></p>
+</section>
+
+<footer>
+  <p class="note" style="font-size:14px">Generated by <span class="mono">metatron</span> · <span id="gen"></span> · <span id="fstats"></span></p>
+</footer>
+
+</div>
+
+<script id="data" type="application/json">{"generatedAt":"2026-09-20T13:51:59.197Z","stats":{"files":209,"edges":684,"nodes":49,"externals":28,"endpoints":28,"hops":147},"tiers":[{"i":0,"name":"Entry","sub":"HTTP / WS surface"},{"i":1,"name":"Contract","sub":"DTOs & commands"},{"i":2,"name":"Service","sub":"orchestration"},{"i":3,"name":"Aggregator","sub":"cross-domain"},{"i":4,"name":"Transaction Script","sub":"use-case logic"},{"i":5,"name":"Mapping","sub":"converters & mappers"},{"i":6,"name":"Persistence","sub":"repositories"},{"i":7,"name":"Domain Model","sub":"entities & ports"},{"i":8,"name":"Wiring","sub":"modules"},{"i":9,"name":"Platform","sub":"bootstrap & migrations"},{"i":10,"name":"Test","sub":"specs & fixtures"}],"extent":72.53581766236074,"planes":[{"t":0,"name":"Entry","sub":"HTTP / WS surface","count":56,"extra":false,"modules":[{"m":"calendar-events","n":27},{"m":"calendars","n":19},{"m":"users","n":5},{"m":"shared-kernel","n":3},{"m":"auth","n":1},{"m":"health","n":1}],"patterns":["action","controller","decorator","guard","listener","responder","swagger"]},{"t":1,"name":"Contract","sub":"DTOs & commands","count":50,"extra":false,"modules":[{"m":"calendar-events","n":28},{"m":"calendars","n":16},{"m":"users","n":5},{"m":"shared-kernel","n":1}],"patterns":["command","dto","event"]},{"t":2,"name":"Service","sub":"orchestration","count":7,"extra":false,"modules":[{"m":"calendar-events","n":2},{"m":"calendars","n":2},{"m":"auth","n":1},{"m":"shared-kernel","n":1},{"m":"users","n":1}],"patterns":["service"]},{"t":3,"name":"Aggregator","sub":"cross-domain","count":4,"extra":false,"modules":[{"m":"calendar-events","n":1},{"m":"calendars","n":1},{"m":"security-events","n":1},{"m":"users","n":1}],"patterns":["aggregator"]},{"t":4,"name":"Transaction Script","sub":"use-case logic","count":29,"extra":false,"modules":[{"m":"calendar-events","n":15},{"m":"calendars","n":12},{"m":"users","n":2}],"patterns":["projection","transaction-script"]},{"t":5,"name":"Mapping","sub":"converters & mappers","count":2,"extra":false,"modules":[{"m":"calendar-events","n":2}],"patterns":["converter"]},{"t":6,"name":"Persistence","sub":"repositories","count":9,"extra":false,"modules":[{"m":"calendar-events","n":4},{"m":"calendars","n":3},{"m":"security-events","n":1},{"m":"users","n":1}],"patterns":["repository"]},{"t":7,"name":"Domain Model","sub":"entities & ports","count":16,"extra":false,"modules":[{"m":"calendar-events","n":8},{"m":"calendars","n":6},{"m":"security-events","n":1},{"m":"users","n":1}],"patterns":["entity"]},{"t":8,"name":"Wiring","sub":"modules","count":19,"extra":true,"modules":[{"m":"calendar-events","n":8},{"m":"calendars","n":4},{"m":"shared-kernel","n":3},{"m":"auth","n":2},{"m":"security-events","n":1},{"m":"users","n":1}],"patterns":["config","module","other","strategy","util"]},{"t":9,"name":"Platform","sub":"bootstrap & migrations","count":4,"extra":true,"modules":[{"m":"(root)","n":2},{"m":"typeorm","n":2}],"patterns":["bootstrap","migration"]},{"t":10,"name":"Test","sub":"specs & fixtures","count":13,"extra":true,"modules":[{"m":"calendar-events","n":12},{"m":"shared-kernel","n":1}],"patterns":["spec","test-util"]}],"modules":[{"m":"calendar-events","n":107,"x":16.008331164323987,"z":0},{"m":"calendars","n":63,"x":-19.27586804668756,"z":17.658388624800036},{"m":"users","n":17,"x":2.9131603053944906,"z":-33.196421281878614},{"m":"shared-kernel","n":9,"x":23.85855397423639,"z":31.11863432508646},{"m":"auth","n":4,"x":-43.647585914085184,"z":-7.720061851025789},{"m":"security-events","n":4,"x":41.264491539634754,"z":-26.250027813273547},{"m":"(root)","n":2,"x":-13.782340793521271,"z":51.27358399394929},{"m":"typeorm","n":2,"x":-26.260891342332602,"z":-50.56095361393657},{"m":"health","n":1,"x":56.929573078309346,"z":20.788921681438666}],"nodes":[{"i":0,"f":"app.module.ts","m":"(root)","p":"bootstrap","t":9,"cls":"AppModule","loc":86,"x":-10.71,"z":51.27,"s":"ok","w":[]},{"i":1,"f":"auth/app/actions/login.action.ts","m":"auth","p":"action","t":0,"cls":"LoginAction","loc":35,"x":-40.04,"z":-7.72,"s":"ok","w":[]},{"i":2,"f":"auth/auth.module.ts","m":"auth","p":"module","t":8,"cls":"AuthModule","loc":36,"x":-40.58,"z":-7.72,"s":"ok","w":[]},{"i":3,"f":"auth/domain/auth.service.ts","m":"auth","p":"service","t":2,"cls":"AuthService","loc":58,"x":-40.04,"z":-7.72,"s":"ok","w":[]},{"i":4,"f":"auth/jwt.strategy.ts","m":"auth","p":"strategy","t":8,"cls":"JwtStrategy","loc":28,"x":-47.57,"z":-4.13,"s":"ok","w":[]},{"i":5,"f":"calendar-events/apps/actions/create-calendar-event-action/create-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"cls":"CreateCalendarEventAction","loc":61,"x":18.13,"z":0,"s":"ok","w":[]},{"i":6,"f":"calendar-events/apps/actions/create-calendar-event-action/create-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":19,"x":13.3,"z":2.48,"s":"ok","w":[]},{"i":7,"f":"calendar-events/apps/actions/create-calendar-event-action/dtos/requests/create-calendar-event.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"CreateCalendarEventRequestDto","loc":58,"x":18.12,"z":0,"s":"ok","w":[]},{"i":8,"f":"calendar-events/apps/actions/create-event-reminder-action/create-event-reminder.action.ts","m":"calendar-events","p":"action","t":0,"cls":"CreateEventReminderAction","loc":60,"x":16.42,"z":-4.73,"s":"ok","w":[]},{"i":9,"f":"calendar-events/apps/actions/create-event-reminder-action/create-event-reminder.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":23,"x":19.42,"z":4.45,"s":"ok","w":[]},{"i":10,"f":"calendar-events/apps/actions/create-event-reminder-action/dtos/requests/create-event-reminder.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"CreateEventReminderRequestDto","loc":9,"x":13.31,"z":2.47,"s":"ok","w":[]},{"i":11,"f":"calendar-events/apps/actions/create-event-reminder-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"EventReminderResponseDto","loc":18,"x":16.42,"z":-4.71,"s":"ok","w":[]},{"i":12,"f":"calendar-events/apps/actions/create-recurring-event-action/create-recurring-event.action.ts","m":"calendar-events","p":"action","t":0,"cls":"CreateRecurringEventAction","loc":73,"x":9.74,"z":-1.11,"s":"ok","w":[]},{"i":13,"f":"calendar-events/apps/actions/create-recurring-event-action/create-recurring-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":20,"x":21.95,"z":-3.78,"s":"ok","w":[]},{"i":14,"f":"calendar-events/apps/actions/create-recurring-event-action/dtos/requests/create-recurring-event.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"IsEndDateAfterStartDateConstraint","loc":163,"x":19.41,"z":4.44,"s":"ok","w":[]},{"i":15,"f":"calendar-events/apps/actions/delete-calendar-event-action/delete-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"cls":"DeleteCalendarEventAction","loc":52,"x":14.02,"z":7.39,"s":"ok","w":[]},{"i":16,"f":"calendar-events/apps/actions/delete-calendar-event-action/delete-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":20,"x":12.22,"z":-7.29,"s":"ok","w":[]},{"i":17,"f":"calendar-events/apps/actions/delete-event-reminder-action/delete-event-reminder.action.ts","m":"calendar-events","p":"action","t":0,"cls":"DeleteEventReminderAction","loc":53,"x":24.23,"z":3,"s":"ok","w":[]},{"i":18,"f":"calendar-events/apps/actions/delete-event-reminder-action/delete-event-reminder.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":17,"x":7.46,"z":3.53,"s":"ok","w":[]},{"i":19,"f":"calendar-events/apps/actions/delete-recurring-event-action/delete-recurring-event.action.ts","m":"calendar-events","p":"action","t":0,"cls":"DeleteRecurringEventAction","loc":53,"x":20.13,"z":-8.81,"s":"ok","w":[]},{"i":20,"f":"calendar-events/apps/actions/delete-recurring-event-action/delete-recurring-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":21,"x":19.05,"z":9.71,"s":"ok","w":[]},{"i":21,"f":"calendar-events/apps/actions/fetch-calendar-event-action/fetch-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"cls":"FetchCalendarEventAction","loc":66,"x":6.83,"z":-5.32,"s":"crit","w":["Action reaches Repository directly, skipping Service and Transaction Script"]},{"i":22,"f":"calendar-events/apps/actions/fetch-calendar-event-action/fetch-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":19,"x":26.78,"z":-2.37,"s":"ok","w":[]},{"i":23,"f":"calendar-events/apps/actions/fetch-calendar-events-action/dtos/requests/fetch-calendar-events.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"FetchCalendarEventsRequestDto","loc":12,"x":9.76,"z":-1.11,"s":"ok","w":[]},{"i":24,"f":"calendar-events/apps/actions/fetch-calendar-events-action/fetch-calendar-events.action.ts","m":"calendar-events","p":"action","t":0,"cls":"FetchCalendarEventsAction","loc":102,"x":9.44,"z":9.35,"s":"crit","w":["Action reaches Repository directly, skipping Service and Transaction Script"]},{"i":25,"f":"calendar-events/apps/actions/fetch-calendar-events-action/fetch-calendar-events.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":19,"x":14.49,"z":-11.71,"s":"ok","w":[]},{"i":26,"f":"calendar-events/apps/actions/fetch-event-reminders-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"EventReminderResponseDto","loc":18,"x":21.93,"z":-3.77,"s":"ok","w":[]},{"i":27,"f":"calendar-events/apps/actions/fetch-event-reminders-action/fetch-event-reminders.action.ts","m":"calendar-events","p":"action","t":0,"cls":"FetchEventRemindersAction","loc":54,"x":25.33,"z":7.85,"s":"ok","w":[]},{"i":28,"f":"calendar-events/apps/actions/fetch-event-reminders-action/fetch-event-reminders.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":19,"x":3.47,"z":0.52,"s":"ok","w":[]},{"i":29,"f":"calendar-events/apps/actions/search-calendar-events-action/__specs__/search-calendar-events.responder.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":123,"x":18.31,"z":0,"s":"ok","w":[]},{"i":30,"f":"calendar-events/apps/actions/search-calendar-events-action/dtos/requests/search-calendar-events.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"SearchCalendarEventsRequestDto","loc":11,"x":14.03,"z":7.37,"s":"ok","w":[]},{"i":31,"f":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.action.ts","m":"calendar-events","p":"action","t":0,"cls":"SearchCalendarEventsAction","loc":62,"x":25.16,"z":-9.1,"s":"ok","w":[]},{"i":32,"f":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.responder.ts","m":"calendar-events","p":"responder","t":0,"cls":"SearchCalendarEventsResponder","loc":54,"x":15.4,"z":13.24,"s":"ok","w":[]},{"i":33,"f":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":23,"x":7.3,"z":-10.43,"s":"ok","w":[]},{"i":34,"f":"calendar-events/apps/actions/sync-event-reminders-action/dtos/requests/sync-event-reminders.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"SyncEventRemindersRequestDto","loc":19,"x":12.23,"z":-7.27,"s":"ok","w":[]},{"i":35,"f":"calendar-events/apps/actions/sync-event-reminders-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"EventReminderResponseDto","loc":20,"x":24.2,"z":2.99,"s":"ok","w":[]},{"i":36,"f":"calendar-events/apps/actions/sync-event-reminders-action/sync-event-reminders.action.ts","m":"calendar-events","p":"action","t":0,"cls":"SyncEventRemindersAction","loc":60,"x":29.8,"z":1.85,"s":"ok","w":[]},{"i":37,"f":"calendar-events/apps/actions/sync-event-reminders-action/sync-event-reminders.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":23,"x":4.33,"z":8.13,"s":"ok","w":[]},{"i":38,"f":"calendar-events/apps/actions/update-calendar-event-action/dtos/requests/update-calendar-event.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"UpdateCalendarEventRequestDto","loc":32,"x":7.49,"z":3.52,"s":"ok","w":[]},{"i":39,"f":"calendar-events/apps/actions/update-calendar-event-action/update-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"cls":"UpdateCalendarEventAction","loc":62,"x":19.2,"z":-14.19,"s":"ok","w":[]},{"i":40,"f":"calendar-events/apps/actions/update-calendar-event-action/update-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":23,"x":23.39,"z":12.88,"s":"ok","w":[]},{"i":41,"f":"calendar-events/apps/actions/update-event-reminder-action/dtos/requests/update-event-reminder.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"UpdateEventReminderRequestDto","loc":9,"x":20.12,"z":-8.78,"s":"ok","w":[]},{"i":42,"f":"calendar-events/apps/actions/update-event-reminder-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"EventReminderResponseDto","loc":18,"x":19.04,"z":9.68,"s":"ok","w":[]},{"i":43,"f":"calendar-events/apps/actions/update-event-reminder-action/update-event-reminder.action.ts","m":"calendar-events","p":"action","t":0,"cls":"UpdateEventReminderAction","loc":59,"x":1.57,"z":-4.6,"s":"ok","w":[]},{"i":44,"f":"calendar-events/apps/actions/update-event-reminder-action/update-event-reminder.swagger.ts","m":"calendar-events","p":"swagger","t":0,"cls":null,"loc":23,"x":30.03,"z":-6.48,"s":"ok","w":[]},{"i":45,"f":"calendar-events/apps/dtos/responses/calendar-event.response.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"CalendarEventResponseDto","loc":35,"x":6.86,"z":-5.3,"s":"warn","w":["15 high-risk files have no test"]},{"i":46,"f":"calendar-events/apps/dtos/responses/recurring-event.response.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"RecurringEventResponseDtoClass","loc":64,"x":26.74,"z":-2.36,"s":"ok","w":[]},{"i":47,"f":"calendar-events/apps/dtos/responses/search-calendar-events.response.dto.ts","m":"calendar-events","p":"dto","t":1,"cls":"OneTimeEventSearchResultDto","loc":36,"x":9.46,"z":9.32,"s":"ok","w":[]},{"i":48,"f":"calendar-events/apps/schedulers/reminder-scheduler/__specs__/reminder.scheduler.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":243,"x":13.07,"z":2.69,"s":"ok","w":[]},{"i":49,"f":"calendar-events/apps/schedulers/reminder-scheduler/reminder.scheduler.ts","m":"calendar-events","p":"other","t":8,"cls":"ReminderScheduler","loc":172,"x":18.43,"z":0,"s":"ok","w":[]},{"i":50,"f":"calendar-events/calendar-events.module.ts","m":"calendar-events","p":"module","t":8,"cls":"CalendarEventsModule","loc":119,"x":12.92,"z":2.83,"s":"warn","w":["Circular imports between files"]},{"i":51,"f":"calendar-events/domain/aggregators/calendar-events.aggregator.ts","m":"calendar-events","p":"aggregator","t":3,"cls":"CalendarEventsAggregator","loc":31,"x":19.61,"z":0,"s":"ok","w":[]},{"i":52,"f":"calendar-events/domain/entities/calendar-event.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":null,"loc":26,"x":18.43,"z":0,"s":"warn","w":["15 high-risk files have no test"]},{"i":53,"f":"calendar-events/domain/entities/event-reminder.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":null,"loc":14,"x":12.92,"z":2.83,"s":"warn","w":["15 high-risk files have no test"]},{"i":54,"f":"calendar-events/domain/entities/recurrence-exception.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":null,"loc":11,"x":16.48,"z":-5.39,"s":"ok","w":[]},{"i":55,"f":"calendar-events/domain/entities/recurrence-pattern.value-object.ts","m":"calendar-events","p":"other","t":8,"cls":null,"loc":12,"x":16.48,"z":-5.39,"s":"ok","w":[]},{"i":56,"f":"calendar-events/domain/entities/recurring-event.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":null,"loc":23,"x":19.9,"z":5.08,"s":"warn","w":["15 high-risk files have no test"]},{"i":57,"f":"calendar-events/domain/reminder.constants.ts","m":"calendar-events","p":"config","t":8,"cls":null,"loc":31,"x":19.9,"z":5.08,"s":"ok","w":[]},{"i":58,"f":"calendar-events/domain/services/__specs__/calendar-event.service.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":400,"x":16.46,"z":-5.12,"s":"ok","w":[]},{"i":59,"f":"calendar-events/domain/services/calendar-event.service.ts","m":"calendar-events","p":"service","t":2,"cls":"CalendarEventService","loc":375,"x":19.08,"z":0,"s":"warn","w":["Service reaches Repository directly, skipping Transaction Script","Service reaches Repository directly, skipping Transaction Script","Service reaches Repository directly, skipping Transaction Script"]},{"i":60,"f":"calendar-events/domain/services/recurring-event.service.ts","m":"calendar-events","p":"service","t":2,"cls":"RecurringEventService","loc":85,"x":12.09,"z":3.59,"s":"ok","w":[]},{"i":61,"f":"calendar-events/domain/transaction-scripts/create-calendar-event-TS/__specs__/create-calendar-event.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":247,"x":19.71,"z":4.83,"s":"ok","w":[]},{"i":62,"f":"calendar-events/domain/transaction-scripts/create-calendar-event-TS/create-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":15,"x":14.49,"z":-11.68,"s":"warn","w":["15 high-risk files have no test"]},{"i":63,"f":"calendar-events/domain/transaction-scripts/create-calendar-event-TS/create-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"CreateCalendarEventTransactionScript","loc":54,"x":18.25,"z":0,"s":"ok","w":[]},{"i":64,"f":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/__specs__/create-event-reminder.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":254,"x":9.22,"z":-1.2,"s":"ok","w":[]},{"i":65,"f":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":8,"x":25.3,"z":7.83,"s":"ok","w":[]},{"i":66,"f":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"CreateEventReminderTransactionScript","loc":91,"x":13.14,"z":2.62,"s":"ok","w":[]},{"i":67,"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/__specs__/create-recurring-event.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":197,"x":22.44,"z":-4.09,"s":"ok","w":[]},{"i":68,"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/create-recurring-event.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":19,"x":3.51,"z":0.52,"s":"ok","w":[]},{"i":69,"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/create-recurring-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"CreateRecurringEventTransactionScript","loc":68,"x":16.45,"z":-5,"s":"ok","w":[]},{"i":70,"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-domain.converter.ts","m":"calendar-events","p":"converter","t":5,"cls":"RecurringEventToDomainConverter","loc":42,"x":19.08,"z":0,"s":"warn","w":["15 high-risk files have no test"]},{"i":71,"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-infrastructure.converter.ts","m":"calendar-events","p":"converter","t":5,"cls":"RecurringEventToInfrastructureConverter","loc":41,"x":12.09,"z":3.59,"s":"ok","w":[]},{"i":72,"f":"calendar-events/domain/transaction-scripts/delete-calendar-event-TS/delete-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":10,"x":25.13,"z":-9.08,"s":"ok","w":[]},{"i":73,"f":"calendar-events/domain/transaction-scripts/delete-calendar-event-TS/delete-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"DeleteCalendarEventTransactionScript","loc":113,"x":19.62,"z":4.71,"s":"ok","w":[]},{"i":74,"f":"calendar-events/domain/transaction-scripts/delete-event-reminder-TS/delete-event-reminder.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":7,"x":15.4,"z":13.2,"s":"ok","w":[]},{"i":75,"f":"calendar-events/domain/transaction-scripts/delete-event-reminder-TS/delete-event-reminder.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"DeleteEventReminderTransactionScript","loc":45,"x":9.38,"z":-1.17,"s":"ok","w":[]},{"i":76,"f":"calendar-events/domain/transaction-scripts/delete-recurring-event-TS/delete-recurring-event.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":10,"x":7.33,"z":-10.4,"s":"ok","w":[]},{"i":77,"f":"calendar-events/domain/transaction-scripts/delete-recurring-event-TS/delete-recurring-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"DeleteRecurringEventTransactionScript","loc":87,"x":22.28,"z":-3.99,"s":"ok","w":[]},{"i":78,"f":"calendar-events/domain/transaction-scripts/fetch-calendar-event-TS/fetch-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":7,"x":29.75,"z":1.85,"s":"ok","w":[]},{"i":79,"f":"calendar-events/domain/transaction-scripts/fetch-calendar-event-TS/fetch-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"FetchCalendarEventTransactionScript","loc":54,"x":13.91,"z":7.81,"s":"ok","w":[]},{"i":80,"f":"calendar-events/domain/transaction-scripts/fetch-calendar-events-TS/fetch-calendar-events.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":9,"x":4.36,"z":8.1,"s":"ok","w":[]},{"i":81,"f":"calendar-events/domain/transaction-scripts/fetch-calendar-events-TS/fetch-calendar-events.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"FetchCalendarEventsTransactionScript","loc":54,"x":12.01,"z":-7.71,"s":"ok","w":[]},{"i":82,"f":"calendar-events/domain/transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":7,"x":19.19,"z":-14.15,"s":"ok","w":[]},{"i":83,"f":"calendar-events/domain/transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"FetchEventRemindersTransactionScript","loc":41,"x":24.69,"z":3.17,"s":"ok","w":[]},{"i":84,"f":"calendar-events/domain/transaction-scripts/fetch-recurring-events-TS/fetch-recurring-events.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"FetchRecurringEventsTransactionScript","loc":30,"x":6.97,"z":3.73,"s":"ok","w":[]},{"i":85,"f":"calendar-events/domain/transaction-scripts/generate-event-instances-TS/__specs__/generate-event-instances.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":755,"x":13.86,"z":8,"s":"ok","w":[]},{"i":86,"f":"calendar-events/domain/transaction-scripts/generate-event-instances-TS/generate-event-instances.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"GenerateEventInstancesTransactionScript","loc":201,"x":20.36,"z":-9.31,"s":"ok","w":[]},{"i":87,"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/__specs__/search-calendar-events.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":351,"x":11.91,"z":-7.9,"s":"ok","w":[]},{"i":88,"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":7,"x":23.37,"z":12.85,"s":"ok","w":[]},{"i":89,"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.result.ts","m":"calendar-events","p":"other","t":8,"cls":null,"loc":42,"x":8.87,"z":-1.26,"s":"ok","w":[]},{"i":90,"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"SearchCalendarEventsTransactionScript","loc":150,"x":19.23,"z":10.26,"s":"ok","w":[]},{"i":91,"f":"calendar-events/domain/transaction-scripts/sync-event-reminders-TS/__specs__/sync-event-reminders.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":255,"x":24.91,"z":3.25,"s":"ok","w":[]},{"i":92,"f":"calendar-events/domain/transaction-scripts/sync-event-reminders-TS/sync-event-reminders.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":9,"x":1.62,"z":-4.59,"s":"ok","w":[]},{"i":93,"f":"calendar-events/domain/transaction-scripts/sync-event-reminders-TS/sync-event-reminders.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"SyncEventRemindersTransactionScript","loc":119,"x":6.31,"z":-5.62,"s":"ok","w":[]},{"i":94,"f":"calendar-events/domain/transaction-scripts/update-calendar-event-TS/update-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":12,"x":29.99,"z":-6.46,"s":"ok","w":[]},{"i":95,"f":"calendar-events/domain/transaction-scripts/update-calendar-event-TS/update-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"UpdateCalendarEventTransactionScript","loc":67,"x":27.39,"z":-2.5,"s":"ok","w":[]},{"i":96,"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/__specs__/update-event-reminder.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":349,"x":6.75,"z":3.82,"s":"ok","w":[]},{"i":97,"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/__specs__/update-event-reminder.validator.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":237,"x":20.47,"z":-9.54,"s":"ok","w":[]},{"i":98,"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.command.ts","m":"calendar-events","p":"command","t":1,"cls":null,"loc":8,"x":9.95,"z":14.47,"s":"ok","w":[]},{"i":99,"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"cls":"UpdateEventReminderTransactionScript","loc":69,"x":9.06,"z":9.88,"s":"ok","w":[]},{"i":100,"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator.ts","m":"calendar-events","p":"other","t":8,"cls":"UpdateEventReminderValidator","loc":66,"x":22.77,"z":-4.3,"s":"ok","w":[]},{"i":101,"f":"calendar-events/domain/utils/date-utc.utils.ts","m":"calendar-events","p":"util","t":8,"cls":null,"loc":25,"x":13.75,"z":8.42,"s":"ok","w":[]},{"i":102,"f":"calendar-events/domain/utils/rrule-pattern.utils.ts","m":"calendar-events","p":"util","t":8,"cls":null,"loc":180,"x":11.69,"z":-8.31,"s":"ok","w":[]},{"i":103,"f":"calendar-events/infra/entities/calendar-event.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":"CalendarEventEntity","loc":111,"x":8.87,"z":-1.26,"s":"warn","w":["15 high-risk files have no test"]},{"i":104,"f":"calendar-events/infra/entities/event-reminder.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":"EventReminderEntity","loc":50,"x":22.77,"z":-4.3,"s":"ok","w":[]},{"i":105,"f":"calendar-events/infra/entities/recurrence-exception.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":"RecurrenceExceptionEntity","loc":38,"x":13.75,"z":8.42,"s":"ok","w":[]},{"i":106,"f":"calendar-events/infra/entities/recurring-event.entity.ts","m":"calendar-events","p":"entity","t":7,"cls":"RecurringEventEntity","loc":74,"x":11.69,"z":-8.31,"s":"warn","w":["15 high-risk files have no test"]},{"i":107,"f":"calendar-events/infra/repositories/__specs__/calendar-event.repository.integration.spec.ts","m":"calendar-events","p":"spec","t":10,"cls":null,"loc":832,"x":19.31,"z":10.52,"s":"ok","w":[]},{"i":108,"f":"calendar-events/infra/repositories/calendar-event.repository.ts","m":"calendar-events","p":"repository","t":6,"cls":"CalendarEventRepository","loc":345,"x":18.7,"z":0,"s":"warn","w":["15 high-risk files have no test"]},{"i":109,"f":"calendar-events/infra/repositories/event-reminder.repository.ts","m":"calendar-events","p":"repository","t":6,"cls":"EventReminderRepository","loc":218,"x":12.58,"z":3.14,"s":"warn","w":["15 high-risk files have no test"]},{"i":110,"f":"calendar-events/infra/repositories/recurrence-exception.repository.ts","m":"calendar-events","p":"repository","t":6,"cls":"RecurrenceExceptionRepository","loc":92,"x":16.53,"z":-5.99,"s":"ok","w":[]},{"i":111,"f":"calendar-events/infra/repositories/recurring-event.repository.ts","m":"calendar-events","p":"repository","t":6,"cls":"RecurringEventRepository","loc":123,"x":20.33,"z":5.64,"s":"warn","w":["15 high-risk files have no test"]},{"i":112,"f":"calendars/apps/actions/create-calendar-action/create-calendar.action.ts","m":"calendars","p":"action","t":0,"cls":"CreateCalendarAction","loc":50,"x":-17.09,"z":17.66,"s":"ok","w":[]},{"i":113,"f":"calendars/apps/actions/create-calendar-action/create-calendar.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":19,"x":-22.07,"z":20.22,"s":"ok","w":[]},{"i":114,"f":"calendars/apps/actions/create-calendar-action/dtos/requests/create-calendar.dto.ts","m":"calendars","p":"dto","t":1,"cls":"CreateCalendarRequestDto","loc":14,"x":-17.05,"z":17.66,"s":"ok","w":[]},{"i":115,"f":"calendars/apps/actions/delete-calendar-action/delete-calendar.action.ts","m":"calendars","p":"action","t":0,"cls":"DeleteCalendarAction","loc":47,"x":-18.85,"z":12.78,"s":"ok","w":[]},{"i":116,"f":"calendars/apps/actions/delete-calendar-action/delete-calendar.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":21,"x":-15.75,"z":22.26,"s":"ok","w":[]},{"i":117,"f":"calendars/apps/actions/fetch-calendars-action/fetch-calendars.action.ts","m":"calendars","p":"action","t":0,"cls":"FetchCalendarsAction","loc":34,"x":-25.74,"z":16.51,"s":"ok","w":[]},{"i":118,"f":"calendars/apps/actions/fetch-calendars-action/fetch-calendars.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":15,"x":-13.15,"z":13.76,"s":"ok","w":[]},{"i":119,"f":"calendars/apps/actions/fetch-invitations-action/fetch-invitations.action.ts","m":"calendars","p":"action","t":0,"cls":"FetchInvitationsAction","loc":37,"x":-21.33,"z":25.28,"s":"ok","w":[]},{"i":120,"f":"calendars/apps/actions/fetch-invitations-action/fetch-invitations.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":15,"x":-23.18,"z":10.13,"s":"ok","w":[]},{"i":121,"f":"calendars/apps/actions/fetch-members-action/fetch-members.action.ts","m":"calendars","p":"action","t":0,"cls":"FetchMembersAction","loc":43,"x":-10.8,"z":20.76,"s":"ok","w":[]},{"i":122,"f":"calendars/apps/actions/fetch-members-action/fetch-members.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":16,"x":-28.1,"z":21.3,"s":"ok","w":[]},{"i":123,"f":"calendars/apps/actions/invite-member-action/dtos/requests/invite-member.dto.ts","m":"calendars","p":"dto","t":1,"cls":"InviteMemberRequestDto","loc":9,"x":-22.12,"z":20.26,"s":"ok","w":[]},{"i":124,"f":"calendars/apps/actions/invite-member-action/invite-member.action.ts","m":"calendars","p":"action","t":0,"cls":"InviteMemberAction","loc":50,"x":-15.02,"z":8.57,"s":"ok","w":[]},{"i":125,"f":"calendars/apps/actions/invite-member-action/invite-member.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":17,"x":-16.13,"z":27.68,"s":"ok","w":[]},{"i":126,"f":"calendars/apps/actions/remove-member-action/remove-member.action.ts","m":"calendars","p":"action","t":0,"cls":"RemoveMemberAction","loc":46,"x":-28.75,"z":12.17,"s":"ok","w":[]},{"i":127,"f":"calendars/apps/actions/remove-member-action/remove-member.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":12,"x":-8.16,"z":15.22,"s":"ok","w":[]},{"i":128,"f":"calendars/apps/actions/respond-to-invitation-action/dtos/requests/respond-to-invitation.dto.ts","m":"calendars","p":"dto","t":1,"cls":"RespondToInvitationRequestDto","loc":7,"x":-18.84,"z":12.7,"s":"ok","w":[]},{"i":129,"f":"calendars/apps/actions/respond-to-invitation-action/respond-to-invitation.action.ts","m":"calendars","p":"action","t":0,"cls":"RespondToInvitationAction","loc":48,"x":-26.06,"z":27.3,"s":"ok","w":[]},{"i":130,"f":"calendars/apps/actions/respond-to-invitation-action/respond-to-invitation.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":12,"x":-20.84,"z":5.57,"s":"ok","w":[]},{"i":131,"f":"calendars/apps/actions/update-calendar-action/dtos/requests/update-calendar.dto.ts","m":"calendars","p":"dto","t":1,"cls":"UpdateCalendarRequestDto","loc":14,"x":-15.69,"z":22.34,"s":"ok","w":[]},{"i":132,"f":"calendars/apps/actions/update-calendar-action/update-calendar.action.ts","m":"calendars","p":"action","t":0,"cls":"UpdateCalendarAction","loc":51,"x":-9.66,"z":25.76,"s":"ok","w":[]},{"i":133,"f":"calendars/apps/actions/update-calendar-action/update-calendar.swagger.ts","m":"calendars","p":"swagger","t":0,"cls":null,"loc":19,"x":-32.22,"z":18.19,"s":"ok","w":[]},{"i":134,"f":"calendars/apps/dtos/responses/calendar-invitation.response.dto.ts","m":"calendars","p":"dto","t":1,"cls":"CalendarInvitationResponseDto","loc":22,"x":-25.86,"z":16.49,"s":"ok","w":[]},{"i":135,"f":"calendars/apps/dtos/responses/calendar-member.response.dto.ts","m":"calendars","p":"dto","t":1,"cls":"CalendarMemberResponseDto","loc":18,"x":-13.04,"z":13.69,"s":"ok","w":[]},{"i":136,"f":"calendars/apps/dtos/responses/calendar.response.dto.ts","m":"calendars","p":"dto","t":1,"cls":"CalendarResponseDto","loc":28,"x":-21.36,"z":25.41,"s":"ok","w":[]},{"i":137,"f":"calendars/apps/dtos/responses/pending-invitation.response.dto.ts","m":"calendars","p":"dto","t":1,"cls":"PendingInvitationResponseDto","loc":21,"x":-23.25,"z":10,"s":"ok","w":[]},{"i":138,"f":"calendars/apps/listeners/user-registered.listener.ts","m":"calendars","p":"listener","t":0,"cls":"UserRegisteredListener","loc":28,"x":-9.84,"z":8.26,"s":"ok","w":[]},{"i":139,"f":"calendars/calendars.module.ts","m":"calendars","p":"module","t":8,"cls":"CalendarsModule","loc":84,"x":-16.59,"z":17.66,"s":"ok","w":[]},{"i":140,"f":"calendars/domain/aggregators/calendar-access.aggregator.ts","m":"calendars","p":"aggregator","t":3,"cls":"CalendarAccessAggregator","loc":46,"x":-15.67,"z":17.66,"s":"ok","w":[]},{"i":141,"f":"calendars/domain/entities/calendar-invitation.entity.ts","m":"calendars","p":"entity","t":7,"cls":null,"loc":17,"x":-16.76,"z":17.66,"s":"ok","w":[]},{"i":142,"f":"calendars/domain/entities/calendar-member.entity.ts","m":"calendars","p":"entity","t":7,"cls":null,"loc":16,"x":-22.49,"z":20.6,"s":"ok","w":[]},{"i":143,"f":"calendars/domain/entities/calendar-role.type.ts","m":"calendars","p":"other","t":8,"cls":null,"loc":8,"x":-22.71,"z":20.8,"s":"ok","w":[]},{"i":144,"f":"calendars/domain/entities/calendar.entity.ts","m":"calendars","p":"entity","t":7,"cls":null,"loc":17,"x":-18.78,"z":12.05,"s":"ok","w":[]},{"i":145,"f":"calendars/domain/entities/invitation-status.type.ts","m":"calendars","p":"other","t":8,"cls":null,"loc":5,"x":-18.75,"z":11.67,"s":"ok","w":[]},{"i":146,"f":"calendars/domain/services/calendar-sharing.service.ts","m":"calendars","p":"service","t":2,"cls":"CalendarSharingService","loc":55,"x":-16.21,"z":17.66,"s":"ok","w":[]},{"i":147,"f":"calendars/domain/services/calendar.service.ts","m":"calendars","p":"service","t":2,"cls":"CalendarService","loc":53,"x":-23.19,"z":21.25,"s":"ok","w":[]},{"i":148,"f":"calendars/domain/transaction-scripts/create-calendar-TS/create-calendar.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":9,"x":-10.65,"z":20.81,"s":"ok","w":[]},{"i":149,"f":"calendars/domain/transaction-scripts/create-calendar-TS/create-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"CreateCalendarTransactionScript","loc":55,"x":-16.98,"z":17.66,"s":"ok","w":[]},{"i":150,"f":"calendars/domain/transaction-scripts/delete-calendar-TS/delete-calendar.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":8,"x":-28.25,"z":21.36,"s":"ok","w":[]},{"i":151,"f":"calendars/domain/transaction-scripts/delete-calendar-TS/delete-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"DeleteCalendarTransactionScript","loc":52,"x":-22.21,"z":20.35,"s":"ok","w":[]},{"i":152,"f":"calendars/domain/transaction-scripts/fetch-calendars-TS/calendar-with-role.type.ts","m":"calendars","p":"other","t":8,"cls":null,"loc":10,"x":-14.95,"z":23.3,"s":"ok","w":[]},{"i":153,"f":"calendars/domain/transaction-scripts/fetch-calendars-TS/fetch-calendars.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"FetchCalendarsTransactionScript","loc":35,"x":-18.83,"z":12.54,"s":"ok","w":[]},{"i":154,"f":"calendars/domain/transaction-scripts/fetch-invitations-TS/fetch-invitations.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"FetchInvitationsTransactionScript","loc":41,"x":-15.58,"z":22.48,"s":"ok","w":[]},{"i":155,"f":"calendars/domain/transaction-scripts/fetch-invitations-TS/pending-invitation.projection.ts","m":"calendars","p":"projection","t":4,"cls":null,"loc":11,"x":-26.07,"z":16.46,"s":"ok","w":[]},{"i":156,"f":"calendars/domain/transaction-scripts/fetch-members-TS/calendar-member.projection.ts","m":"calendars","p":"projection","t":4,"cls":null,"loc":11,"x":-12.84,"z":13.57,"s":"ok","w":[]},{"i":157,"f":"calendars/domain/transaction-scripts/fetch-members-TS/fetch-members.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":8,"x":-14.95,"z":8.41,"s":"ok","w":[]},{"i":158,"f":"calendars/domain/transaction-scripts/fetch-members-TS/fetch-members.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"FetchMembersTransactionScript","loc":45,"x":-21.43,"z":25.66,"s":"ok","w":[]},{"i":159,"f":"calendars/domain/transaction-scripts/invite-member-TS/invite-member.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":9,"x":-16.08,"z":27.85,"s":"ok","w":[]},{"i":160,"f":"calendars/domain/transaction-scripts/invite-member-TS/invite-member.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"InviteMemberTransactionScript","loc":77,"x":-23.38,"z":9.76,"s":"ok","w":[]},{"i":161,"f":"calendars/domain/transaction-scripts/provision-personal-calendar-TS/provision-personal-calendar.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":7,"x":-28.91,"z":12.07,"s":"ok","w":[]},{"i":162,"f":"calendars/domain/transaction-scripts/provision-personal-calendar-TS/provision-personal-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"ProvisionPersonalCalendarTransactionScript","loc":51,"x":-10.37,"z":20.91,"s":"ok","w":[]},{"i":163,"f":"calendars/domain/transaction-scripts/remove-member-TS/remove-member.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":10,"x":-7.97,"z":15.17,"s":"ok","w":[]},{"i":164,"f":"calendars/domain/transaction-scripts/remove-member-TS/remove-member.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"RemoveMemberTransactionScript","loc":54,"x":-28.54,"z":21.48,"s":"ok","w":[]},{"i":165,"f":"calendars/domain/transaction-scripts/respond-to-invitation-TS/respond-to-invitation.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":9,"x":-26.17,"z":27.47,"s":"ok","w":[]},{"i":166,"f":"calendars/domain/transaction-scripts/respond-to-invitation-TS/respond-to-invitation.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"RespondToInvitationTransactionScript","loc":71,"x":-14.81,"z":8.12,"s":"ok","w":[]},{"i":167,"f":"calendars/domain/transaction-scripts/update-calendar-TS/update-calendar.command.ts","m":"calendars","p":"command","t":1,"cls":null,"loc":10,"x":-20.87,"z":5.36,"s":"ok","w":[]},{"i":168,"f":"calendars/domain/transaction-scripts/update-calendar-TS/update-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"cls":"UpdateCalendarTransactionScript","loc":50,"x":-15.98,"z":28.18,"s":"ok","w":[]},{"i":169,"f":"calendars/infra/entities/calendar-invitation.entity.ts","m":"calendars","p":"entity","t":7,"cls":"CalendarInvitationEntity","loc":54,"x":-15.22,"z":22.95,"s":"ok","w":[]},{"i":170,"f":"calendars/infra/entities/calendar-member.entity.ts","m":"calendars","p":"entity","t":7,"cls":"CalendarMemberEntity","loc":41,"x":-26.72,"z":16.34,"s":"ok","w":[]},{"i":171,"f":"calendars/infra/entities/calendar.entity.ts","m":"calendars","p":"entity","t":7,"cls":"CalendarEntity","loc":38,"x":-12.23,"z":13.18,"s":"ok","w":[]},{"i":172,"f":"calendars/infra/repositories/calendar-invitation.repository.ts","m":"calendars","p":"repository","t":6,"cls":"CalendarInvitationRepository","loc":108,"x":-16.45,"z":17.66,"s":"ok","w":[]},{"i":173,"f":"calendars/infra/repositories/calendar-member.repository.ts","m":"calendars","p":"repository","t":6,"cls":"CalendarMemberRepository","loc":115,"x":-22.89,"z":20.97,"s":"ok","w":[]},{"i":174,"f":"calendars/infra/repositories/calendar.repository.ts","m":"calendars","p":"repository","t":6,"cls":"CalendarRepository","loc":132,"x":-18.72,"z":11.36,"s":"ok","w":[]},{"i":175,"f":"health/health.controller.ts","m":"health","p":"controller","t":0,"cls":"HealthController","loc":22,"x":60.54,"z":20.79,"s":"ok","w":[]},{"i":176,"f":"main.ts","m":"(root)","p":"bootstrap","t":9,"cls":null,"loc":106,"x":-17.7,"z":54.86,"s":"ok","w":[]},{"i":177,"f":"security-events/domain/aggregators/security-event.aggregator.ts","m":"security-events","p":"aggregator","t":3,"cls":"SecurityEventAggregator","loc":45,"x":44.87,"z":-26.25,"s":"ok","w":[]},{"i":178,"f":"security-events/domain/entities/security-event.entity.ts","m":"security-events","p":"entity","t":7,"cls":"SecurityEvent","loc":24,"x":44.87,"z":-26.25,"s":"ok","w":[]},{"i":179,"f":"security-events/infra/repositories/security-event.repository.ts","m":"security-events","p":"repository","t":6,"cls":"SecurityEventRepository","loc":27,"x":44.87,"z":-26.25,"s":"ok","w":[]},{"i":180,"f":"security-events/security-events.module.ts","m":"security-events","p":"module","t":8,"cls":"SecurityEventsModule","loc":13,"x":44.87,"z":-26.25,"s":"ok","w":[]},{"i":181,"f":"shared-kernel/apps/decorators/get-auth-user.decorator.ts","m":"shared-kernel","p":"decorator","t":0,"cls":null,"loc":15,"x":26.69,"z":31.12,"s":"warn","w":["15 high-risk files have no test"]},{"i":182,"f":"shared-kernel/apps/decorators/protected-action.decorator.ts","m":"shared-kernel","p":"decorator","t":0,"cls":null,"loc":47,"x":20.25,"z":34.43,"s":"warn","w":["15 high-risk files have no test"]},{"i":183,"f":"shared-kernel/apps/guards/jwt-auth.guard.ts","m":"shared-kernel","p":"guard","t":0,"cls":"JwtAuthGuard","loc":6,"x":24.41,"z":24.82,"s":"warn","w":["15 high-risk files have no test"]},{"i":184,"f":"shared-kernel/apps/logging/logging.module.ts","m":"shared-kernel","p":"module","t":8,"cls":"LoggingModule","loc":62,"x":26.69,"z":31.12,"s":"ok","w":[]},{"i":185,"f":"shared-kernel/domain/events/user-registered.event.ts","m":"shared-kernel","p":"event","t":1,"cls":null,"loc":10,"x":27.46,"z":31.12,"s":"ok","w":[]},{"i":186,"f":"shared-kernel/domain/services/email.service.ts","m":"shared-kernel","p":"service","t":2,"cls":"EmailService","loc":84,"x":27.46,"z":31.12,"s":"ok","w":[]},{"i":187,"f":"shared-kernel/shared-kernel.module.ts","m":"shared-kernel","p":"module","t":8,"cls":"SharedKernelModule","loc":9,"x":20.25,"z":34.43,"s":"ok","w":[]},{"i":188,"f":"shared-kernel/test-utils.ts","m":"shared-kernel","p":"test-util","t":10,"cls":null,"loc":79,"x":27.46,"z":31.12,"s":"ok","w":[]},{"i":189,"f":"shared-kernel/utils/date.utils.ts","m":"shared-kernel","p":"util","t":8,"cls":null,"loc":79,"x":24.41,"z":24.82,"s":"warn","w":["1 files are unreachable from any route or module"]},{"i":190,"f":"typeorm/data-source.ts","m":"typeorm","p":"bootstrap","t":9,"cls":null,"loc":24,"x":-23.19,"z":-50.56,"s":"ok","w":[]},{"i":191,"f":"typeorm/migrations/1787275032098-InitialPostgresBaseline.ts","m":"typeorm","p":"migration","t":9,"cls":"InitialPostgresBaseline1787275032098","loc":71,"x":-30.18,"z":-46.97,"s":"ok","w":[]},{"i":192,"f":"users/app/actions/update-password-action/dtos/requests/update-password.dto.ts","m":"users","p":"dto","t":1,"cls":"UpdatePasswordRequestDto","loc":18,"x":5.5,"z":-33.2,"s":"ok","w":[]},{"i":193,"f":"users/app/actions/update-password-action/update-password.action.ts","m":"users","p":"action","t":0,"cls":"UpdatePasswordAction","loc":64,"x":5.5,"z":-33.2,"s":"ok","w":[]},{"i":194,"f":"users/app/actions/update-password-action/update-password.swagger.ts","m":"users","p":"swagger","t":0,"cls":null,"loc":23,"x":-0.39,"z":-30.17,"s":"ok","w":[]},{"i":195,"f":"users/app/actions/update-username-action/dtos/requests/update-username.dto.ts","m":"users","p":"dto","t":1,"cls":"UpdateUsernameRequestDto","loc":14,"x":-0.39,"z":-30.17,"s":"ok","w":[]},{"i":196,"f":"users/app/actions/update-username-action/update-username.action.ts","m":"users","p":"action","t":0,"cls":"UpdateUsernameAction","loc":55,"x":3.42,"z":-38.97,"s":"ok","w":[]},{"i":197,"f":"users/app/actions/update-username-action/update-username.swagger.ts","m":"users","p":"swagger","t":0,"cls":null,"loc":25,"x":7.08,"z":-27.76,"s":"ok","w":[]},{"i":198,"f":"users/app/controllers/dtos/requests/create-user.request.dto.ts","m":"users","p":"dto","t":1,"cls":"RegisterUserRequestDto","loc":25,"x":3.42,"z":-38.97,"s":"ok","w":[]},{"i":199,"f":"users/app/controllers/users.controller.ts","m":"users","p":"controller","t":0,"cls":"UsersController","loc":40,"x":-4.74,"z":-34.55,"s":"ok","w":[]},{"i":200,"f":"users/domain/aggregators/user.aggregator.ts","m":"users","p":"aggregator","t":3,"cls":"UserAggregator","loc":66,"x":6.52,"z":-33.2,"s":"warn","w":["15 high-risk files have no test"]},{"i":201,"f":"users/domain/entities/user.entity.ts","m":"users","p":"entity","t":7,"cls":"User","loc":29,"x":6.52,"z":-33.2,"s":"ok","w":[]},{"i":202,"f":"users/domain/transaction-scripts/update-password-TS/update-password.command.ts","m":"users","p":"command","t":1,"cls":null,"loc":9,"x":7.08,"z":-27.76,"s":"ok","w":[]},{"i":203,"f":"users/domain/transaction-scripts/update-password-TS/update-password.transaction.script.ts","m":"users","p":"transaction-script","t":4,"cls":"UpdatePasswordTransactionScript","loc":64,"x":5.98,"z":-33.2,"s":"ok","w":[]},{"i":204,"f":"users/domain/transaction-scripts/update-username-TS/update-username.command.ts","m":"users","p":"command","t":1,"cls":null,"loc":9,"x":-4.74,"z":-34.55,"s":"ok","w":[]},{"i":205,"f":"users/domain/transaction-scripts/update-username-TS/update-username.transaction.script.ts","m":"users","p":"transaction-script","t":4,"cls":"UpdateUsernameTransactionScript","loc":82,"x":-1,"z":-29.61,"s":"ok","w":[]},{"i":206,"f":"users/domain/users.service.ts","m":"users","p":"service","t":2,"cls":"UsersService","loc":106,"x":6.52,"z":-33.2,"s":"warn","w":["Service reaches Repository directly, skipping Transaction Script"]},{"i":207,"f":"users/infra/repositories/user.repository.ts","m":"users","p":"repository","t":6,"cls":"UserRepository","loc":36,"x":6.52,"z":-33.2,"s":"ok","w":[]},{"i":208,"f":"users/users.module.ts","m":"users","p":"module","t":8,"cls":"UsersModule","loc":32,"x":6.52,"z":-33.2,"s":"ok","w":[]}],"links":[[0,208,1,"ok"],[0,2,1,"ok"],[0,50,1,"ok"],[0,184,1,"ok"],[0,187,1,"ok"],[0,180,1,"ok"],[0,175,1,"ok"],[1,3,0,"ok"],[2,4,0,"same"],[2,3,0,"ok"],[2,1,0,"ok"],[2,208,1,"same"],[2,180,1,"same"],[3,200,1,"ok"],[3,177,1,"ok"],[5,59,0,"ok"],[5,182,1,"same"],[5,181,1,"same"],[5,183,1,"same"],[5,6,0,"same"],[5,7,0,"ok"],[5,62,0,"ok"],[5,45,0,"ok"],[6,182,1,"same"],[6,45,0,"ok"],[7,57,0,"ok"],[8,59,0,"ok"],[8,182,1,"same"],[8,181,1,"same"],[8,183,1,"same"],[8,9,0,"same"],[8,10,0,"ok"],[8,65,0,"ok"],[8,11,0,"ok"],[9,182,1,"same"],[9,11,0,"ok"],[11,53,0,"ok"],[12,60,0,"ok"],[12,182,1,"same"],[12,181,1,"same"],[12,183,1,"same"],[12,13,0,"same"],[12,14,0,"ok"],[12,68,0,"ok"],[12,46,0,"ok"],[13,182,1,"same"],[15,59,0,"ok"],[15,182,1,"same"],[15,181,1,"same"],[15,183,1,"same"],[15,16,0,"same"],[15,72,0,"ok"],[16,182,1,"same"],[17,59,0,"ok"],[17,182,1,"same"],[17,181,1,"same"],[17,183,1,"same"],[17,18,0,"same"],[17,74,0,"ok"],[18,182,1,"same"],[19,60,0,"ok"],[19,182,1,"same"],[19,181,1,"same"],[19,183,1,"same"],[19,20,0,"same"],[19,76,0,"ok"],[20,182,1,"same"],[21,59,0,"ok"],[21,182,1,"same"],[21,181,1,"same"],[21,183,1,"same"],[21,22,0,"same"],[21,78,0,"ok"],[21,45,0,"ok"],[21,109,0,"action>repository"],[21,26,0,"ok"],[22,182,1,"same"],[22,45,0,"ok"],[24,59,0,"ok"],[24,182,1,"same"],[24,181,1,"same"],[24,183,1,"same"],[24,25,0,"same"],[24,23,0,"ok"],[24,80,0,"ok"],[24,45,0,"ok"],[24,109,0,"action>repository"],[24,26,0,"ok"],[24,101,0,"ok"],[25,182,1,"same"],[25,45,0,"ok"],[26,53,0,"ok"],[27,59,0,"ok"],[27,182,1,"same"],[27,181,1,"same"],[27,183,1,"same"],[27,28,0,"same"],[27,82,0,"ok"],[27,26,0,"ok"],[28,182,1,"same"],[28,26,0,"ok"],[29,32,0,"ok"],[29,89,0,"ok"],[29,56,0,"ok"],[31,59,0,"ok"],[31,181,1,"same"],[31,47,0,"ok"],[31,182,1,"same"],[31,183,1,"same"],[31,33,0,"same"],[31,30,0,"ok"],[31,88,0,"ok"],[31,32,0,"same"],[32,47,0,"ok"],[32,89,0,"ok"],[33,182,1,"same"],[33,47,0,"ok"],[34,57,0,"ok"],[35,53,0,"ok"],[36,59,0,"ok"],[36,182,1,"same"],[36,181,1,"same"],[36,183,1,"same"],[36,37,0,"same"],[36,34,0,"ok"],[36,92,0,"ok"],[36,35,0,"ok"],[37,182,1,"same"],[37,35,0,"ok"],[39,59,0,"ok"],[39,182,1,"same"],[39,181,1,"same"],[39,183,1,"same"],[39,40,0,"same"],[39,38,0,"ok"],[39,94,0,"ok"],[39,45,0,"ok"],[40,182,1,"same"],[40,45,0,"ok"],[42,53,0,"ok"],[43,59,0,"ok"],[43,182,1,"same"],[43,181,1,"same"],[43,183,1,"same"],[43,44,0,"same"],[43,41,0,"ok"],[43,98,0,"ok"],[43,42,0,"ok"],[44,182,1,"same"],[44,42,0,"ok"],[45,52,0,"ok"],[45,26,0,"same"],[46,56,0,"ok"],[48,49,0,"ok"],[48,109,0,"ok"],[48,108,0,"ok"],[48,200,1,"ok"],[48,186,1,"ok"],[48,53,0,"ok"],[48,52,0,"ok"],[48,57,0,"ok"],[48,188,1,"same"],[49,109,0,"ok"],[49,108,0,"ok"],[49,200,1,"ok"],[49,186,1,"ok"],[49,52,0,"ok"],[49,57,0,"same"],[50,103,0,"ok"],[50,106,0,"ok"],[50,105,0,"ok"],[50,104,0,"ok"],[50,108,0,"ok"],[50,111,0,"ok"],[50,110,0,"ok"],[50,109,0,"ok"],[50,81,0,"ok"],[50,63,0,"ok"],[50,79,0,"ok"],[50,95,0,"ok"],[50,73,0,"ok"],[50,90,0,"ok"],[50,59,0,"ok"],[50,24,0,"ok"],[50,5,0,"ok"],[50,21,0,"ok"],[50,39,0,"ok"],[50,15,0,"ok"],[50,12,0,"ok"],[50,19,0,"ok"],[50,69,0,"ok"],[50,77,0,"ok"],[50,86,0,"ok"],[50,84,0,"ok"],[50,60,0,"ok"],[50,71,0,"ok"],[50,70,0,"ok"],[50,66,0,"ok"],[50,93,0,"ok"],[50,99,0,"ok"],[50,100,0,"same"],[50,75,0,"ok"],[50,83,0,"ok"],[50,8,0,"ok"],[50,36,0,"ok"],[50,43,0,"ok"],[50,17,0,"ok"],[50,27,0,"ok"],[50,31,0,"ok"],[50,32,0,"ok"],[50,49,0,"same"],[50,187,1,"same"],[50,208,1,"same"],[50,139,1,"same"],[50,51,0,"ok"],[51,108,0,"ok"],[51,111,0,"ok"],[56,55,0,"ok"],[58,59,0,"ok"],[58,81,0,"ok"],[58,63,0,"ok"],[58,79,0,"ok"],[58,95,0,"ok"],[58,73,0,"ok"],[58,86,0,"ok"],[58,84,0,"ok"],[58,66,0,"ok"],[58,93,0,"ok"],[58,99,0,"ok"],[58,75,0,"ok"],[58,83,0,"ok"],[58,90,0,"ok"],[58,62,0,"ok"],[58,52,0,"ok"],[58,53,0,"ok"],[58,108,0,"ok"],[58,111,0,"ok"],[58,109,0,"ok"],[58,140,1,"ok"],[58,188,1,"same"],[59,140,1,"ok"],[59,81,0,"ok"],[59,80,0,"ok"],[59,63,0,"ok"],[59,62,0,"ok"],[59,79,0,"ok"],[59,78,0,"ok"],[59,95,0,"ok"],[59,94,0,"ok"],[59,73,0,"ok"],[59,72,0,"ok"],[59,86,0,"ok"],[59,84,0,"ok"],[59,66,0,"ok"],[59,65,0,"ok"],[59,92,0,"ok"],[59,93,0,"ok"],[59,99,0,"ok"],[59,98,0,"ok"],[59,75,0,"ok"],[59,74,0,"ok"],[59,83,0,"ok"],[59,82,0,"ok"],[59,90,0,"ok"],[59,88,0,"ok"],[59,89,0,"ok"],[59,52,0,"ok"],[59,53,0,"ok"],[59,108,0,"service>repository"],[59,111,0,"service>repository"],[59,109,0,"service>repository"],[60,69,0,"ok"],[60,68,0,"ok"],[60,77,0,"ok"],[60,76,0,"ok"],[60,56,0,"ok"],[60,140,1,"ok"],[61,63,0,"ok"],[61,108,0,"ok"],[61,62,0,"ok"],[61,52,0,"ok"],[61,188,1,"same"],[62,181,1,"ok"],[63,108,0,"ok"],[63,62,0,"ok"],[63,52,0,"ok"],[64,66,0,"ok"],[64,109,0,"ok"],[64,108,0,"ok"],[64,65,0,"ok"],[64,53,0,"ok"],[64,52,0,"ok"],[64,188,1,"same"],[65,181,1,"ok"],[66,57,0,"ok"],[66,109,0,"ok"],[66,108,0,"ok"],[66,65,0,"ok"],[66,53,0,"ok"],[67,69,0,"ok"],[67,111,0,"ok"],[67,68,0,"ok"],[67,56,0,"ok"],[67,71,0,"ok"],[67,70,0,"ok"],[67,106,0,"ok"],[67,188,1,"same"],[68,181,1,"ok"],[68,55,0,"ok"],[69,111,0,"ok"],[69,68,0,"ok"],[69,56,0,"ok"],[69,102,0,"ok"],[69,71,0,"ok"],[69,70,0,"ok"],[70,56,0,"ok"],[70,55,0,"ok"],[70,106,0,"ok"],[71,56,0,"ok"],[71,106,0,"ok"],[72,181,1,"ok"],[73,108,0,"ok"],[73,110,0,"ok"],[73,111,0,"ok"],[73,72,0,"ok"],[73,101,0,"ok"],[74,181,1,"ok"],[75,109,0,"ok"],[75,108,0,"ok"],[75,74,0,"ok"],[76,181,1,"ok"],[77,111,0,"ok"],[77,108,0,"ok"],[77,76,0,"ok"],[78,181,1,"ok"],[79,108,0,"ok"],[79,78,0,"ok"],[79,52,0,"ok"],[80,181,1,"ok"],[81,108,0,"ok"],[81,80,0,"ok"],[81,52,0,"ok"],[82,181,1,"ok"],[83,109,0,"ok"],[83,108,0,"ok"],[83,82,0,"ok"],[83,53,0,"ok"],[84,111,0,"ok"],[84,70,0,"ok"],[84,56,0,"ok"],[85,86,0,"ok"],[85,108,0,"ok"],[85,110,0,"ok"],[85,109,0,"ok"],[85,102,0,"ok"],[85,56,0,"ok"],[85,52,0,"ok"],[85,188,1,"same"],[85,101,0,"ok"],[86,108,0,"ok"],[86,110,0,"ok"],[86,109,0,"ok"],[86,56,0,"ok"],[86,52,0,"ok"],[86,102,0,"ok"],[86,101,0,"ok"],[87,90,0,"ok"],[87,108,0,"ok"],[87,111,0,"ok"],[87,110,0,"ok"],[87,70,0,"ok"],[87,102,0,"ok"],[87,181,1,"ok"],[87,106,0,"ok"],[87,52,0,"ok"],[88,181,1,"ok"],[89,56,0,"ok"],[90,108,0,"ok"],[90,111,0,"ok"],[90,110,0,"ok"],[90,106,0,"ok"],[90,56,0,"ok"],[90,70,0,"ok"],[90,88,0,"ok"],[90,89,0,"ok"],[90,102,0,"ok"],[90,101,0,"ok"],[91,93,0,"ok"],[91,109,0,"ok"],[91,108,0,"ok"],[91,92,0,"ok"],[91,53,0,"ok"],[91,52,0,"ok"],[91,57,0,"ok"],[91,188,1,"same"],[92,181,1,"ok"],[93,109,0,"ok"],[93,108,0,"ok"],[93,92,0,"ok"],[93,53,0,"ok"],[93,57,0,"ok"],[94,181,1,"ok"],[95,108,0,"ok"],[95,109,0,"ok"],[95,94,0,"ok"],[95,52,0,"ok"],[96,99,0,"ok"],[96,109,0,"ok"],[96,108,0,"ok"],[96,100,0,"ok"],[96,98,0,"ok"],[96,53,0,"ok"],[96,52,0,"ok"],[96,188,1,"same"],[97,100,0,"ok"],[97,53,0,"ok"],[97,52,0,"ok"],[97,188,1,"same"],[98,181,1,"ok"],[99,109,0,"ok"],[99,108,0,"ok"],[99,98,0,"ok"],[99,53,0,"ok"],[99,100,0,"ok"],[100,53,0,"ok"],[100,52,0,"ok"],[102,55,0,"same"],[103,106,0,"same"],[104,103,0,"same"],[105,106,0,"same"],[107,108,0,"ok"],[107,103,0,"ok"],[107,106,0,"ok"],[107,52,0,"ok"],[107,188,1,"same"],[108,101,0,"ok"],[108,103,0,"ok"],[108,52,0,"ok"],[109,104,0,"ok"],[109,103,0,"ok"],[109,53,0,"ok"],[110,105,0,"ok"],[110,54,0,"ok"],[111,106,0,"ok"],[112,147,0,"ok"],[112,182,1,"same"],[112,181,1,"same"],[112,183,1,"same"],[112,113,0,"same"],[112,114,0,"ok"],[112,136,0,"ok"],[113,182,1,"same"],[113,136,0,"ok"],[115,147,0,"ok"],[115,182,1,"same"],[115,181,1,"same"],[115,183,1,"same"],[115,116,0,"same"],[116,182,1,"same"],[117,147,0,"ok"],[117,182,1,"same"],[117,181,1,"same"],[117,183,1,"same"],[117,118,0,"same"],[117,136,0,"ok"],[118,182,1,"same"],[118,136,0,"ok"],[119,146,0,"ok"],[119,182,1,"same"],[119,181,1,"same"],[119,183,1,"same"],[119,120,0,"same"],[119,137,0,"ok"],[120,182,1,"same"],[120,137,0,"ok"],[121,146,0,"ok"],[121,182,1,"same"],[121,181,1,"same"],[121,183,1,"same"],[121,122,0,"same"],[121,135,0,"ok"],[122,182,1,"same"],[122,135,0,"ok"],[124,146,0,"ok"],[124,182,1,"same"],[124,181,1,"same"],[124,183,1,"same"],[124,125,0,"same"],[124,123,0,"ok"],[124,134,0,"ok"],[125,182,1,"same"],[125,134,0,"ok"],[126,146,0,"ok"],[126,182,1,"same"],[126,181,1,"same"],[126,183,1,"same"],[126,127,0,"same"],[127,182,1,"same"],[129,146,0,"ok"],[129,182,1,"same"],[129,181,1,"same"],[129,183,1,"same"],[129,130,0,"same"],[129,128,0,"ok"],[130,182,1,"same"],[132,147,0,"ok"],[132,182,1,"same"],[132,181,1,"same"],[132,183,1,"same"],[132,133,0,"same"],[132,131,0,"ok"],[132,136,0,"ok"],[133,182,1,"same"],[133,136,0,"ok"],[134,141,0,"ok"],[134,145,0,"ok"],[135,156,0,"ok"],[135,143,0,"ok"],[136,144,0,"ok"],[136,143,0,"ok"],[137,155,0,"ok"],[138,162,0,"ok"],[138,185,1,"ok"],[139,171,0,"ok"],[139,170,0,"ok"],[139,169,0,"ok"],[139,174,0,"ok"],[139,173,0,"ok"],[139,172,0,"ok"],[139,162,0,"ok"],[139,140,0,"ok"],[139,149,0,"ok"],[139,153,0,"ok"],[139,168,0,"ok"],[139,151,0,"ok"],[139,160,0,"ok"],[139,166,0,"ok"],[139,154,0,"ok"],[139,158,0,"ok"],[139,164,0,"ok"],[139,147,0,"ok"],[139,146,0,"ok"],[139,112,0,"ok"],[139,117,0,"ok"],[139,132,0,"ok"],[139,115,0,"ok"],[139,124,0,"ok"],[139,119,0,"ok"],[139,129,0,"ok"],[139,121,0,"ok"],[139,126,0,"ok"],[139,138,0,"ok"],[139,50,1,"same"],[139,208,1,"same"],[140,173,0,"ok"],[140,162,0,"ok"],[141,145,0,"ok"],[142,143,0,"ok"],[146,160,0,"ok"],[146,159,0,"ok"],[146,166,0,"ok"],[146,165,0,"ok"],[146,154,0,"ok"],[146,155,0,"ok"],[146,158,0,"ok"],[146,157,0,"ok"],[146,156,0,"ok"],[146,164,0,"ok"],[146,163,0,"ok"],[146,141,0,"ok"],[147,149,0,"ok"],[147,148,0,"ok"],[147,153,0,"ok"],[147,152,0,"ok"],[147,168,0,"ok"],[147,167,0,"ok"],[147,151,0,"ok"],[147,150,0,"ok"],[147,144,0,"ok"],[149,174,0,"ok"],[149,173,0,"ok"],[149,144,0,"ok"],[149,148,0,"ok"],[151,174,0,"ok"],[151,51,1,"ok"],[151,150,0,"ok"],[152,144,0,"ok"],[152,143,0,"same"],[153,174,0,"ok"],[153,173,0,"ok"],[153,152,0,"ok"],[154,172,0,"ok"],[154,174,0,"ok"],[154,200,1,"ok"],[154,155,0,"same"],[156,143,0,"ok"],[158,173,0,"ok"],[158,200,1,"ok"],[158,157,0,"ok"],[158,156,0,"same"],[160,174,0,"ok"],[160,173,0,"ok"],[160,172,0,"ok"],[160,200,1,"ok"],[160,141,0,"ok"],[160,159,0,"ok"],[162,174,0,"ok"],[162,173,0,"ok"],[162,161,0,"ok"],[164,174,0,"ok"],[164,173,0,"ok"],[164,163,0,"ok"],[166,172,0,"ok"],[166,173,0,"ok"],[166,165,0,"ok"],[168,174,0,"ok"],[168,144,0,"ok"],[168,167,0,"ok"],[169,145,0,"ok"],[170,143,0,"ok"],[172,169,0,"ok"],[172,141,0,"ok"],[172,145,0,"ok"],[173,170,0,"ok"],[173,142,0,"ok"],[174,171,0,"ok"],[174,144,0,"ok"],[176,0,0,"same"],[177,179,0,"ok"],[179,178,0,"ok"],[180,178,0,"ok"],[180,179,0,"ok"],[180,177,0,"ok"],[182,183,0,"same"],[187,186,0,"ok"],[193,206,0,"ok"],[193,182,1,"same"],[193,181,1,"same"],[193,183,1,"same"],[193,194,0,"same"],[193,192,0,"ok"],[193,202,0,"ok"],[194,182,1,"same"],[196,206,0,"ok"],[196,182,1,"same"],[196,181,1,"same"],[196,183,1,"same"],[196,197,0,"same"],[196,195,0,"ok"],[196,204,0,"ok"],[197,182,1,"same"],[199,206,0,"ok"],[199,183,1,"same"],[199,198,0,"ok"],[200,207,0,"ok"],[202,181,1,"ok"],[203,207,0,"ok"],[203,202,0,"ok"],[204,181,1,"ok"],[205,207,0,"ok"],[205,204,0,"ok"],[205,201,0,"ok"],[206,198,0,"ok"],[206,201,0,"ok"],[206,207,0,"service>repository"],[206,205,0,"ok"],[206,203,0,"ok"],[206,204,0,"ok"],[206,202,0,"ok"],[206,177,1,"ok"],[206,185,1,"ok"],[207,201,0,"ok"],[208,199,0,"ok"],[208,201,0,"ok"],[208,207,0,"ok"],[208,200,0,"ok"],[208,205,0,"ok"],[208,203,0,"ok"],[208,196,0,"ok"],[208,193,0,"ok"],[208,206,0,"ok"],[208,180,1,"same"]],"findings":[{"id":"cross-domain","tone":"good","title":"Every cross-domain edge goes through an allowed gateway","detail":"10 dependencies cross a bounded context. Allowed landing points: aggregator, port.","items":["auth/service -> users/domain/aggregators/user.aggregator.ts","auth/service -> security-events/domain/aggregators/security-event.aggregator.ts","calendar-events/other -> users/domain/aggregators/user.aggregator.ts","calendar-events/service -> calendars/domain/aggregators/calendar-access.aggregator.ts","calendar-events/service -> calendars/domain/aggregators/calendar-access.aggregator.ts","calendars/transaction-script -> calendar-events/domain/aggregators/calendar-events.aggregator.ts","calendars/transaction-script -> users/domain/aggregators/user.aggregator.ts","calendars/transaction-script -> users/domain/aggregators/user.aggregator.ts","calendars/transaction-script -> users/domain/aggregators/user.aggregator.ts","users/service -> security-events/domain/aggregators/security-event.aggregator.ts"]},{"id":"dag","tone":"warn","gate":false,"title":"Domain dependency graph has cycles","detail":"Strongly-connected components as sanctioned carve-outs are removed in turn.","items":["all import edges: 1 SCC(s)","minus wiring: 1 SCC(s)","minus wiring + ports: 1 SCC(s)","minus wiring + ports + infra entities: 1 SCC(s)"]},{"id":"no-same-level","tone":"good","title":"No same-level injection","detail":"Checked among transaction-script, service, aggregator, mapper, assembler, converter.","items":[]},{"id":"no-upward","tone":"good","title":"No upward calls","detail":"Layering holds in the direction the rules require.","items":["transaction-script -> service: 0","repository -> transaction-script: 0","aggregator -> service: 0"]},{"id":"action>repository","tone":"warn","title":"Action reaches Repository directly, skipping Service and Transaction Script","detail":"Intended flow is action -> service -> transaction-script -> repository.","items":["calendar-events/apps/actions/fetch-calendar-event-action/fetch-calendar-event.action.ts  ->  calendar-events/infra/repositories/event-reminder.repository.ts","calendar-events/apps/actions/fetch-calendar-events-action/fetch-calendar-events.action.ts  ->  calendar-events/infra/repositories/event-reminder.repository.ts"]},{"id":"service>repository","tone":"warn","title":"Service reaches Repository directly, skipping Transaction Script","detail":"Intended flow is action -> service -> transaction-script -> repository.","items":["calendar-events/domain/services/calendar-event.service.ts  ->  calendar-events/infra/repositories/calendar-event.repository.ts","calendar-events/domain/services/calendar-event.service.ts  ->  calendar-events/infra/repositories/recurring-event.repository.ts","calendar-events/domain/services/calendar-event.service.ts  ->  calendar-events/infra/repositories/event-reminder.repository.ts","users/domain/users.service.ts  ->  users/infra/repositories/user.repository.ts"]},{"id":"app-apps","tone":"warn","gate":false,"title":"app/ and apps/ used interchangeably","detail":"Tooling that globs one spelling silently misses the other.","items":["auth/app","calendar-events/apps","calendars/apps","shared-kernel/apps","users/app"]},{"id":"orphans","tone":"warn","title":"1 files are unreachable from any route or module","detail":"Walking imports outward from every HTTP handler and every *.module.ts registration never arrives at these. Likely dead.","items":["shared-kernel/utils/date.utils.ts"]},{"id":"implicit-fk","tone":"note","title":"3 entity references are implicit","detail":"The data model has 6 references between entities; 3 are declared to the ORM and 3 exist only as a bare id column. 3 of them cross a bounded context.","items":["CalendarEventEntity.userId -> User  (crosses calendar-events -> users)","RecurringEventEntity.userId -> User  (crosses calendar-events -> users)","CalendarMemberEntity.userId -> User  (crosses calendars -> users)"]},{"id":"hotspots","tone":"note","title":"Files that change often and are widely depended on","detail":"Across 36 commits. Score is commits multiplied by dependents: a file high on both is where a refactor pays for itself, and where a mistake spreads furthest.","items":["calendar-events/infra/repositories/calendar-event.repository.ts  —  6 commits, 26 dependents, 1 author","calendar-events/domain/services/calendar-event.service.ts  —  5 commits, 13 dependents, 1 author","calendar-events/domain/entities/calendar-event.entity.ts  —  3 commits, 20 dependents, 1 author","calendar-events/infra/repositories/event-reminder.repository.ts  —  3 commits, 18 dependents, 1 author","shared-kernel/apps/decorators/protected-action.decorator.ts  —  1 commits, 48 dependents, 1 author","calendar-events/infra/repositories/recurring-event.repository.ts  —  4 commits, 11 dependents, 1 author","calendar-events/infra/entities/recurring-event.entity.ts  —  4 commits, 10 dependents, 1 author","shared-kernel/apps/decorators/get-auth-user.decorator.ts  —  1 commits, 40 dependents, 1 author","calendar-events/domain/entities/recurring-event.entity.ts  —  3 commits, 12 dependents, 1 author","calendar-events/domain/entities/event-reminder.entity.ts  —  2 commits, 17 dependents, 1 author","calendar-events/infra/entities/calendar-event.entity.ts  —  5 commits, 5 dependents, 1 author","shared-kernel/apps/guards/jwt-auth.guard.ts  —  1 commits, 26 dependents, 1 author","calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-domain.converter.ts  —  3 commits, 6 dependents, 1 author","calendar-events/domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script.ts  —  4 commits, 4 dependents, 1 author","calendar-events/domain/transaction-scripts/generate-event-instances-TS/generate-event-instances.transaction.script.ts  —  4 commits, 4 dependents, 1 author"]},{"id":"logical-coupling","tone":"note","title":"No files change together without an import edge","detail":"Across 36 commits (2 ignored for touching more than 25 files), no pair of files co-changes above 60% without an import edge. The history either agrees with the import graph, or it is too young to disagree yet.","items":[]},{"id":"test-ratio","tone":"note","title":"Test presence by pattern","detail":"Tested / total source files, pattern by pattern. This is presence, not quality — a file with one smoke test counts as tested. 1 of 12 spec files matched no source by name and count as testing nothing.","items":["transaction-script 7/27","dto 0/26","action 0/25","swagger 0/24","command 0/23","entity 0/16","repository 0/9","module 0/7","other 2/7","service 1/7","aggregator 0/4","util 0/3","controller 0/2","converter 0/2","decorator 0/2","projection 0/2","config 0/1","event 0/1","guard 0/1","listener 0/1","responder 1/1","strategy 0/1"]},{"id":"untested-risk","tone":"warn","title":"15 high-risk files have no test","detail":"Ranked by commits multiplied by dependents — the same score the hotspots lens uses. A file that changes often, is widely depended on, and is unverified is where a regression is both most likely and most costly.","items":["calendar-events/infra/repositories/calendar-event.repository.ts — 6 commits, 26 dependents, no test","calendar-events/domain/entities/calendar-event.entity.ts — 3 commits, 20 dependents, no test","calendar-events/infra/repositories/event-reminder.repository.ts — 3 commits, 18 dependents, no test","shared-kernel/apps/decorators/protected-action.decorator.ts — 1 commits, 48 dependents, no test","calendar-events/infra/repositories/recurring-event.repository.ts — 4 commits, 11 dependents, no test","calendar-events/infra/entities/recurring-event.entity.ts — 4 commits, 10 dependents, no test","shared-kernel/apps/decorators/get-auth-user.decorator.ts — 1 commits, 40 dependents, no test","calendar-events/domain/entities/recurring-event.entity.ts — 3 commits, 12 dependents, no test","calendar-events/domain/entities/event-reminder.entity.ts — 2 commits, 17 dependents, no test","calendar-events/infra/entities/calendar-event.entity.ts — 5 commits, 5 dependents, no test","shared-kernel/apps/guards/jwt-auth.guard.ts — 1 commits, 26 dependents, no test","calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-domain.converter.ts — 3 commits, 6 dependents, no test","calendar-events/apps/dtos/responses/calendar-event.response.dto.ts — 2 commits, 8 dependents, no test","calendar-events/domain/transaction-scripts/create-calendar-event-TS/create-calendar-event.command.ts — 3 commits, 5 dependents, no test","users/domain/aggregators/user.aggregator.ts — 2 commits, 7 dependents, no test"]},{"id":"circular","tone":"warn","title":"Circular imports between files","detail":"Mutually importing files — genuine runtime cycles.","items":["calendar-events/calendar-events.module.ts  <->  calendars/calendars.module.ts"]},{"id":"absent-patterns","tone":"note","title":"11 configured patterns exist nowhere in the code","detail":"Either the architecture document describes shapes that were never built, or the config names patterns this project does not use.","items":["mapper (tier Mapping)","assembler (tier Mapping)","resolver (tier Entry)","gateway (tier Entry)","interceptor (tier Entry)","adapter (tier Entry)","hydrator (tier Persistence)","remote-caller (tier Persistence)","cache (tier Persistence)","schema (tier Domain Model)","port (tier Domain Model)"]}],"skipRules":[{"id":"action>transaction-script","from":"action","to":"transaction-script","sev":"warn","jump":1,"why":"Action reaches Transaction Script directly, skipping Service"},{"id":"action>repository","from":"action","to":"repository","sev":"crit","jump":2,"why":"Action reaches Repository directly, skipping Service and Transaction Script"},{"id":"service>repository","from":"service","to":"repository","sev":"warn","jump":1,"why":"Service reaches Repository directly, skipping Transaction Script"}]}</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById('data').textContent);
+document.getElementById('gen').textContent = new Date(D.generatedAt).toISOString().slice(0,10);
+document.getElementById('fstats').textContent =
+  D.nodes.length + ' files · ' + D.links.length + ' links · ' +
+  D.links.filter(function(l){ return D.skipRules.some(function(r){ return r.id === l[3]; }); }).length + ' layer skips';
+
+var C = {
+  deep:'#3C525A', mid:'#5E787F', hi:'#8CA7AC', glow:'#B3C7CA', fog:'#6E888F',
+  ok:'#E4EFF1', warn:'#E8A13C', crit:'#E4574F', cross:'#9CD1D8', text:'#E7F0F1'
+};
+var CORE = [0,1,2,3,4,5,6,7];
+var RULE = {}; D.skipRules.forEach(function(r){ RULE[r.id] = r; });
+function linkSev(k){ return RULE[k] ? RULE[k].sev : null; }
+var byIdx = {}; D.nodes.forEach(function(n){ byIdx[n.i] = n; });
+var planeOf = {}; D.planes.forEach(function(p){ planeOf[p.t] = p; });
+
+var GAP = 26;                                   // vertical distance between planes
+function planeY(t, spread){
+  var order = D.planes.filter(function(p){ return true; }).map(function(p){ return p.t; });
+  var k = order.indexOf(t);
+  return (order.length/2 - k) * GAP * spread;
+}
+
+/* ---------------- state ---------------- */
+var state = { mode:'stack', spread:1, drill:null, selNode:null, links:true,
+              skipsOnly:false, extra:false, q:'' };
+
+/* ---------------- camera ---------------- */
+var CORE_YS = CORE.filter(function(t){ return planeOf[t]; }).map(function(t){ return planeY(t,1); });
+var CENTER_Y = (Math.max.apply(null,CORE_YS) + Math.min.apply(null,CORE_YS)) / 2;
+var SPAN_Y = Math.max.apply(null,CORE_YS) - Math.min.apply(null,CORE_YS);
+var cam = { tx:0, ty:CENTER_Y, tz:0, dist:Math.max(240, SPAN_Y*1.85), yaw:0.72, pitch:0.46, fov:48*Math.PI/180 };
+var HOME = JSON.parse(JSON.stringify(cam));
+var tween = null, spreadTween = null;
+function eyePos(){
+  var ce = Math.cos(cam.pitch), se = Math.sin(cam.pitch);
+  return [cam.tx + cam.dist*ce*Math.cos(cam.yaw), cam.ty + cam.dist*se, cam.tz + cam.dist*ce*Math.sin(cam.yaw)];
+}
+var V = { eye:[0,0,0], r:[1,0,0], u:[0,1,0], f:[0,0,1], focal:600, cx:0, cy:0 };
+function updateView(W,H){
+  var eye = eyePos();
+  var fx = cam.tx-eye[0], fy = cam.ty-eye[1], fz = cam.tz-eye[2];
+  var fl = Math.hypot(fx,fy,fz)||1; fx/=fl; fy/=fl; fz/=fl;
+  var rx = -fz, ry = 0, rz = fx;
+  var rl = Math.hypot(rx,ry,rz)||1; rx/=rl; ry/=rl; rz/=rl;
+  var ux = ry*fz-rz*fy, uy = rz*fx-rx*fz, uz = rx*fy-ry*fx;
+  V.eye = eye; V.r=[rx,ry,rz]; V.u=[ux,uy,uz]; V.f=[fx,fy,fz];
+  V.focal = (H/2)/Math.tan(cam.fov/2); V.cx = W/2; V.cy = H/2;
+}
+var NEAR = 1.5;
+function project(p){
+  var dx=p[0]-V.eye[0], dy=p[1]-V.eye[1], dz=p[2]-V.eye[2];
+  var vz = dx*V.f[0]+dy*V.f[1]+dz*V.f[2];
+  if (vz < NEAR) return null;
+  var s = V.focal/vz;
+  return [ V.cx + (dx*V.r[0]+dy*V.r[1]+dz*V.r[2])*s, V.cy - (dx*V.u[0]+dy*V.u[1]+dz*V.u[2])*s, vz ];
+}
+
+/* ---------------- colour ---------------- */
+function hex2rgb(h){ h=h.replace('#',''); var n=parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+var RGB = {}; Object.keys(C).forEach(function(k){ RGB[k] = hex2rgb(C[k]); });
+function fogged(rgb, vz, alpha){
+  var t = Math.max(0, Math.min(0.55, (vz-120)/700));
+  var f = RGB.fog;
+  var r = Math.round(rgb[0]+(f[0]-rgb[0])*t), g = Math.round(rgb[1]+(f[1]-rgb[1])*t), b = Math.round(rgb[2]+(f[2]-rgb[2])*t);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+
+/* ---------------- filtering ---------------- */
+function planeVisible(t){
+  if (!state.extra && CORE.indexOf(t) < 0) return false;
+  if (state.drill !== null && t !== state.drill) return state.spread > 0.05;
+  return true;
+}
+var skipIdx = null;
+function computeSkipSet(){
+  skipIdx = new Set();
+  D.links.forEach(function(l){
+    if (linkSev(l[3])) { skipIdx.add(l[0]); skipIdx.add(l[1]); }
+  });
+}
+computeSkipSet();
+function nodeVisible(n){
+  if (!state.extra && CORE.indexOf(n.t) < 0) return false;
+  if (state.skipsOnly && !skipIdx.has(n.i)) return false;
+  if (state.q && (n.f + ' ' + (n.cls||'')).toLowerCase().indexOf(state.q) < 0) return false;
+  return true;
+}
+function linkVisible(l){
+  if (state.skipsOnly && !linkSev(l[3])) return false;
+  var a = byIdx[l[0]], b = byIdx[l[1]];
+  if (!a || !b) return false;
+  return nodeVisible(a) && nodeVisible(b);
+}
+
+/* ---------------- canvas ---------------- */
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var STAGE = document.getElementById('stage');
+var W=0, H=0, DPR=1;
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  var r = STAGE.getBoundingClientRect();
+  W = Math.max(320, Math.floor(r.width)); H = Math.max(320, Math.floor(r.height));
+  cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+}
+resize();
+if (window.ResizeObserver) new ResizeObserver(resize).observe(STAGE);
+else window.addEventListener('resize', resize);
+
+function nodeWorld(n){ return [n.x, planeY(n.t, state.spread), n.z]; }
+
+function drawPlaneLabel(p, y, alpha){
+  var E = D.extent;
+  // Text must lie flat on the plane and read from above, which means
+  // dir x up has to point at +y. Both candidates below satisfy that; we pick
+  // whichever runs left-to-right on screen from where the camera currently is.
+  var cands = [
+    { a:[ E*1.12, y,  E*0.78], d:[0,0,-1], u:[-1,0,0] },
+    { a:[-E*1.12, y, -E*0.78], d:[0,0, 1], u:[ 1,0,0] }
+  ];
+  var pick = null;
+  for (var i=0;i<cands.length;i++){
+    var c = cands[i];
+    var p0 = project(c.a);
+    var p1 = project([c.a[0]+c.d[0], y, c.a[2]+c.d[2]]);
+    var p2 = project([c.a[0]+c.u[0], y, c.a[2]+c.u[2]]);
+    if (!p0 || !p1 || !p2) continue;
+    var ax = p1[0]-p0[0], ay = p1[1]-p0[1];
+    if (Math.hypot(ax,ay) < 0.12) continue;
+    if (ax <= 0) continue;                       // must read left to right
+    pick = { p0:p0, ax:ax, ay:ay, bx:p2[0]-p0[0], by:p2[1]-p0[1] };
+    break;
+  }
+  if (!pick) return;
+  ctx.save();
+  // canvas y grows downward, so the in-plane "up" maps to the negated y basis
+  ctx.setTransform(DPR*pick.ax, DPR*pick.ay, DPR*-pick.bx, DPR*-pick.by, DPR*pick.p0[0], DPR*pick.p0[1]);
+  ctx.fillStyle = 'rgba(231,240,241,'+alpha+')';
+  ctx.font = '600 6.4px "Archivo", sans-serif';
+  ctx.fillText(p.name.toUpperCase(), 0, 0);
+  ctx.fillStyle = 'rgba(231,240,241,'+(alpha*0.55)+')';
+  ctx.font = '400 4px "IBM Plex Mono", monospace';
+  ctx.fillText(p.count + ' files · ' + p.sub, 0, 6.2);
+  ctx.restore();
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+
+function draw(){
+  updateView(W,H);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  // atmosphere
+  var g = ctx.createRadialGradient(W*0.5, H*0.28, 10, W*0.5, H*0.35, Math.max(W,H)*0.82);
+  g.addColorStop(0, C.glow); g.addColorStop(0.42, C.hi); g.addColorStop(1, C.deep);
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  var E = D.extent;
+  var planes = D.planes.filter(function(p){ return planeVisible(p.t); });
+
+  // planes back to front
+  var pl = planes.map(function(p){
+    var y = planeY(p.t, state.spread);
+    var c = project([0,y,0]);
+    return { p:p, y:y, d: c ? c[2] : 1e9 };
+  }).sort(function(a,b){ return b.d - a.d; });
+
+  pl.forEach(function(o){
+    var corners = [[-E,o.y,-E],[E,o.y,-E],[E,o.y,E],[-E,o.y,E]].map(project);
+    if (corners.some(function(c){ return !c; })) return;
+    var drilled = state.drill !== null;
+    var focus = !drilled || state.drill === o.p.t;
+    var a = (focus ? 0.085 : 0.014) * (0.35 + 0.65*state.spread);
+    ctx.beginPath();
+    ctx.moveTo(corners[0][0], corners[0][1]);
+    for (var i=1;i<4;i++) ctx.lineTo(corners[i][0], corners[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,'+a+')'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,'+(focus?0.20:0.05)+')'; ctx.lineWidth = 1; ctx.stroke();
+    if (state.spread > 0.3) drawPlaneLabel(o.p, o.y, focus ? 0.82 : 0.14);
+  });
+
+  // links
+  if (state.links){
+    var skips = [];
+    ctx.lineWidth = 1;
+    D.links.forEach(function(l){
+      if (!linkVisible(l)) return;
+      var a = byIdx[l[0]], b = byIdx[l[1]];
+      var pa = project(nodeWorld(a)), pb = project(nodeWorld(b));
+      if (!pa || !pb) return;
+      var sv = linkSev(l[3]);
+      if (sv){ skips.push([pa,pb,sv]); return; }
+      var drilled = state.drill !== null;
+      if (drilled && a.t !== state.drill && b.t !== state.drill) return;
+      var dim = state.selNode && state.selNode !== a.i && state.selNode !== b.i;
+      var al = dim ? 0.03 : (l[2] ? 0.16 : 0.09);
+      ctx.strokeStyle = fogged(l[2] ? RGB.cross : RGB.ok, (pa[2]+pb[2])/2, al);
+      ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke();
+    });
+    skips.forEach(function(s){
+      ctx.strokeStyle = s[2] === 'crit' ? 'rgba(228,87,79,.92)' : 'rgba(232,161,60,.75)';
+      ctx.lineWidth = s[2] === 'crit' ? 2 : 1.4;
+      ctx.beginPath(); ctx.moveTo(s[0][0],s[0][1]); ctx.lineTo(s[1][0],s[1][1]); ctx.stroke();
+    });
+    ctx.lineWidth = 1;
+  }
+
+  // nodes, far to near
+  var pts = [];
+  D.nodes.forEach(function(n){
+    if (!nodeVisible(n)) return;
+    var p = project(nodeWorld(n));
+    if (!p) return;
+    if (p[0] < -30 || p[0] > W+30 || p[1] < -30 || p[1] > H+30) return;
+    pts.push({ n:n, p:p });
+  });
+  pts.sort(function(a,b){ return b.p[2] - a.p[2]; });
+  var drilled = state.drill !== null;
+  pts.forEach(function(o){
+    var n = o.n, p = o.p;
+    var faded = (drilled && n.t !== state.drill) ? 0.16 : 1;
+    if (state.selNode && state.selNode !== n.i) faded *= 0.45;
+    var rgb = n.s === 'crit' ? RGB.crit : n.s === 'warn' ? RGB.warn : RGB.ok;
+    var r = Math.max(1.4, Math.min(7, V.focal/p[2] * (n.s === 'ok' ? 1.15 : 1.6)));
+    if (state.selNode === n.i) r = Math.max(r, 4.5);
+    ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 6.2832);
+    ctx.fillStyle = fogged(rgb, p[2], 0.95*faded); ctx.fill();
+    if (n.s !== 'ok' && faded > 0.5){
+      ctx.beginPath(); ctx.arc(p[0], p[1], r+2.6, 0, 6.2832);
+      ctx.strokeStyle = fogged(rgb, p[2], 0.3*faded); ctx.lineWidth = 1; ctx.stroke();
+    }
+  });
+
+  // labels when drilled in or few nodes
+  if (drilled || pts.length <= 26){
+    ctx.textAlign = 'center';
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
+    pts.forEach(function(o){
+      if (drilled && o.n.t !== state.drill) return;
+      if (o.p[2] > 220) return;
+      ctx.fillStyle = 'rgba(231,240,241,'+Math.max(0.3, Math.min(0.95, 200/o.p[2]))+')';
+      ctx.fillText(o.n.cls || o.n.f.split('/').pop(), o.p[0], o.p[1]-9);
+    });
+    ctx.textAlign = 'start';
+  }
+
+  document.getElementById('hud').textContent =
+    pts.length + ' files shown · dist ' + cam.dist.toFixed(0) +
+    (state.drill !== null ? ' · drilled into ' + planeOf[state.drill].name : '');
+}
+
+function loop(now){
+  if (tween){
+    var t = Math.min(1,(now-tween.t0)/tween.dur), e = t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+    ['tx','ty','tz','dist','yaw','pitch'].forEach(function(k){ cam[k] = tween.a[k] + (tween.b[k]-tween.a[k])*e; });
+    if (t>=1) tween = null;
+  }
+  if (spreadTween){
+    var t2 = Math.min(1,(now-spreadTween.t0)/spreadTween.dur), e2 = t2<0.5 ? 4*t2*t2*t2 : 1-Math.pow(-2*t2+2,3)/2;
+    state.spread = spreadTween.a + (spreadTween.b - spreadTween.a)*e2;
+    if (t2>=1) spreadTween = null;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function flyTo(b, dur){
+  tween = { t0: performance.now(), dur: dur||800,
+    a:{tx:cam.tx,ty:cam.ty,tz:cam.tz,dist:cam.dist,yaw:cam.yaw,pitch:cam.pitch}, b:b };
+}
+function setSpread(v, dur){ spreadTween = { t0: performance.now(), dur: dur||700, a: state.spread, b: v }; }
+
+/* Frames the visible stack: nudges the aim until the content is centred, then
+   scales the distance until it fits. Runs on load, on resize and on reset, so it
+   is correct at any viewport rather than relying on tuned constants. */
+function fitStack(spread){
+  var sp = spread === undefined ? state.spread : spread;
+  var vis = D.planes.filter(function(p){ return planeVisible(p.t); });
+  if (!vis.length || !W || !H) return;
+  var E = D.extent * 1.34, pts = [];
+  vis.forEach(function(p){
+    var y = planeY(p.t, sp);
+    [[-E,-E],[E,-E],[E,E],[-E,E]].forEach(function(c){ pts.push([c[0], y, c[1]]); });
+  });
+  for (var it=0; it<10; it++){
+    updateView(W,H);
+    var minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9, clipped=false;
+    for (var i=0;i<pts.length;i++){
+      var q = project(pts[i]);
+      if (!q){ clipped = true; break; }
+      if (q[0]<minX) minX=q[0]; if (q[0]>maxX) maxX=q[0];
+      if (q[1]<minY) minY=q[1]; if (q[1]>maxY) maxY=q[1];
+    }
+    if (clipped){ cam.dist = Math.min(900, cam.dist*1.3); continue; }
+    var scale = cam.dist / V.focal;                    // world units per screen pixel at the aim point
+    var dx = ((minX+maxX)/2) - W/2, dy = ((minY+maxY)/2) - H/2;
+    cam.tx += (V.r[0]*dx - V.u[0]*dy) * scale;
+    cam.ty += (V.r[1]*dx - V.u[1]*dy) * scale;
+    cam.tz += (V.r[2]*dx - V.u[2]*dy) * scale;
+    var need = Math.max((maxX-minX)/(W*0.88), (maxY-minY)/(H*0.88));
+    if (Math.abs(need-1) < 0.015 && Math.abs(dx) < 2 && Math.abs(dy) < 2) break;
+    cam.dist = Math.max(40, Math.min(900, cam.dist*need));
+  }
+}
+
+/* ---------------- picking ---------------- */
+function pickNode(mx,my){
+  // radius tracks what is actually drawn, plus a small forgiveness margin,
+  // and the closest dot to the cursor wins rather than the closest to the camera
+  var best = null;
+  D.nodes.forEach(function(n){
+    if (!nodeVisible(n)) return;
+    if (state.drill !== null && n.t !== state.drill) return;
+    var p = project(nodeWorld(n));
+    if (!p) return;
+    var drawn = Math.max(1.4, Math.min(7, V.focal/p[2] * (n.s === 'ok' ? 1.15 : 1.6)));
+    var d = Math.hypot(p[0]-mx, p[1]-my);
+    if (d > drawn + 2) return;
+    if (!best || d < best.d - 0.5 || (Math.abs(d - best.d) <= 0.5 && p[2] < best.z)) {
+      best = { i:n.i, d:d, z:p[2] };
+    }
+  });
+  return best ? best.i : null;
+}
+function pickPlane(mx,my){
+  var E = D.extent, best = null;
+  D.planes.forEach(function(p){
+    if (!planeVisible(p.t)) return;
+    var y = planeY(p.t, state.spread);
+    var cs = [[-E,y,-E],[E,y,-E],[E,y,E],[-E,y,E]].map(project);
+    if (cs.some(function(c){ return !c; })) return;
+    var poly = cs.map(function(c){ return [c[0],c[1]]; });
+    var inside = false;
+    for (var i=0,j=3;i<4;j=i++){
+      var xi=poly[i][0], yi=poly[i][1], xj=poly[j][0], yj=poly[j][1];
+      if (((yi>my)!==(yj>my)) && (mx < (xj-xi)*(my-yi)/((yj-yi)||1e-9)+xi)) inside = !inside;
+    }
+    if (inside){
+      var d = cs[0][2];
+      if (!best || d < best.d) best = { t:p.t, d:d };
+    }
+  });
+  return best ? best.t : null;
+}
+
+/* ---------------- input ---------------- */
+var drag = null;
+cv.addEventListener('pointerdown', function(ev){
+  cv.setPointerCapture(ev.pointerId);
+  drag = { x:ev.clientX, y:ev.clientY, moved:0, pan: ev.shiftKey || ev.button===1 };
+  cv.classList.add('drag');
+});
+cv.addEventListener('pointermove', function(ev){
+  if (!drag) return;
+  var dx = ev.clientX-drag.x, dy = ev.clientY-drag.y;
+  drag.moved += Math.abs(dx)+Math.abs(dy);
+  drag.x = ev.clientX; drag.y = ev.clientY; tween = null;
+  if (drag.pan){
+    var sc = cam.dist*0.0015;
+    cam.tx -= (V.r[0]*dx)*sc; cam.tz -= (V.r[2]*dx)*sc; cam.ty += dy*sc;
+  } else {
+    cam.yaw += dx*0.006;
+    cam.pitch = Math.max(-0.55, Math.min(1.42, cam.pitch + dy*0.005));
+  }
+});
+cv.addEventListener('pointerup', function(ev){
+  if (!drag) return;
+  cv.classList.remove('drag');
+  if (drag.moved < 5){
+    var r = cv.getBoundingClientRect(), mx = ev.clientX-r.left, my = ev.clientY-r.top;
+    var ni = pickNode(mx,my);
+    if (ni !== null){ selectNode(ni); }
+    else {
+      var pt = pickPlane(mx,my);
+      if (pt !== null) drillInto(pt);
+      else { selectNode(null); }
+    }
+  }
+  drag = null;
+});
+cv.addEventListener('pointercancel', function(){ drag = null; cv.classList.remove('drag'); });
+cv.addEventListener('wheel', function(ev){
+  ev.preventDefault(); tween = null;
+  cam.dist = Math.max(22, Math.min(560, cam.dist*Math.exp(ev.deltaY*0.0012)));
+}, { passive:false });
+cv.addEventListener('keydown', function(ev){
+  if (ev.key === 'Escape'){ ev.preventDefault(); if (state.drill !== null) drillInto(null); else { selectNode(null); flyTo(HOME); } }
+});
+
+/* ---------------- actions ---------------- */
+function drillInto(t){
+  state.drill = t;
+  state.selNode = null;
+  if (t === null){
+    setSpread(state.mode === 'flat' ? 0 : 1);
+    var s0 = { tx:cam.tx, ty:cam.ty, tz:cam.tz, dist:cam.dist, yaw:cam.yaw, pitch:cam.pitch };
+    cam.pitch = state.mode === 'flat' ? 0.95 : 0.46;
+    fitStack(state.mode === 'flat' ? 0 : 1);
+    var g = { tx:cam.tx, ty:cam.ty, tz:cam.tz, dist:cam.dist, yaw:cam.yaw, pitch:cam.pitch };
+    cam.tx=s0.tx; cam.ty=s0.ty; cam.tz=s0.tz; cam.dist=s0.dist; cam.yaw=s0.yaw; cam.pitch=s0.pitch;
+    flyTo(g);
+  } else {
+    var y = planeY(t, state.mode === 'flat' ? 0 : 1);
+    flyTo({ tx:0, ty:y, tz:0, dist:150, yaw:cam.yaw, pitch:0.30 });
+  }
+  renderRail(); renderInsp(); renderCrumb();
+}
+function selectNode(i){
+  state.selNode = i;
+  renderInsp();
+}
+function setMode(m){
+  state.mode = m;
+  document.getElementById('mFlat').classList.toggle('on', m === 'flat');
+  document.getElementById('mStack').classList.toggle('on', m === 'stack');
+  setSpread(m === 'flat' ? 0 : 1);
+  if (state.drill === null){
+    var save = { tx:cam.tx, ty:cam.ty, tz:cam.tz, dist:cam.dist, yaw:cam.yaw, pitch:cam.pitch };
+    cam.pitch = m === 'flat' ? 0.95 : 0.46;
+    fitStack(m === 'flat' ? 0 : 1);
+    var goal = { tx:cam.tx, ty:cam.ty, tz:cam.tz, dist:cam.dist, yaw:cam.yaw, pitch:cam.pitch };
+    cam.tx=save.tx; cam.ty=save.ty; cam.tz=save.tz; cam.dist=save.dist; cam.yaw=save.yaw; cam.pitch=save.pitch;
+    flyTo(goal, 750);
+  }
+}
+
+/* ---------------- panels ---------------- */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+var TIER_SW = ['#8FB4E0','#9AA8B4','#B49AE0','#E8A13C','#7FCFA8','#D9C48A','#7FC7DA','#D89AC4','#8FA0AE'];
+
+function renderRail(){
+  var el = document.getElementById('rail');
+  var h = ['<h4>Layers</h4>'];
+  D.planes.forEach(function(p){
+    if (!state.extra && CORE.indexOf(p.t) < 0) return;
+    h.push('<button class="lay'+(state.drill===p.t?' sel':'')+(p.extra?' extra':'')+'" data-t="'+p.t+'">'+
+      '<span class="sq" style="background:'+(TIER_SW[p.t]||'#8FA0AE')+'"></span>'+esc(p.name)+
+      '<span class="n">'+p.count+'</span></button>');
+  });
+  el.innerHTML = h.join('');
+  el.querySelectorAll('.lay').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = Number(b.getAttribute('data-t'));
+      drillInto(state.drill === t ? null : t);
+    });
+  });
+}
+function renderCrumb(){
+  var el = document.getElementById('crumb');
+  el.innerHTML = state.drill === null ? '' :
+    '<button id="back">← all layers · '+esc(planeOf[state.drill].name)+'</button>';
+  var b = document.getElementById('back');
+  if (b) b.addEventListener('click', function(){ drillInto(null); });
+}
+function renderCard(){
+  var skips = D.links.filter(function(l){ return linkSev(l[3]); });
+  var s2 = skips.filter(function(l){ return linkSev(l[3]) === 'crit'; }).length;
+  var s1 = skips.length - s2;
+  var ok = D.nodes.length - D.nodes.filter(function(n){ return n.s !== 'ok'; }).length;
+  var tot = D.nodes.length;
+  var h = [];
+  h.push('<p class="lab">Layer integrity</p>');
+  h.push('<div class="big"><b>'+skips.length+'</b><span>links skip a layer</span></div>');
+  h.push('<div class="sevbar">'+
+    '<i style="background:var(--crit);width:'+(s2/skips.length*100).toFixed(1)+'%"></i>'+
+    '<i style="background:var(--warn);width:'+(s1/skips.length*100).toFixed(1)+'%"></i></div>');
+  h.push('<div class="sevleg"><span><b style="color:var(--crit)">'+s2+'</b> skip two</span>'+
+    '<span><b style="color:var(--warn)">'+s1+'</b> skip one</span>'+
+    '<span style="margin-left:auto">'+ok+'/'+tot+' clean</span></div>');
+  h.push('<ul>');
+  D.skipRules.forEach(function(r){
+    var n = skips.filter(function(l){ return l[3] === r.id; }).length;
+    if (!n) return;
+    h.push('<li>'+esc(r.why)+'<b>'+n+'</b></li>');
+  });
+  h.push('</ul>');
+  document.getElementById('card').innerHTML = h.join('');
+}
+function renderInsp(){
+  var el = document.getElementById('insp');
+  if (state.selNode === null){
+    var h0 = ['<p class="empty">Click a node for its file and links, or a plane to drill into that layer.</p>'];
+    if (state.drill !== null){
+      var p = planeOf[state.drill];
+      h0 = ['<h3>'+esc(p.name)+'</h3><p class="sub">'+esc(p.sub)+' · '+p.count+' files</p>'];
+      h0.push('<p class="ilab">Modules on this layer</p><ul class="kv">');
+      p.modules.forEach(function(m){ h0.push('<li>'+esc(m.m)+'<b>'+m.n+'</b></li>'); });
+      h0.push('</ul>');
+      h0.push('<p class="ilab">Patterns</p><ul class="kv">');
+      p.patterns.forEach(function(x){ h0.push('<li>'+esc(x)+'</li>'); });
+      h0.push('</ul>');
+    }
+    el.innerHTML = h0.join('');
+    return;
+  }
+  var n = byIdx[state.selNode];
+  var out = D.links.filter(function(l){ return l[0] === n.i; });
+  var inc = D.links.filter(function(l){ return l[1] === n.i; });
+  var h = [];
+  h.push('<h3>'+esc(n.cls || n.f.split('/').pop())+'</h3>');
+  h.push('<p class="sub">'+esc(n.f)+'</p>');
+  (n.w||[]).forEach(function(w){ h.push('<div class="warnbox'+(n.s==='crit'?' crit':'')+'">'+esc(w)+'</div>'); });
+  h.push('<ul class="kv">');
+  h.push('<li>layer<b>'+esc(planeOf[n.t].name)+'</b></li>');
+  h.push('<li>pattern<b>'+esc(n.p)+'</b></li>');
+  h.push('<li>module<b>'+esc(n.m)+'</b></li>');
+  h.push('<li>lines<b>'+n.loc+'</b></li>');
+  h.push('</ul>');
+  function lk(list, dir){
+    return list.map(function(l){
+      var o = byIdx[dir === 'out' ? l[1] : l[0]];
+      if (!o) return '';
+      var cls = linkSev(l[3]) === 'crit' ? ' crit' : (linkSev(l[3]) === 'warn' ? ' skip' : '');
+      return '<li class="'+cls+'">'+(dir==='out'?'→ ':'← ')+esc(o.cls || o.f.split('/').pop())+
+        ' <span class="t">'+esc(planeOf[o.t].name)+(l[2]?' · cross-module':'')+'</span></li>';
+    }).join('');
+  }
+  h.push('<p class="ilab">Imports — '+out.length+'</p>');
+  h.push(out.length ? '<ul class="lks">'+lk(out,'out')+'</ul>' : '<p class="empty" style="font-size:12px">none</p>');
+  h.push('<p class="ilab">Imported by — '+inc.length+'</p>');
+  h.push(inc.length ? '<ul class="lks">'+lk(inc,'in')+'</ul>' : '<p class="empty" style="font-size:12px">none</p>');
+  el.innerHTML = h.join('');
+  el.scrollTop = 0;
+}
+
+/* ---------------- controls ---------------- */
+document.getElementById('mFlat').addEventListener('click', function(){ setMode('flat'); });
+document.getElementById('mStack').addEventListener('click', function(){ setMode('stack'); });
+function tog(id, key, after){
+  var b = document.getElementById(id);
+  b.addEventListener('click', function(){
+    state[key] = !state[key];
+    b.classList.toggle('on', state[key]);
+    if (after) after();
+  });
+}
+tog('tLinks','links');
+tog('tSkips','skipsOnly');
+(function(){
+  var n = D.links.filter(function(l){ return linkSev(l[3]); }).length;
+  document.getElementById('tSkips').textContent = n ? 'isolate the ' + n + ' skip' + (n === 1 ? '' : 's') : 'no skips to isolate';
+  if (!n) document.getElementById('tSkips').disabled = true;
+})();
+tog('tExtra','extra', function(){ renderRail(); });
+document.getElementById('q').addEventListener('input', function(e){ state.q = e.target.value.trim().toLowerCase(); });
+document.getElementById('home').addEventListener('click', function(){
+  state.q = ''; document.getElementById('q').value = '';
+  state.skipsOnly = false; document.getElementById('tSkips').classList.remove('on');
+  state.selNode = null;
+  drillInto(null); setMode('stack');
+});
+
+fitStack(1);
+HOME = { tx:cam.tx, ty:cam.ty, tz:cam.tz, dist:cam.dist, yaw:cam.yaw, pitch:cam.pitch };
+var userMoved = false;
+cv.addEventListener('pointerdown', function(){ userMoved = true; });
+cv.addEventListener('wheel', function(){ userMoved = true; });
+var _resize = resize;
+resize = function(){ _resize(); if (!userMoved && state.drill === null) { fitStack(); HOME = { tx:cam.tx, ty:cam.ty, tz:cam.tz, dist:cam.dist, yaw:cam.yaw, pitch:cam.pitch }; } };
+if (window.ResizeObserver) new ResizeObserver(function(){ resize(); }).observe(STAGE);
+
+renderRail(); renderCard(); renderInsp(); renderCrumb();
+
+window.__stack = { D:D, project:project, updateView:updateView, cam:cam, state:state,
+                   pickNode:pickNode, pickPlane:pickPlane, planeY:planeY, V:V };
+})();
+</script>
+
+<style>
+.metatron-full { position:fixed !important; inset:0 !important; z-index:9999;
+  margin:0 !important; border-radius:0 !important; display:flex; flex-direction:column;
+  background:var(--paper, var(--surface, #111)); }
+.metatron-full [data-fs-grow] { flex:1; min-height:0; }
+.metatron-full [data-fs-grow] > * { max-height:none !important; height:100% !important; }
+body.metatron-locked { overflow:hidden; }
+.metatron-fsbtn { position:absolute; top:8px; right:10px; z-index:3;
+  font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:11px; letter-spacing:.04em;
+  padding:5px 10px; cursor:pointer; color:var(--ink2, #889); background:var(--surface, #1a222c);
+  border:1px solid var(--rule2, #445); opacity:.72; }
+.metatron-fsbtn:hover { opacity:1; color:var(--ink, #eee); }
+.metatron-fsbtn:focus-visible { outline:2px solid var(--blue, #79a4e6); outline-offset:2px; }
+</style>
+<script>
+(function(){
+  var plate = document.querySelector('[data-fullscreen]');
+  if (!plate) return;
+  if (getComputedStyle(plate).position === 'static') plate.style.position = 'relative';
+  var btn = document.createElement('button');
+  btn.className = 'metatron-fsbtn';
+  btn.type = 'button';
+  btn.textContent = '⤢ full screen';
+  btn.title = 'Fill the screen (Esc to leave)';
+  plate.appendChild(btn);
+  function on(){ return plate.classList.contains('metatron-full'); }
+  function set(v){
+    plate.classList.toggle('metatron-full', v);
+    document.body.classList.toggle('metatron-locked', v);
+    btn.textContent = v ? '✕ exit' : '⤢ full screen';
+    try {
+      if (v && plate.requestFullscreen) plate.requestFullscreen().catch(function(){});
+      else if (!v && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+    } catch (e) {}
+    // canvas lenses watch their own container, but nudge anything that does not
+    window.dispatchEvent(new Event('resize'));
+  }
+  btn.addEventListener('click', function(){ set(!on()); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && on()) { e.preventDefault(); set(false); } });
+  document.addEventListener('fullscreenchange', function(){ if (!document.fullscreenElement && on()) set(false); });
+})();
+</script>
+<script id="__narr" type="application/json">{"scale":"<strong>209 files</strong> under the scanned root, wired together by 684 internal imports across 49 directories and 9 modules. 28 HTTP endpoints were traced through 147 call hops.","flow":"Read left to right and it is the intended request path: <span class=\"mono\">action</span> → <span class=\"mono\">service</span> → <span class=\"mono\">transaction-script</span> → <span class=\"mono\">repository</span>. Anything that jumps a station is a layering violation, and the lenses colour it as one.","layering":"<strong>6 links skip a layer</strong> — 4 where service reaches repository directly, skipping transaction script, 2 where action reaches repository directly, skipping service and transaction script. The 2 most severe start in <span class=\"mono\">calendar-events</span>.","crossDomain":"10 dependencies cross a bounded context — 10 aggregators. <strong>Every one lands on an allowed gateway</strong> — nothing reaches an entity, a repository or a use-case script in another context.","absent":"<strong><span class=\"mono\">mapper</span>, <span class=\"mono\">assembler</span>, <span class=\"mono\">resolver</span>, <span class=\"mono\">gateway</span>, and 7 others are configured but exist nowhere in the code</strong>. Either the architecture document describes a shape that was never built, or the config names something this project does not use.","skyline":"Height is layers, not importance: a module carries one floor per directory, stacked in architectural order, so <strong>its silhouette is its layer profile</strong>. <span class=\"mono\">calendar-events</span> is the most complete, carrying 8 of 8 tiers. <span class=\"mono\">health</span> is the outlier, missing <span class=\"mono\">Contract</span>, <span class=\"mono\">Service</span>, <span class=\"mono\">Aggregator</span>, <span class=\"mono\">Transaction Script</span>, and 3 others. <span class=\"mono\">security-events</span> has no Entry floor at all — no route reaches it directly.","cycles":"<strong>The module graph still has 1 cycle after the sanctioned carve-outs</strong> ({calendar-events, calendars}), so the dependency direction is not fully one-way.","upheld":"<strong>3 of the rules this codebase writes down for itself hold across all 684 imports</strong>: Every cross-domain edge goes through an allowed gateway; No same-level injection; No upward calls.","deviations":"<strong>7 kinds of deviation</strong> were found, covering 32 files or imports in total. Each is measured against a stated rule, not against taste.","endpoints":"28 endpoints, traced by following <span class=\"mono\">this.x.y()</span> through real method bodies rather than guessed from the folder layout.","schema":"16 entities, 72 columns, 6 references between them. <strong>3 are declared to the ORM; 3 exist only as a bare id column</strong>. 3 cross a bounded context — which is usually the reason the relation was left undeclared, since declaring it would couple the two contexts. The dependency is still there; it is just the application's job to honour it rather than the database's. 15 entities do not name their table in <span class=\"mono\">@Entity()</span>, so the name comes from the class.","hotspots":"Across 36 commits, the file scoring highest on both axes is <span class=\"mono\">calendar-events/infra/repositories/calendar-event.repository.ts</span> — <strong>6 commits and 26 dependents</strong>. <span class=\"mono\">shared-kernel/apps/decorators/protected-action.decorator.ts</span> is depended on by the most files (48). A file high on one axis alone is usually fine; it is the overlap that costs. 184 of the 195 files with history have no test file — the dashed rings — and a ring in the corner is where to test first. \"Tested\" means a spec file was located by name, not that the spec asserts anything: presence, not quality.","coupling":"Across 36 commits (2 ignored for touching more than 25 files), 0 pairs of files land in the same commit at least 30% of the time they move, and 0 of those pairs share no import edge — the ones worth reading. Commits are a proxy for change, and one team's commit granularity is not another's: a squash-merge workflow and a commit-per-thought workflow produce different numbers from identical work. Co-change is correlation, not mechanism — two files dragged along by the same sweeping rename are not coupled in any meaningful sense, and the size cap only blunts that, imperfectly. And the absence of coupling is not evidence of independence; it may just be young code.","provenance":"Generated from <span class=\"mono\">omega</span> by metatron. Every box is a directory that exists and every line is an <span class=\"mono\">import</span> that a file actually writes. 202 of 209 files (96.7%) matched a configured pattern.","caveats":"Imports are not calls: a type-only import counts the same as a constructor injection everywhere except the endpoint traces. Anything resolved through a DI token string rather than an imported symbol leaves no edge, so coupling is understated. Positions and footprints are chosen for legibility — only heights, tiers, links and colours carry meaning."}</script>
+<script>
+(function(){
+  var N;
+  try { N = JSON.parse(document.getElementById('__narr').textContent); } catch (e) { return; }
+  var slots = document.querySelectorAll('[data-narr]');
+  for (var i = 0; i < slots.length; i++) {
+    var el = slots[i], key = el.getAttribute('data-narr');
+    if (N[key]) el.innerHTML = N[key];
+    else if (el.parentNode) el.parentNode.removeChild(el);   // nothing to say, so say nothing
+  }
+})();
+</script>

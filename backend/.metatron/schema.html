@@ -1,0 +1,392 @@
+<!-- metatron: What does the data actually look like? Every entity, every column, and the references between them — including the ones the ORM never hears about. -->
+<title>Omega Schema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400&display=swap">
+
+<style>
+:root {
+  --paper:#F2F4F8; --surface:#FFFFFF; --surface2:#E7ECF3; --sunk:#DEE5EF;
+  --ink:#151E29; --ink2:#485A6F; --ink3:#7A8B9F;
+  --rule:#D2DAE4; --rule2:#B9C4D2;
+  --blue:#2B5CA8; --amber:#A85B06; --rose:#A31C39; --green:#1B6448; --violet:#54479A;
+  --declared:#1B6448; --implicit:#A85B06; --pk:#54479A;
+  --shadow:0 1px 2px rgba(21,30,41,.06), 0 8px 24px rgba(21,30,41,.07);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#0E141B; --surface:#151D26; --surface2:#1C2631; --sunk:#111922;
+    --ink:#E3EAF2; --ink2:#9EAFC1; --ink3:#6B7C91;
+    --rule:#28343F; --rule2:#36454F;
+    --blue:#79A4E6; --amber:#E0A04A; --rose:#EE7189; --green:#4FC195; --violet:#A093E6;
+    --declared:#4FC195; --implicit:#E0A04A; --pk:#A093E6;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#0E141B; --surface:#151D26; --surface2:#1C2631; --sunk:#111922;
+  --ink:#E3EAF2; --ink2:#9EAFC1; --ink3:#6B7C91;
+  --rule:#28343F; --rule2:#36454F;
+  --blue:#79A4E6; --amber:#E0A04A; --rose:#EE7189; --green:#4FC195; --violet:#A093E6;
+  --declared:#4FC195; --implicit:#E0A04A; --pk:#A093E6;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Archivo',ui-sans-serif,system-ui,sans-serif; font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; }
+.mono { font-family:'IBM Plex Mono',ui-monospace,monospace; }
+.wrap { max-width:1560px; margin:0 auto; padding:0 26px 80px; }
+
+.mast { padding:48px 0 24px; border-bottom:2px solid var(--ink); }
+.eyebrow { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink3); margin:0 0 16px; }
+h1 { font-size:clamp(34px,5.2vw,58px); line-height:1.03; letter-spacing:-.03em; font-weight:700; margin:0; text-wrap:balance; }
+.dek { font-family:'Source Serif 4',Georgia,serif; font-size:18px; line-height:1.6; color:var(--ink2);
+  max-width:64ch; margin:18px 0 0; }
+.statrow { display:grid; grid-template-columns:repeat(auto-fit,minmax(122px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); margin-top:32px; }
+.stat { background:var(--paper); padding:13px 15px; }
+.stat b { display:block; font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.stat span { display:block; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); margin-top:3px; }
+.stat.imp b { color:var(--implicit); } .stat.dec b { color:var(--declared); }
+
+.bar { display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin:26px 0 12px; }
+.btn { font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.04em;
+  border:1px solid var(--rule2); background:var(--surface); color:var(--ink2); padding:6px 11px; cursor:pointer; }
+.btn:hover { border-color:var(--ink3); color:var(--ink); }
+.btn.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.btn:focus-visible, input:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+#q { font-family:'IBM Plex Mono',monospace; font-size:11.5px; padding:6px 11px;
+  border:1px solid var(--rule2); background:var(--surface); color:var(--ink); min-width:180px; }
+.sep { width:1px; height:20px; background:var(--rule2); margin:0 3px; }
+
+.plate { border:1px solid var(--rule2); background:var(--surface); box-shadow:var(--shadow); }
+.canvas { overflow:auto; max-height:min(78vh,900px); }
+svg.er { display:block; }
+svg.er text { font-family:'IBM Plex Mono',monospace; }
+.etbl { fill:var(--surface); stroke:var(--rule2); stroke-width:1; }
+.ehead { fill:var(--surface2); }
+.ename { font-size:12px; font-weight:600; fill:var(--ink); }
+.etable { font-size:9px; fill:var(--ink3); }
+.emod { font-size:8.5px; fill:var(--ink3); letter-spacing:.05em; }
+.col { font-size:10px; fill:var(--ink2); }
+.coltype { font-size:9px; fill:var(--ink3); }
+.colpk { fill:var(--pk); font-weight:600; }
+.colfk { fill:var(--implicit); font-weight:600; }
+.colfk.dec { fill:var(--declared); }
+.rowline { stroke:var(--rule); stroke-width:.75; }
+.rel { fill:none; stroke:var(--implicit); stroke-width:1.6; }
+.rel.declared { stroke:var(--declared); stroke-dasharray:none; }
+.rel.implicit { stroke-dasharray:5 3; }
+.rel.dim { opacity:.12; }
+.relcap { font-size:9px; fill:var(--ink3); }
+.eg { cursor:pointer; }
+.eg:hover .etbl { stroke:var(--ink); stroke-width:1.8; }
+.eg.sel .etbl { stroke:var(--blue); stroke-width:2.2; }
+.eg.dim { opacity:.25; }
+.crossbadge { font-size:8px; fill:var(--implicit); font-weight:600; }
+
+.legend { display:flex; flex-wrap:wrap; gap:12px 20px; padding:12px 16px; border-top:1px solid var(--rule);
+  background:var(--surface2); }
+.lg { display:flex; align-items:center; gap:7px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink2); }
+
+section { margin-top:52px; }
+.shead { display:flex; align-items:baseline; gap:13px; border-bottom:1px solid var(--rule2);
+  padding-bottom:9px; margin-bottom:18px; flex-wrap:wrap; }
+.shead h2 { font-size:21px; font-weight:600; letter-spacing:-.015em; margin:0; }
+.shead .num { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink3); letter-spacing:.1em; }
+.note { font-family:'Source Serif 4',Georgia,serif; font-size:16.5px; line-height:1.65; color:var(--ink2); max-width:68ch; }
+.note + .note { margin-top:12px; }
+.note strong { color:var(--ink); font-weight:400; box-shadow:inset 0 -0.5em 0 color-mix(in srgb, var(--amber) 18%, transparent); }
+.tblwrap { overflow-x:auto; border:1px solid var(--rule2); background:var(--surface); box-shadow:var(--shadow); }
+table { border-collapse:collapse; width:100%; font-size:13px; }
+th,td { text-align:left; padding:8px 13px; border-bottom:1px solid var(--rule); white-space:nowrap; }
+th { font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink3); font-weight:500; background:var(--surface2); }
+td.m { font-family:'IBM Plex Mono',monospace; font-size:11.5px; }
+tbody tr:hover { background:var(--surface2); }
+.pill { font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
+  padding:2px 7px; border:1px solid currentColor; }
+.pill.dec { color:var(--declared); } .pill.imp { color:var(--implicit); }
+footer { margin-top:60px; padding-top:20px; border-top:2px solid var(--ink); color:var(--ink3); }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Entities · columns · references, declared and inferred</p>
+  <h1>Omega Schema</h1>
+  <p class="dek">Every entity in the codebase with its real columns, and every reference between them. Declaring a relation to the ORM couples two contexts, so many are stored as a bare id column instead — <strong>those still exist, they are just invisible to the ORM</strong>. Both kinds are drawn here.</p>
+  <div class="statrow" id="statrow"></div>
+</header>
+
+<div class="bar">
+  <button class="btn on" id="tImplicit">implicit references</button>
+  <button class="btn on" id="tDeclared">declared references</button>
+  <button class="btn" id="tCross">only cross-context</button>
+  <span class="sep"></span>
+  <input id="q" type="search" placeholder="filter entities…" aria-label="Filter entities">
+  <button class="btn" id="reset">reset</button>
+</div>
+
+<div class="plate" data-fullscreen data-fs-grow>
+  <div class="canvas" id="canvas"></div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<section>
+  <div class="shead"><span class="num">01</span><h2>Declared and implicit</h2></div>
+  <p class="note" data-narr="schema"></p>
+  <p class="note">A <strong>declared</strong> reference is a TypeORM relation decorator: the ORM knows about it, can join through it, and will generate a foreign key. An <strong>implicit</strong> one is a plain <span class="mono">someId</span> column that happens to hold another table's primary key. The database has no constraint, the ORM cannot join it, and no schema tool will draw it — but the dependency is just as real, and application code has to honour it by hand.</p>
+</section>
+
+<section>
+  <div class="shead"><span class="num">02</span><h2>Every reference</h2></div>
+  <div class="tblwrap">
+    <table id="reltable"><thead><tr><th>From</th><th>Via</th><th>To</th><th>Kind</th><th>Crosses</th></tr></thead><tbody></tbody></table>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="num">03</span><h2>How references were found</h2></div>
+  <p class="note">Declared ones are read from <span class="mono">@ManyToOne</span>, <span class="mono">@OneToMany</span>, <span class="mono">@OneToOne</span> and <span class="mono">@ManyToMany</span> decorators. Implicit ones are inferred from column names: a column ending <span class="mono">Id</span> or <span class="mono">_id</span> whose stem matches an entity class or table name, singular or plural. <span class="mono">parentId</span> is read as a self-reference.</p>
+  <p class="note">Where a relation is written both ways — the decorator plus the id column beside it — that is one relationship, and it is folded into a single declared edge keeping the column name. <strong>An id column that matches no entity is not guessed at</strong>: a <span class="mono">stripeCustomerId</span> naming something outside the codebase is left alone rather than invented.</p>
+</section>
+
+<footer>
+  <p class="note" style="font-size:14px" data-narr="provenance"></p>
+</footer>
+
+</div>
+
+<script id="data" type="application/json">{"generatedAt":"2026-09-20T13:51:59.197Z","project":"omega","root":"src","stats":{"files":209,"edges":684,"nodes":49,"externals":28,"endpoints":28,"hops":147},"coverage":{"files":209,"classified":202,"unclassifiedCount":7,"unclassifiedPct":3.3,"samples":["calendar-events/apps/schedulers/reminder-scheduler/reminder.scheduler.ts","calendar-events/domain/entities/recurrence-pattern.value-object.ts","calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.result.ts","calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator.ts","calendars/domain/entities/calendar-role.type.ts","calendars/domain/entities/invitation-status.type.ts","calendars/domain/transaction-scripts/fetch-calendars-TS/calendar-with-role.type.ts"],"byPattern":{"bootstrap":3,"action":25,"module":7,"service":7,"strategy":1,"swagger":24,"dto":26,"spec":12,"responder":1,"other":7,"aggregator":4,"entity":16,"config":1,"command":23,"transaction-script":27,"converter":2,"util":3,"repository":9,"listener":1,"projection":2,"controller":2,"decorator":2,"guard":1,"event":1,"test-util":1,"migration":1}},"dataModel":{"entities":[{"file":"calendar-events/domain/entities/calendar-event.entity.ts","cls":"calendar-event.entity","table":null,"module":"calendar-events","columns":[]},{"file":"calendar-events/domain/entities/event-reminder.entity.ts","cls":"event-reminder.entity","table":null,"module":"calendar-events","columns":[]},{"file":"calendar-events/domain/entities/recurrence-exception.entity.ts","cls":"recurrence-exception.entity","table":null,"module":"calendar-events","columns":[]},{"file":"calendar-events/domain/entities/recurring-event.entity.ts","cls":"recurring-event.entity","table":null,"module":"calendar-events","columns":[]},{"file":"calendar-events/infra/entities/calendar-event.entity.ts","cls":"CalendarEventEntity","table":null,"module":"calendar-events","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"calendarId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"userId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"recurringEventId","type":"number","deco":"Column","nullable":true,"pk":false},{"name":"title","type":"string","deco":"Column","nullable":false,"pk":false},{"name":"description","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"color","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"startDate","type":"Date","deco":"Column","nullable":false,"pk":false},{"name":"endDate","type":"Date","deco":"Column","nullable":false,"pk":false},{"name":"isModified","type":"boolean","deco":"Column","nullable":true,"pk":false},{"name":"titleOverride","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"descriptionOverride","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false},{"name":"updatedAt","type":"Date","deco":"UpdateDateColumn","nullable":false,"pk":false}]},{"file":"calendar-events/infra/entities/event-reminder.entity.ts","cls":"EventReminderEntity","table":null,"module":"calendar-events","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"calendarEventId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"reminderMinutes","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"sentAt","type":"Date | null","deco":"Column","nullable":true,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false},{"name":"updatedAt","type":"Date","deco":"UpdateDateColumn","nullable":false,"pk":false}]},{"file":"calendar-events/infra/entities/recurrence-exception.entity.ts","cls":"RecurrenceExceptionEntity","table":null,"module":"calendar-events","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"recurringEventId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"exceptionDate","type":"Date","deco":"Column","nullable":false,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false}]},{"file":"calendar-events/infra/entities/recurring-event.entity.ts","cls":"RecurringEventEntity","table":null,"module":"calendar-events","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"calendarId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"userId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"title","type":"string","deco":"Column","nullable":false,"pk":false},{"name":"description","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"color","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"startDate","type":"Date","deco":"Column","nullable":false,"pk":false},{"name":"endDate","type":"Date","deco":"Column","nullable":false,"pk":false},{"name":"recurrenceType","type":"'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'","deco":"Column","nullable":false,"pk":false},{"name":"recurrenceInterval","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"daysOfWeek","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"dayOfMonth","type":"number","deco":"Column","nullable":true,"pk":false},{"name":"monthOfYear","type":"number","deco":"Column","nullable":true,"pk":false},{"name":"recurrenceEndDate","type":"Date","deco":"Column","nullable":true,"pk":false},{"name":"noEndDate","type":"boolean","deco":"Column","nullable":false,"pk":false},{"name":"rruleString","type":"string","deco":"Column","nullable":false,"pk":false},{"name":"reminderMinutes","type":"number | null","deco":"Column","nullable":true,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false},{"name":"updatedAt","type":"Date","deco":"UpdateDateColumn","nullable":false,"pk":false}]},{"file":"calendars/domain/entities/calendar-invitation.entity.ts","cls":"calendar-invitation.entity","table":null,"module":"calendars","columns":[]},{"file":"calendars/domain/entities/calendar-member.entity.ts","cls":"calendar-member.entity","table":null,"module":"calendars","columns":[]},{"file":"calendars/domain/entities/calendar.entity.ts","cls":"calendar.entity","table":null,"module":"calendars","columns":[]},{"file":"calendars/infra/entities/calendar-invitation.entity.ts","cls":"CalendarInvitationEntity","table":null,"module":"calendars","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"calendarId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"inviterId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"inviteeId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"status","type":"InvitationStatus","deco":"Column","nullable":false,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false},{"name":"respondedAt","type":"Date","deco":"Column","nullable":true,"pk":false}]},{"file":"calendars/infra/entities/calendar-member.entity.ts","cls":"CalendarMemberEntity","table":null,"module":"calendars","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"calendarId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"userId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"role","type":"CalendarRole","deco":"Column","nullable":false,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false}]},{"file":"calendars/infra/entities/calendar.entity.ts","cls":"CalendarEntity","table":null,"module":"calendars","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"name","type":"string","deco":"Column","nullable":false,"pk":false},{"name":"color","type":"string","deco":"Column","nullable":true,"pk":false},{"name":"ownerId","type":"number","deco":"Column","nullable":false,"pk":false},{"name":"isPersonal","type":"boolean","deco":"Column","nullable":false,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false},{"name":"updatedAt","type":"Date","deco":"UpdateDateColumn","nullable":false,"pk":false}]},{"file":"security-events/domain/entities/security-event.entity.ts","cls":"SecurityEvent","table":"security_events","module":"security-events","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"eventType","type":"SecurityEventType","deco":"Column","nullable":false,"pk":false},{"name":"metadata","type":"string","deco":"Column","nullable":false,"pk":false},{"name":"createdAt","type":"Date","deco":"CreateDateColumn","nullable":false,"pk":false}]},{"file":"users/domain/entities/user.entity.ts","cls":"User","table":null,"module":"users","columns":[{"name":"id","type":"number","deco":"PrimaryGeneratedColumn","nullable":false,"pk":true},{"name":"createdAt","type":"string","deco":"CreateDateColumn","nullable":false,"pk":false},{"name":"updatedAt","type":"string","deco":"UpdateDateColumn","nullable":false,"pk":false},{"name":"username","type":"string","deco":"Column","nullable":false,"pk":false},{"name":"password","type":"string","deco":"Column","nullable":false,"pk":false},{"name":"email","type":"string","deco":"Column","nullable":true,"pk":false}]}],"relations":[{"from":"CalendarEventEntity","fromModule":"calendar-events","to":"RecurringEventEntity","toModule":"calendar-events","via":"ManyToOne","declared":true,"kind":"ManyToOne","cross":false,"self":false},{"from":"CalendarEventEntity","fromModule":"calendar-events","to":"User","toModule":"users","via":"userId","declared":false,"kind":"implicit","cross":true,"self":false},{"from":"EventReminderEntity","fromModule":"calendar-events","to":"CalendarEventEntity","toModule":"calendar-events","via":"ManyToOne","declared":true,"kind":"ManyToOne","cross":false,"self":false},{"from":"RecurrenceExceptionEntity","fromModule":"calendar-events","to":"RecurringEventEntity","toModule":"calendar-events","via":"ManyToOne","declared":true,"kind":"ManyToOne","cross":false,"self":false},{"from":"RecurringEventEntity","fromModule":"calendar-events","to":"User","toModule":"users","via":"userId","declared":false,"kind":"implicit","cross":true,"self":false},{"from":"CalendarMemberEntity","fromModule":"calendars","to":"User","toModule":"users","via":"userId","declared":false,"kind":"implicit","cross":true,"self":false}],"stats":{"entities":16,"columns":72,"declared":3,"inferred":3,"crossContext":3,"untabled":15}}}</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById('data').textContent);
+var M = D.dataModel;
+var E = M.entities, R = M.relations;
+
+document.getElementById('statrow').innerHTML = [
+  ['entities', M.stats.entities, ''],
+  ['columns', M.stats.columns, ''],
+  ['references', R.length, ''],
+  ['declared', M.stats.declared, 'dec'],
+  ['implicit', M.stats.inferred, 'imp'],
+  ['cross-context', M.stats.crossContext, 'imp']
+].map(function(s){ return '<div class="stat '+s[2]+'"><b>'+s[1]+'</b><span>'+s[0]+'</span></div>'; }).join('');
+
+var state = { implicit:true, declared:true, crossOnly:false, q:'', sel:null };
+
+/* which columns are references, so they can be marked in the table */
+var fkCols = {};
+R.forEach(function(r){
+  fkCols[r.from + '|' + r.via] = r.declared ? 'dec' : 'imp';
+});
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function relVisible(r){
+  if (r.declared && !state.declared) return false;
+  if (!r.declared && !state.implicit) return false;
+  if (state.crossOnly && !r.cross) return false;
+  return true;
+}
+function entVisible(e){
+  if (!state.q) return true;
+  return (e.cls + ' ' + (e.table||'') + ' ' + e.module).toLowerCase().indexOf(state.q) >= 0;
+}
+
+/* ---- layout: columns of tables, most-referenced in the middle ---- */
+var W = 230, ROW = 15, HEAD = 34, PAD = 9, GAPX = 92, GAPY = 34;
+
+function layout(){
+  var inbound = {};
+  E.forEach(function(e){ inbound[e.cls] = 0; });
+  R.forEach(function(r){ if (inbound[r.to] !== undefined && !r.self) inbound[r.to]++; });
+
+  // most-referenced entities go in the middle column, their referrers either side
+  var sorted = E.slice().sort(function(a,b){ return inbound[b.cls] - inbound[a.cls]; });
+  var hubs = sorted.filter(function(e){ return inbound[e.cls] >= 2; });
+  var leaves = sorted.filter(function(e){ return inbound[e.cls] < 2; });
+  var cols = [[], [], []];
+  hubs.forEach(function(e, i){ cols[1].push(e); });
+  leaves.forEach(function(e, i){ cols[i % 2 === 0 ? 0 : 2].push(e); });
+
+  var pos = {}, colX = [0, W + GAPX, (W + GAPX) * 2];
+  var maxH = 0;
+  cols.forEach(function(list, ci){
+    var y = 0;
+    list.forEach(function(e){
+      var h = HEAD + e.columns.length * ROW + PAD;
+      pos[e.cls] = { x: colX[ci], y: y, w: W, h: h, e: e };
+      y += h + GAPY;
+    });
+    if (y > maxH) maxH = y;
+  });
+  // centre each column vertically
+  cols.forEach(function(list, ci){
+    var tot = list.reduce(function(a, e){ return a + pos[e.cls].h + GAPY; }, 0) - GAPY;
+    var off = (maxH - GAPY - tot) / 2;
+    list.forEach(function(e){ pos[e.cls].y += off; });
+  });
+  return { pos: pos, w: colX[2] + W, h: maxH };
+}
+
+function rowY(p, colIndex){ return p.y + HEAD + colIndex * ROW + ROW * 0.72; }
+
+function render(){
+  var L = layout(), pos = L.pos;
+  var PADL = 28, PADT = 22;
+  var s = [];
+  s.push('<svg class="er" width="' + (L.w + PADL*2) + '" height="' + (L.h + PADT*2) + '" viewBox="0 0 ' + (L.w + PADL*2) + ' ' + (L.h + PADT*2) + '" role="img" aria-label="Entity relationship diagram">');
+  s.push('<g transform="translate(' + PADL + ',' + PADT + ')">');
+
+  // relations behind the tables
+  R.forEach(function(r, i){
+    var a = pos[r.from], b = pos[r.to];
+    if (!a || !b) return;
+    var show = relVisible(r) && entVisible(a.e) && entVisible(b.e);
+    var dim = !show || (state.sel && state.sel !== r.from && state.sel !== r.to);
+    if (!show) return;
+    var ci = a.e.columns.findIndex(function(c){ return c.name === r.via; });
+    var ay = ci >= 0 ? rowY(a, ci) : a.y + a.h / 2;
+    var by = b.y + HEAD / 2;
+    var ax, bx, c1, c2;
+    if (r.self) {
+      ax = a.x + a.w; bx = a.x + a.w;
+      s.push('<path class="rel ' + (r.declared ? 'declared' : 'implicit') + (dim ? ' dim' : '') +
+        '" d="M' + ax + ',' + ay + ' C' + (ax + 46) + ',' + ay + ' ' + (ax + 46) + ',' + (a.y + 12) + ' ' + (a.x + a.w) + ',' + (a.y + 12) + '"/>');
+      return;
+    }
+    if (b.x >= a.x + a.w) { ax = a.x + a.w; bx = b.x; c1 = ax + 44; c2 = bx - 44; }
+    else if (a.x >= b.x + b.w) { ax = a.x; bx = b.x + b.w; c1 = ax - 44; c2 = bx + 44; }
+    else { ax = a.x + a.w; bx = b.x + b.w; c1 = ax + 60; c2 = bx + 60; }
+    s.push('<path class="rel ' + (r.declared ? 'declared' : 'implicit') + (dim ? ' dim' : '') +
+      '" d="M' + ax + ',' + ay + ' C' + c1 + ',' + ay + ' ' + c2 + ',' + by + ' ' + bx + ',' + by + '"/>');
+  });
+
+  // entity tables
+  E.forEach(function(e){
+    var p = pos[e.cls];
+    if (!p) return;
+    var vis = entVisible(e);
+    var sel = state.sel === e.cls;
+    s.push('<g class="eg' + (sel ? ' sel' : '') + (vis ? '' : ' dim') + '" data-e="' + esc(e.cls) + '" tabindex="0" role="button" aria-label="' + esc(e.cls) + '">');
+    s.push('<rect class="etbl" x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h + '" rx="2"/>');
+    s.push('<rect class="ehead" x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + HEAD + '"/>');
+    s.push('<line class="rowline" x1="' + p.x + '" y1="' + (p.y + HEAD) + '" x2="' + (p.x + p.w) + '" y2="' + (p.y + HEAD) + '"/>');
+    s.push('<text class="ename" x="' + (p.x + 9) + '" y="' + (p.y + 15) + '">' + esc(e.cls) + '</text>');
+    s.push('<text class="etable" x="' + (p.x + 9) + '" y="' + (p.y + 27) + '">' + esc(e.table || 'no @Entity name') + '</text>');
+    s.push('<text class="emod" x="' + (p.x + p.w - 9) + '" y="' + (p.y + 15) + '" text-anchor="end">' + esc(e.module) + '</text>');
+    e.columns.forEach(function(c, i){
+      var y = rowY(p, i);
+      var fk = fkCols[e.cls + '|' + c.name];
+      var cls = c.pk ? 'col colpk' : (fk ? 'col colfk' + (fk === 'dec' ? ' dec' : '') : 'col');
+      s.push('<text class="' + cls + '" x="' + (p.x + 9) + '" y="' + y + '">' + esc(c.name) + (c.pk ? ' *' : '') + '</text>');
+      s.push('<text class="coltype" x="' + (p.x + p.w - 9) + '" y="' + y + '" text-anchor="end">' + esc(c.type.length > 20 ? c.type.slice(0, 19) + '…' : c.type) + '</text>');
+    });
+    s.push('</g>');
+  });
+
+  s.push('</g></svg>');
+  document.getElementById('canvas').innerHTML = s.join('');
+  document.querySelectorAll('.eg').forEach(function(g){
+    var id = g.getAttribute('data-e');
+    g.addEventListener('click', function(){ state.sel = state.sel === id ? null : id; render(); });
+    g.addEventListener('keydown', function(ev){ if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); g.click(); } });
+  });
+}
+
+document.getElementById('legend').innerHTML =
+  '<span class="lg"><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--declared)" stroke-width="1.8"/></svg>declared to the ORM</span>' +
+  '<span class="lg"><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--implicit)" stroke-width="1.8" stroke-dasharray="5 3"/></svg>implicit — a bare id column</span>' +
+  '<span class="lg"><b style="color:var(--pk)">name *</b>&nbsp;primary key</span>' +
+  '<span class="lg"><b style="color:var(--implicit)">name</b>&nbsp;holds a reference</span>';
+
+document.querySelector('#reltable tbody').innerHTML = R.slice().sort(function(a, b){
+  return (a.declared === b.declared ? 0 : a.declared ? 1 : -1) || a.from.localeCompare(b.from);
+}).map(function(r){
+  return '<tr><td class="m">' + esc(r.from) + '</td><td class="m" style="color:var(--' + (r.declared ? 'declared' : 'implicit') + ')">' + esc(r.via) + '</td>' +
+    '<td class="m">' + esc(r.to) + '</td>' +
+    '<td><span class="pill ' + (r.declared ? 'dec' : 'imp') + '">' + (r.declared ? 'declared' : 'implicit') + '</span></td>' +
+    '<td class="m" style="color:var(--ink3)">' + (r.self ? 'self' : (r.cross ? esc(r.fromModule + ' → ' + r.toModule) : '—')) + '</td></tr>';
+}).join('');
+
+function tog(id, key){
+  var b = document.getElementById(id);
+  b.addEventListener('click', function(){ state[key] = !state[key]; b.classList.toggle('on', state[key]); render(); });
+}
+tog('tImplicit', 'implicit'); tog('tDeclared', 'declared'); tog('tCross', 'crossOnly');
+document.getElementById('q').addEventListener('input', function(e){ state.q = e.target.value.trim().toLowerCase(); render(); });
+document.getElementById('reset').addEventListener('click', function(){
+  state = { implicit:true, declared:true, crossOnly:false, q:'', sel:null };
+  document.getElementById('q').value = '';
+  document.getElementById('tImplicit').classList.add('on');
+  document.getElementById('tDeclared').classList.add('on');
+  document.getElementById('tCross').classList.remove('on');
+  render();
+});
+
+render();
+window.__schema = { M:M, layout:layout, state:state };
+})();
+</script>
+
+<style>
+.metatron-full { position:fixed !important; inset:0 !important; z-index:9999;
+  margin:0 !important; border-radius:0 !important; display:flex; flex-direction:column;
+  background:var(--paper, var(--surface, #111)); }
+.metatron-full [data-fs-grow] { flex:1; min-height:0; }
+.metatron-full [data-fs-grow] > * { max-height:none !important; height:100% !important; }
+body.metatron-locked { overflow:hidden; }
+.metatron-fsbtn { position:absolute; top:8px; right:10px; z-index:3;
+  font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:11px; letter-spacing:.04em;
+  padding:5px 10px; cursor:pointer; color:var(--ink2, #889); background:var(--surface, #1a222c);
+  border:1px solid var(--rule2, #445); opacity:.72; }
+.metatron-fsbtn:hover { opacity:1; color:var(--ink, #eee); }
+.metatron-fsbtn:focus-visible { outline:2px solid var(--blue, #79a4e6); outline-offset:2px; }
+</style>
+<script>
+(function(){
+  var plate = document.querySelector('[data-fullscreen]');
+  if (!plate) return;
+  if (getComputedStyle(plate).position === 'static') plate.style.position = 'relative';
+  var btn = document.createElement('button');
+  btn.className = 'metatron-fsbtn';
+  btn.type = 'button';
+  btn.textContent = '⤢ full screen';
+  btn.title = 'Fill the screen (Esc to leave)';
+  plate.appendChild(btn);
+  function on(){ return plate.classList.contains('metatron-full'); }
+  function set(v){
+    plate.classList.toggle('metatron-full', v);
+    document.body.classList.toggle('metatron-locked', v);
+    btn.textContent = v ? '✕ exit' : '⤢ full screen';
+    try {
+      if (v && plate.requestFullscreen) plate.requestFullscreen().catch(function(){});
+      else if (!v && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+    } catch (e) {}
+    // canvas lenses watch their own container, but nudge anything that does not
+    window.dispatchEvent(new Event('resize'));
+  }
+  btn.addEventListener('click', function(){ set(!on()); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && on()) { e.preventDefault(); set(false); } });
+  document.addEventListener('fullscreenchange', function(){ if (!document.fullscreenElement && on()) set(false); });
+})();
+</script>
+<script id="__narr" type="application/json">{"scale":"<strong>209 files</strong> under the scanned root, wired together by 684 internal imports across 49 directories and 9 modules. 28 HTTP endpoints were traced through 147 call hops.","flow":"Read left to right and it is the intended request path: <span class=\"mono\">action</span> → <span class=\"mono\">service</span> → <span class=\"mono\">transaction-script</span> → <span class=\"mono\">repository</span>. Anything that jumps a station is a layering violation, and the lenses colour it as one.","layering":"<strong>6 links skip a layer</strong> — 4 where service reaches repository directly, skipping transaction script, 2 where action reaches repository directly, skipping service and transaction script. The 2 most severe start in <span class=\"mono\">calendar-events</span>.","crossDomain":"10 dependencies cross a bounded context — 10 aggregators. <strong>Every one lands on an allowed gateway</strong> — nothing reaches an entity, a repository or a use-case script in another context.","absent":"<strong><span class=\"mono\">mapper</span>, <span class=\"mono\">assembler</span>, <span class=\"mono\">resolver</span>, <span class=\"mono\">gateway</span>, and 7 others are configured but exist nowhere in the code</strong>. Either the architecture document describes a shape that was never built, or the config names something this project does not use.","skyline":"Height is layers, not importance: a module carries one floor per directory, stacked in architectural order, so <strong>its silhouette is its layer profile</strong>. <span class=\"mono\">calendar-events</span> is the most complete, carrying 8 of 8 tiers. <span class=\"mono\">health</span> is the outlier, missing <span class=\"mono\">Contract</span>, <span class=\"mono\">Service</span>, <span class=\"mono\">Aggregator</span>, <span class=\"mono\">Transaction Script</span>, and 3 others. <span class=\"mono\">security-events</span> has no Entry floor at all — no route reaches it directly.","cycles":"<strong>The module graph still has 1 cycle after the sanctioned carve-outs</strong> ({calendar-events, calendars}), so the dependency direction is not fully one-way.","upheld":"<strong>3 of the rules this codebase writes down for itself hold across all 684 imports</strong>: Every cross-domain edge goes through an allowed gateway; No same-level injection; No upward calls.","deviations":"<strong>7 kinds of deviation</strong> were found, covering 32 files or imports in total. Each is measured against a stated rule, not against taste.","endpoints":"28 endpoints, traced by following <span class=\"mono\">this.x.y()</span> through real method bodies rather than guessed from the folder layout.","schema":"16 entities, 72 columns, 6 references between them. <strong>3 are declared to the ORM; 3 exist only as a bare id column</strong>. 3 cross a bounded context — which is usually the reason the relation was left undeclared, since declaring it would couple the two contexts. The dependency is still there; it is just the application's job to honour it rather than the database's. 15 entities do not name their table in <span class=\"mono\">@Entity()</span>, so the name comes from the class.","hotspots":"Across 36 commits, the file scoring highest on both axes is <span class=\"mono\">calendar-events/infra/repositories/calendar-event.repository.ts</span> — <strong>6 commits and 26 dependents</strong>. <span class=\"mono\">shared-kernel/apps/decorators/protected-action.decorator.ts</span> is depended on by the most files (48). A file high on one axis alone is usually fine; it is the overlap that costs. 184 of the 195 files with history have no test file — the dashed rings — and a ring in the corner is where to test first. \"Tested\" means a spec file was located by name, not that the spec asserts anything: presence, not quality.","coupling":"Across 36 commits (2 ignored for touching more than 25 files), 0 pairs of files land in the same commit at least 30% of the time they move, and 0 of those pairs share no import edge — the ones worth reading. Commits are a proxy for change, and one team's commit granularity is not another's: a squash-merge workflow and a commit-per-thought workflow produce different numbers from identical work. Co-change is correlation, not mechanism — two files dragged along by the same sweeping rename are not coupled in any meaningful sense, and the size cap only blunts that, imperfectly. And the absence of coupling is not evidence of independence; it may just be young code.","provenance":"Generated from <span class=\"mono\">omega</span> by metatron. Every box is a directory that exists and every line is an <span class=\"mono\">import</span> that a file actually writes. 202 of 209 files (96.7%) matched a configured pattern.","caveats":"Imports are not calls: a type-only import counts the same as a constructor injection everywhere except the endpoint traces. Anything resolved through a DI token string rather than an imported symbol leaves no edge, so coupling is understated. Positions and footprints are chosen for legibility — only heights, tiers, links and colours carry meaning."}</script>
+<script>
+(function(){
+  var N;
+  try { N = JSON.parse(document.getElementById('__narr').textContent); } catch (e) { return; }
+  var slots = document.querySelectorAll('[data-narr]');
+  for (var i = 0; i < slots.length; i++) {
+    var el = slots[i], key = el.getAttribute('data-narr');
+    if (N[key]) el.innerHTML = N[key];
+    else if (el.parentNode) el.parentNode.removeChild(el);   // nothing to say, so say nothing
+  }
+})();
+</script>

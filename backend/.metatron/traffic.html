@@ -1,0 +1,651 @@
+<!-- arch-views: What happens when a request arrives. Every endpoint as an animated trace, with the real payload at each hop. -->
+<title>Omega Request Traffic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap">
+
+<style>
+:root {
+  --paper:#F1F4F8; --surface:#FFFFFF; --surface2:#E7ECF3; --sunk:#DFE5EE;
+  --ink:#151E29; --ink2:#485A6F; --ink3:#7A8B9F;
+  --rule:#D2DAE4; --rule2:#B9C4D2;
+  --blue:#2B5CA8; --amber:#A85B06; --rose:#A31C39; --green:#1B6448; --violet:#54479A; --teal:#136A80;
+  --l0:#2B5CA8; --l1:#7A8B9F; --l2:#54479A; --l3:#A85B06; --l4:#1B6448;
+  --l5:#7E6E4E; --l6:#136A80; --l7:#84406F; --l8:#8B98A8; --l9:#8B98A8; --l10:#8B98A8;
+  --track:#C9D3DF; --dot:#A85B06;
+  --shadow:0 1px 2px rgba(21,30,41,.06), 0 8px 24px rgba(21,30,41,.06);
+  --code:#F5F7FA;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#0E141B; --surface:#151D26; --surface2:#1C2631; --sunk:#111922;
+    --ink:#E3EAF2; --ink2:#9EAFC1; --ink3:#6B7C91;
+    --rule:#28343F; --rule2:#36454F;
+    --blue:#79A4E6; --amber:#E0A04A; --rose:#EE7189; --green:#4FC195; --violet:#A093E6; --teal:#4FB6CE;
+    --l0:#79A4E6; --l1:#8496A9; --l2:#A093E6; --l3:#E0A04A; --l4:#4FC195;
+    --l5:#C0AC7F; --l6:#4FB6CE; --l7:#D28BBC; --l8:#7D8C9C; --l9:#7D8C9C; --l10:#7D8C9C;
+    --track:#2F3B47; --dot:#E0A04A;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    --code:#101821;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#0E141B; --surface:#151D26; --surface2:#1C2631; --sunk:#111922;
+  --ink:#E3EAF2; --ink2:#9EAFC1; --ink3:#6B7C91;
+  --rule:#28343F; --rule2:#36454F;
+  --blue:#79A4E6; --amber:#E0A04A; --rose:#EE7189; --green:#4FC195; --violet:#A093E6; --teal:#4FB6CE;
+  --l0:#79A4E6; --l1:#8496A9; --l2:#A093E6; --l3:#E0A04A; --l4:#4FC195;
+  --l5:#C0AC7F; --l6:#4FB6CE; --l7:#D28BBC; --l8:#7D8C9C; --l9:#7D8C9C; --l10:#7D8C9C;
+  --track:#2F3B47; --dot:#E0A04A;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  --code:#101821;
+}
+
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Archivo', ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; }
+.mono { font-family:'IBM Plex Mono', ui-monospace, monospace; }
+.wrap { max-width:1560px; margin:0 auto; padding:0 26px 80px; }
+
+.mast { padding:48px 0 24px; border-bottom:2px solid var(--ink); }
+.eyebrow { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink3); margin:0 0 16px; }
+h1 { font-size:clamp(34px,5.4vw,60px); line-height:1.03; letter-spacing:-.028em; font-weight:700; margin:0; text-wrap:balance; }
+.dek { font-family:'Source Serif 4',Georgia,serif; font-size:18.5px; line-height:1.6; color:var(--ink2);
+  max-width:62ch; margin:18px 0 0; }
+
+/* transport */
+.transport { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:26px 0 12px; }
+.btn { font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.04em;
+  border:1px solid var(--rule2); background:var(--surface); color:var(--ink2);
+  padding:6px 11px; cursor:pointer; }
+.btn:hover { border-color:var(--ink3); color:var(--ink); }
+.btn[aria-pressed="true"], .btn.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.btn:focus-visible, input:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+#q { font-family:'IBM Plex Mono',monospace; font-size:11.5px; padding:6px 11px;
+  border:1px solid var(--rule2); background:var(--surface); color:var(--ink); min-width:200px; }
+.sep { width:1px; height:20px; background:var(--rule2); margin:0 4px; }
+.seg { display:flex; border:1px solid var(--rule2); }
+.seg button { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.04em;
+  padding:6px 10px; background:transparent; color:var(--ink3); border:0; cursor:pointer; }
+.seg button.on { background:var(--ink); color:var(--paper); }
+.seg button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+
+/* Filling the screen is the point of the board, so the plate takes the whole
+   viewport and the surrounding page furniture gets out of the way. */
+.plate.full { position:fixed; inset:0; z-index:99; margin:0; border:0;
+  display:flex; flex-direction:column; background:var(--paper); }
+.plate.full .grid { flex:1; min-height:0; border:0; grid-template-columns:minmax(0,1fr) 330px; }
+.plate.full .board, .plate.full .insp { max-height:none; height:100%; }
+.plate.full .fullbar { display:flex; }
+.fullbar { display:none; align-items:center; gap:8px; padding:8px 12px;
+  border-bottom:1px solid var(--rule2); background:var(--surface2); }
+.fullbar .t { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink3); }
+body.locked { overflow:hidden; }
+.vb { font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; letter-spacing:.06em;
+  padding:2px 6px; border:1px solid currentColor; }
+.v-GET{color:var(--blue)} .v-POST{color:var(--green)} .v-PATCH{color:var(--amber)}
+.v-DELETE{color:var(--rose)} .v-PUT{color:var(--violet)}
+.count { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink3); margin-left:auto; }
+
+.grid { display:grid; grid-template-columns:minmax(0,1fr) 400px; border:1px solid var(--rule2);
+  background:var(--surface); box-shadow:var(--shadow); }
+@media (max-width:1120px){ .grid { grid-template-columns:minmax(0,1fr); } }
+.board { overflow:auto; max-height:min(74vh,860px); }
+svg.board { display:block; }
+svg.board text { font-family:'IBM Plex Mono',monospace; }
+.lanehead { font-size:10px; fill:var(--ink); letter-spacing:.09em; text-transform:uppercase; font-weight:600; }
+.lanesub { font-size:8.5px; fill:var(--ink3); letter-spacing:.04em; }
+.rowbg { fill:transparent; }
+.rowbg.alt { fill:var(--sunk); }
+.rowbg.sel { fill:color-mix(in srgb, var(--amber) 12%, transparent); }
+.rline { stroke:var(--rule); stroke-width:1; }
+.lline { stroke:var(--rule); stroke-width:1; }
+.route { font-size:10.5px; fill:var(--ink); }
+.rcls { font-size:8.5px; fill:var(--ink3); }
+.track { stroke:var(--track); stroke-width:1.5; fill:none; }
+.st { stroke-width:1.5; }
+.stn { font-size:8px; fill:var(--paper); font-weight:600; }
+.via { fill:none; stroke:var(--ink2); stroke-width:1.2; stroke-dasharray:2 2; }
+.dot { stroke:var(--surface); stroke-width:1.2; }
+.rowg { cursor:pointer; }
+.rowg:hover .rowbg { fill:color-mix(in srgb, var(--ink) 6%, transparent); }
+svg.board.solo .rowg { opacity:.2; }
+svg.board.solo .rowg.sel { opacity:1; }
+.l0{fill:var(--l0)} .l1{fill:var(--l1)} .l2{fill:var(--l2)} .l3{fill:var(--l3)} .l4{fill:var(--l4)}
+.l5{fill:var(--l5)} .l6{fill:var(--l6)} .l7{fill:var(--l7)} .l8{fill:var(--l8)} .l9{fill:var(--l9)}
+.l10{fill:var(--l10)}
+.s0{stroke:var(--l0)} .s1{stroke:var(--l1)} .s2{stroke:var(--l2)} .s3{stroke:var(--l3)} .s4{stroke:var(--l4)}
+.s5{stroke:var(--l5)} .s6{stroke:var(--l6)} .s7{stroke:var(--l7)} .s8{stroke:var(--l8)} .s9{stroke:var(--l9)}
+.s10{stroke:var(--l10)}
+
+/* inspector */
+.insp { border-left:1px solid var(--rule2); padding:18px 20px; overflow:auto; max-height:min(74vh,860px); }
+@media (max-width:1120px){ .insp { border-left:0; border-top:1px solid var(--rule2); max-height:640px; } }
+.insp .empty { font-family:'Source Serif 4',Georgia,serif; font-style:italic; color:var(--ink3); }
+.ihead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+.iroute { font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; word-break:break-all; }
+.isub { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink3); word-break:break-all; margin-bottom:14px; }
+.ilab { font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink3); margin:18px 0 7px; padding-bottom:4px; border-bottom:1px solid var(--rule); }
+pre { margin:0; background:var(--code); border:1px solid var(--rule); padding:11px 13px;
+  overflow-x:auto; font-family:'IBM Plex Mono',monospace; font-size:10.5px; line-height:1.55;
+  color:var(--ink2); white-space:pre; }
+pre .k { color:var(--violet); } pre .d { color:var(--amber); } pre .s { color:var(--green); }
+.plist { list-style:none; margin:0; padding:0; }
+.plist li { font-family:'IBM Plex Mono',monospace; font-size:11px; padding:3px 0; color:var(--ink2);
+  display:flex; gap:7px; align-items:baseline; word-break:break-all; }
+.plist li b { color:var(--ink); font-weight:500; }
+.plist li i { font-style:normal; color:var(--amber); font-size:9px; }
+.tree { list-style:none; margin:0; padding:0; }
+.tree li { font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:4px 0 4px 0;
+  border-bottom:1px dotted var(--rule); word-break:break-all; }
+.tree li .kind { font-size:8.5px; letter-spacing:.06em; text-transform:uppercase; padding:1px 5px;
+  border:1px solid currentColor; margin-right:6px; }
+.tree li .cls { color:var(--ink); font-weight:500; }
+.tree li .sig { display:block; color:var(--ink3); margin-top:2px; }
+.k-service{color:var(--l2)} .k-aggregator{color:var(--l3)} .k-transaction-script{color:var(--l4)}
+.k-port{color:var(--l7)} .k-converter{color:var(--l5)} .k-other{color:var(--l8)}
+.k-repository{color:var(--l6)} .k-hydrator{color:var(--l6)} .k-remote-caller{color:var(--l6)}
+.k-responder{color:var(--l0)}
+table.fields { border-collapse:collapse; width:100%; font-family:'IBM Plex Mono',monospace; font-size:10.5px; }
+table.fields td { padding:3px 8px 3px 0; border-bottom:1px solid var(--rule); color:var(--ink2); vertical-align:top; }
+table.fields td.d { color:var(--amber); white-space:nowrap; }
+table.fields td.n { color:var(--ink); }
+
+.legend { display:flex; flex-wrap:wrap; gap:12px 18px; padding:11px 16px; border-top:1px solid var(--rule);
+  background:var(--surface2); }
+.lg { display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink2); }
+.lg i { width:9px; height:9px; border-radius:50%; display:block; }
+
+section { margin-top:52px; }
+.shead { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--rule2);
+  padding-bottom:9px; margin-bottom:20px; flex-wrap:wrap; }
+.shead h2 { font-size:22px; font-weight:600; letter-spacing:-.015em; margin:0; }
+.shead .num { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink3); letter-spacing:.1em; }
+.note { font-family:'Source Serif 4',Georgia,serif; font-size:16.5px; line-height:1.65; color:var(--ink2); max-width:68ch; }
+.note strong { color:var(--ink); font-weight:400;
+  box-shadow:inset 0 -0.5em 0 color-mix(in srgb, var(--amber) 18%, transparent); }
+.note + .note { margin-top:13px; }
+.cards { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); margin-top:20px; }
+.card { border:1px solid var(--rule2); border-left:4px solid var(--ink3); background:var(--surface);
+  padding:14px 16px; box-shadow:var(--shadow); }
+.card.warn { border-left-color:var(--amber); }
+.card.good { border-left-color:var(--green); }
+.card h3 { margin:0 0 6px; font-size:14.5px; font-weight:600; letter-spacing:-.01em; line-height:1.3; }
+.card p { margin:0; font-size:13.5px; color:var(--ink2); line-height:1.55; }
+.card ul { margin:8px 0 0; padding-left:16px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink3); }
+.card li { padding:1.5px 0; word-break:break-all; }
+footer { margin-top:64px; padding-top:20px; border-top:2px solid var(--ink); color:var(--ink3); }
+@media (prefers-reduced-motion:reduce) { .dot { display:none; } }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">28 endpoints · every hop parsed from source</p>
+  <h1>Omega Request Traffic</h1>
+  <p class="dek">One row per HTTP endpoint, one dot per request in flight. Each dot walks the path its request actually takes — the hops were found by following <span class="mono">this.x.y()</span> calls through real method bodies, not guessed from the folder layout. Click any row to open what the request is carrying at each stop.</p>
+</header>
+
+<div class="transport" id="transport">
+  <button class="btn on" id="play">⏸ pause</button>
+  <button class="btn" id="speed" data-s="1">1×</button>
+  <span class="sep"></span>
+  <span id="verbs"></span>
+  <span class="sep"></span>
+  <input id="q" type="search" placeholder="filter routes…" aria-label="Filter routes">
+  <span class="sep"></span>
+  <div class="seg" role="group" aria-label="Row density">
+    <button id="dCompact" title="Fit more rows on screen">compact</button>
+    <button id="dComfortable" class="on">comfortable</button>
+    <button id="dRoomy" title="Larger rows, easier to read">roomy</button>
+  </div>
+  <button class="btn" id="expand" title="Fill the screen (Esc to leave)">⤢ full screen</button>
+  <button class="btn" id="clear">reset</button>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="plate" id="plate">
+  <div class="fullbar" id="fullbar">
+    <span class="t" id="fullTitle"></span>
+    <span style="margin-left:auto"></span>
+    <button class="btn" id="fullPlay">⏸ pause</button>
+    <div class="seg" role="group" aria-label="Row density">
+      <button id="fCompact">compact</button>
+      <button id="fComfortable" class="on">comfortable</button>
+      <button id="fRoomy">roomy</button>
+    </div>
+    <button class="btn" id="fullExit">✕ exit full screen</button>
+  </div>
+  <div class="grid">
+    <div class="board" id="board"></div>
+    <aside class="insp" id="insp"></aside>
+  </div>
+</div>
+<div class="legend" id="legend" style="border:1px solid var(--rule2);border-top:0;background:var(--surface2)"></div>
+
+<section>
+  <div class="shead"><span class="num">01</span><h2>How to read a row</h2></div>
+  <p class="note">Every row starts at the entry point and ends wherever that request actually stops. The lanes are ordered the way the architecture is supposed to flow, so <strong>a row's silhouette is its conformance</strong>.</p>
+  <p class="note" data-narr="flow"></p>
+  <p class="note" data-narr="endpoints"></p>
+  <p class="note" data-narr="crossDomain"></p>
+  <div class="cards" id="obs"></div>
+</section>
+
+<section>
+  <div class="shead"><span class="num">02</span><h2>What the tracer can and cannot see</h2></div>
+  <p class="note">Hops come from resolving <span class="mono">this.&lt;prop&gt;.&lt;method&gt;()</span> inside each method body against that class's constructor injections, recursively to a depth of five. That is a real call graph, not an import graph — <strong>a class the action injects but never calls does not appear</strong>.</p>
+  <p class="note">Three limits worth stating. Calls made through a local variable rather than <span class="mono">this</span>, or dispatched dynamically, are invisible — <strong><span id="noCalls"></span></strong>. Branching is flattened: if a method calls two collaborators, both appear, though a given request might only take one. And recursion past five levels is cut off — the deepest real trace here is <span id="maxDepth"></span> levels deep.</p>
+</section>
+
+<footer>
+  <p class="note" style="font-size:14.5px">Parsed from <span class="mono">omega</span> · <span id="gen"></span> · <span id="footstats"></span>.</p>
+</footer>
+
+</div>
+
+<script id="flow" type="application/json">{"generatedAt":"2026-09-20T13:51:59.197Z","tiers":[{"i":0,"name":"Entry","sub":"HTTP / WS surface"},{"i":1,"name":"Contract","sub":"DTOs & commands"},{"i":2,"name":"Service","sub":"orchestration"},{"i":3,"name":"Aggregator","sub":"cross-domain"},{"i":4,"name":"Transaction Script","sub":"use-case logic"},{"i":5,"name":"Mapping","sub":"converters & mappers"},{"i":6,"name":"Persistence","sub":"repositories"},{"i":7,"name":"Domain Model","sub":"entities & ports"},{"i":8,"name":"Wiring","sub":"modules"},{"i":9,"name":"Platform","sub":"bootstrap & migrations"},{"i":10,"name":"Test","sub":"specs & fixtures"}],"endpoints":[{"id":"POST /auth/login#login","verb":"POST","route":"/auth/login","handler":"login","cls":"LoginAction","file":"auth/app/actions/login.action.ts","module":"auth","params":[{"deco":"Body","decoArg":"","name":"loginDto","type":"{ username: string; password: string }"},{"deco":"Req","decoArg":"","name":"req","type":"Request"}],"ret":"void","body":"    return this.authService.attemptLogin(\n      loginDto.username,\n      loginDto.password,\n      {\n        username: loginDto.username,\n        ip: req.ip ?? req.socket?.remoteAddress,\n        userAgent: req.headers['user-agent'],\n      }\n    );","dto":{"type":"username","file":null,"src":null},"returns":{"type":"void","file":null},"flat":[{"file":"auth/domain/auth.service.ts","cls":"AuthService","kind":"service","tier":2,"module":"auth","method":"attemptLogin","prop":"authService","sig":"attemptLogin(username: string, password: string, context: FailedLoginContext): Promise<{ access_token: string }>","depth":1,"inferred":false},{"file":"security-events/domain/aggregators/security-event.aggregator.ts","cls":"SecurityEventAggregator","kind":"aggregator","tier":3,"module":"security-events","method":"logFailedLogin","prop":"securityEventAggregator","sig":"logFailedLogin(context: FailedLoginContext): Promise<void>","depth":2,"inferred":false},{"file":"security-events/infra/repositories/security-event.repository.ts","cls":"SecurityEventRepository","kind":"repository","tier":6,"module":"security-events","method":"create","prop":"securityEventRepository","sig":"create(eventType: SecurityEventType, metadata: Record<string, unknown>): Promise<SecurityEvent>","depth":3,"inferred":false}]},{"id":"GET /calendar-events#apply","verb":"GET","route":"/calendar-events","handler":"apply","cls":"FetchCalendarEventsAction","file":"calendar-events/apps/actions/fetch-calendar-events-action/fetch-calendar-events.action.ts","module":"calendar-events","params":[{"deco":"Query","decoArg":"","name":"dto","type":"FetchCalendarEventsRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarEventResponseDto[]>","body":"    const now = new Date();\n    const startDate = dto.startDate\n      ? parseISO(dto.startDate)\n      : startOfWeekUTC(now);\n    const endDate = dto.endDate\n      ? parseISO(dto.endDate)\n      : endOfWeekUTC(now);\n    const command: FetchCalendarEventsCommand = {\n      userId: user.userId,\n      startDate,\n      endDate,\n      user,\n    };\n    const events = await this.calendarEventService.fetchCalendarEvents(command);\n\n    // Fetch reminders for all events\n    const eventIds = events.map(event => event.id);\n    const allReminders =","dto":null,"returns":{"type":"CalendarEventResponseDto","file":"calendar-events/apps/dtos/responses/calendar-event.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarEventResponseDto {\n  id: number;\n  calendarId: number;\n  userId: number;\n  title: string;\n  description?: string;\n  color?: string;\n  startDate: Date;\n  endDate: Date;\n  createdAt: Date;\n  updatedAt: Date;\n  isRecurring?: boolean;\n  recurringEventId?: number;\n  reminders?: EventReminderResponseDto[];\n\n  constructor(event: CalendarEvent, reminders?: EventReminderResponseDto[]) {\n    this.id = event.id;\n    this.calendarId = event.calendarId;\n    this.userId = event.userId;\n    this.title = event.title;\n    this.description = event.description;\n    this.color = event.color;\n    this.startDate = event.startDate;\n    this.endDate = event.endDate;\n    this.createdAt = event.createdAt;\n    this.updatedAt = event.updatedAt;\n    this.isRecurring = event.recurringEventId !== null;\n    this.recurringEventId = event.recurringEventId;\n    this.reminders = reminders;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"fetchCalendarEvents","prop":"calendarEventService","sig":"fetchCalendarEvents(command: FetchCalendarEventsCommand): Promise<CalendarEvent[]>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/fetch-recurring-events-TS/fetch-recurring-events.transaction.script.ts","cls":"FetchRecurringEventsTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"fetchRecurringEventsTransactionScript","sig":"apply(calendarIds: number[]): Promise<RecurringEvent[]>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/recurring-event.repository.ts","cls":"RecurringEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByCalendarIds","prop":"recurringEventRepository","sig":"findByCalendarIds(calendarIds: number[]): Promise<RecurringEventEntity[]>","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-domain.converter.ts","cls":"RecurringEventToDomainConverter","kind":"converter","tier":5,"module":"calendar-events","method":"apply","prop":"recurringEventToDomainConverter","sig":"apply(infra: RecurringEventEntity): RecurringEvent","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/generate-event-instances-TS/generate-event-instances.transaction.script.ts","cls":"GenerateEventInstancesTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"generateEventInstancesTransactionScript","sig":"apply(recurringEvent: RecurringEvent, rangeStart: Date, rangeEnd: Date): Promise<CalendarEvent[]>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByRecurringEventId","prop":"calendarEventRepository","sig":"findByRecurringEventId(recurringEventId: number): Promise<CalendarEvent[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/recurrence-exception.repository.ts","cls":"RecurrenceExceptionRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByRecurringEventId","prop":"recurrenceExceptionRepository","sig":"findByRecurringEventId(recurringEventId: number): Promise<RecurrenceException[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"createInstance","prop":"calendarEventRepository","sig":"createInstance(event: Partial<CalendarEvent>): Promise<CalendarEvent>","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/fetch-calendar-events-TS/fetch-calendar-events.transaction.script.ts","cls":"FetchCalendarEventsTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"fetchCalendarEventsTransactionScript","sig":"apply(command: FetchCalendarEventsCommand, calendarIds: number[]): Promise<CalendarEvent[]>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByDateRange","prop":"calendarEventRepository","sig":"findByDateRange(calendarIds: number[], startDate: Date, endDate: Date): Promise<CalendarEvent[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByEventIds","prop":"eventReminderRepository","sig":"findByEventIds(calendarEventIds: number[]): Promise<EventReminder[]>","depth":1,"inferred":false}]},{"id":"POST /calendar-events#apply","verb":"POST","route":"/calendar-events","handler":"apply","cls":"CreateCalendarEventAction","file":"calendar-events/apps/actions/create-calendar-event-action/create-calendar-event.action.ts","module":"calendar-events","params":[{"deco":"Body","decoArg":"","name":"dto","type":"CreateCalendarEventRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarEventResponseDto>","body":"    const command: CreateCalendarEventCommand = {\n      title: dto.title,\n      description: dto.description,\n      color: dto.color,\n      startDate: new Date(dto.startDate),\n      endDate: new Date(dto.endDate),\n      user,\n      reminderMinutes: dto.reminderMinutes,\n      calendarId: dto.calendarId,\n    };\n    const event = await this.calendarEventService.createCalendarEvent(command);\n    return new CalendarEventResponseDto(event);","dto":{"type":"CreateCalendarEventRequestDto","file":"calendar-events/apps/actions/create-calendar-event-action/dtos/requests/create-calendar-event.dto.ts","src":"export class CreateCalendarEventRequestDto {\n  @IsString()\n  @IsNotEmpty()\n  @MaxLength(255)\n  title: string;\n\n  @IsString()\n  @IsOptional()\n  description?: string;\n\n  @IsString()\n  @IsOptional()\n  @MaxLength(20)\n  color?: string;\n\n  @IsDateString()\n  @IsNotEmpty()\n  startDate: string;\n\n  @IsDateString()\n  @IsNotEmpty()\n  endDate: string;\n\n  /** Offsets in minutes before the event start, one per reminder. */\n  @IsOptional()\n  @IsArray()\n  @ArrayMaxSize(MAX_REMINDERS_PER_EVENT)\n  @Type(() => Number)\n  @IsInt({ each: true })\n  @Min(0, { each: true })\n  @Max(MAX_REMINDER_MINUTES, { each: true })\n  reminderMinutes?: number[];\n\n  @IsOptional()\n  @Type(() => Number)\n  @IsInt()\n  @Min(1)\n  calendarId?: number;\n}"},"returns":{"type":"CalendarEventResponseDto","file":"calendar-events/apps/dtos/responses/calendar-event.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarEventResponseDto {\n  id: number;\n  calendarId: number;\n  userId: number;\n  title: string;\n  description?: string;\n  color?: string;\n  startDate: Date;\n  endDate: Date;\n  createdAt: Date;\n  updatedAt: Date;\n  isRecurring?: boolean;\n  recurringEventId?: number;\n  reminders?: EventReminderResponseDto[];\n\n  constructor(event: CalendarEvent, reminders?: EventReminderResponseDto[]) {\n    this.id = event.id;\n    this.calendarId = event.calendarId;\n    this.userId = event.userId;\n    this.title = event.title;\n    this.description = event.description;\n    this.color = event.color;\n    this.startDate = event.startDate;\n    this.endDate = event.endDate;\n    this.createdAt = event.createdAt;\n    this.updatedAt = event.updatedAt;\n    this.isRecurring = event.recurringEventId !== null;\n    this.recurringEventId = event.recurringEventId;\n    this.reminders = reminders;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"createCalendarEvent","prop":"calendarEventService","sig":"createCalendarEvent(command: CreateCalendarEventCommand): Promise<CalendarEvent>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/create-calendar-event-TS/create-calendar-event.transaction.script.ts","cls":"CreateCalendarEventTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"createCalendarEventTransactionScript","sig":"apply(command: CreateCalendarEventCommand, manager?: EntityManager): Promise<CalendarEvent>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"create","prop":"calendarEventRepository","sig":"create(event: Partial<CalendarEvent>, manager?: EntityManager): Promise<CalendarEvent>","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script.ts","cls":"CreateEventReminderTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"createEventReminderTransactionScript","sig":"apply(command: CreateEventReminderCommand, calendarIds: number[], manager?: EntityManager): Promise<EventReminder>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByEventId","prop":"eventReminderRepository","sig":"findByEventId(calendarEventId: number, manager?: EntityManager): Promise<EventReminder[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"create","prop":"eventReminderRepository","sig":"create(reminder: Partial<EventReminder>, manager?: EntityManager): Promise<EventReminder>","depth":3,"inferred":false}]},{"id":"DELETE /calendar-events/:eventId/reminders/:reminderId#apply","verb":"DELETE","route":"/calendar-events/:eventId/reminders/:reminderId","handler":"apply","cls":"DeleteEventReminderAction","file":"calendar-events/apps/actions/delete-event-reminder-action/delete-event-reminder.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"reminderId, ParseIntPipe","name":"reminderId","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<{ success: boolean }>","body":"    const command: DeleteEventReminderCommand = {\n      reminderId,\n      user,\n    };\n    await this.calendarEventService.deleteReminder(command);\n    return { success: true };","dto":null,"returns":{"type":"success","file":null},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"deleteReminder","prop":"calendarEventService","sig":"deleteReminder(command: DeleteEventReminderCommand): Promise<void>","depth":1,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"eventReminderRepository","sig":"findById(id: number): Promise<EventReminder | null>","depth":2,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/delete-event-reminder-TS/delete-event-reminder.transaction.script.ts","cls":"DeleteEventReminderTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"deleteEventReminderTransactionScript","sig":"apply(command: DeleteEventReminderCommand, calendarIds: number[]): Promise<void>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"delete","prop":"eventReminderRepository","sig":"delete(id: number, manager?: EntityManager): Promise<void>","depth":3,"inferred":false}]},{"id":"PUT /calendar-events/:eventId/reminders/:reminderId#apply","verb":"PUT","route":"/calendar-events/:eventId/reminders/:reminderId","handler":"apply","cls":"UpdateEventReminderAction","file":"calendar-events/apps/actions/update-event-reminder-action/update-event-reminder.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"reminderId, ParseIntPipe","name":"reminderId","type":"number"},{"deco":"Body","decoArg":"","name":"dto","type":"UpdateEventReminderRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<EventReminderResponseDto>","body":"    return new EventReminderResponseDto(\n      await this.calendarEventService.updateReminder({\n        reminderId,\n        reminderMinutes: dto.reminderMinutes,\n        user,\n      })\n    );","dto":{"type":"UpdateEventReminderRequestDto","file":"calendar-events/apps/actions/update-event-reminder-action/dtos/requests/update-event-reminder.dto.ts","src":"export class UpdateEventReminderRequestDto {\n  @IsInt()\n  @IsNotEmpty()\n  @Min(0)\n  reminderMinutes: number;\n}"},"returns":{"type":"EventReminderResponseDto","file":"calendar-events/apps/actions/update-event-reminder-action/dtos/responses/event-reminder.response.dto.ts","kind":"dto","fields":null,"src":"export class EventReminderResponseDto {\n  id: number;\n  calendarEventId: number;\n  reminderMinutes: number;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(reminder: EventReminder) {\n    this.id = reminder.id;\n    this.calendarEventId = reminder.calendarEventId;\n    this.reminderMinutes = reminder.reminderMinutes;\n    this.createdAt = reminder.createdAt;\n    this.updatedAt = reminder.updatedAt;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"updateReminder","prop":"calendarEventService","sig":"updateReminder(command: UpdateEventReminderCommand): Promise<EventReminder>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.transaction.script.ts","cls":"UpdateEventReminderTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"updateEventReminderTransactionScript","sig":"apply(command: UpdateEventReminderCommand, calendarIds: number[]): Promise<EventReminder>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"eventReminderRepository","sig":"findById(id: number): Promise<EventReminder | null>","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator.ts","cls":"UpdateEventReminderValidator","kind":"other","tier":8,"module":"calendar-events","method":"validateReminderExists","prop":"validator","sig":"validateReminderExists(reminder: EventReminder | null): void","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator.ts","cls":"UpdateEventReminderValidator","kind":"other","tier":8,"module":"calendar-events","method":"validateCalendarEventExists","prop":"validator","sig":"validateCalendarEventExists(event: CalendarEvent | null): void","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator.ts","cls":"UpdateEventReminderValidator","kind":"other","tier":8,"module":"calendar-events","method":"validateReminderMinutesArePositive","prop":"validator","sig":"validateReminderMinutesArePositive(reminderMinutes: number): void","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByEventId","prop":"eventReminderRepository","sig":"findByEventId(calendarEventId: number, manager?: EntityManager): Promise<EventReminder[]>","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator.ts","cls":"UpdateEventReminderValidator","kind":"other","tier":8,"module":"calendar-events","method":"validateNoDuplicateReminder","prop":"validator","sig":"validateNoDuplicateReminder(existingReminders: EventReminder[], reminderId: number, reminderMinutes: number): void","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"update","prop":"eventReminderRepository","sig":"update(id: number, updates: Partial<EventReminder>): Promise<EventReminder>","depth":3,"inferred":false}]},{"id":"DELETE /calendar-events/:id#apply","verb":"DELETE","route":"/calendar-events/:id","handler":"apply","cls":"DeleteCalendarEventAction","file":"calendar-events/apps/actions/delete-calendar-event-action/delete-calendar-event.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<{ success: boolean }>","body":"    const command: DeleteCalendarEventCommand = {\n      eventId: id,\n      user,\n    };\n    await this.calendarEventService.deleteCalendarEvent(command);\n    return { success: true };","dto":null,"returns":{"type":"success","file":null},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"deleteCalendarEvent","prop":"calendarEventService","sig":"deleteCalendarEvent(command: DeleteCalendarEventCommand): Promise<void>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/delete-calendar-event-TS/delete-calendar-event.transaction.script.ts","cls":"DeleteCalendarEventTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"deleteCalendarEventTransactionScript","sig":"apply(command: DeleteCalendarEventCommand, calendarIds: number[]): Promise<void>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/recurring-event.repository.ts","cls":"RecurringEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"recurringEventRepository","sig":"findById(id: number, userId: number): Promise<RecurringEventEntity | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/recurrence-exception.repository.ts","cls":"RecurrenceExceptionRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByRecurringEventId","prop":"recurrenceExceptionRepository","sig":"findByRecurringEventId(recurringEventId: number): Promise<RecurrenceException[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/recurrence-exception.repository.ts","cls":"RecurrenceExceptionRepository","kind":"repository","tier":6,"module":"calendar-events","method":"create","prop":"recurrenceExceptionRepository","sig":"create(exception: Partial<RecurrenceException>): Promise<RecurrenceException>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"delete","prop":"calendarEventRepository","sig":"delete(id: number, calendarIds: number[]): Promise<void>","depth":3,"inferred":false}]},{"id":"GET /calendar-events/:id#apply","verb":"GET","route":"/calendar-events/:id","handler":"apply","cls":"FetchCalendarEventAction","file":"calendar-events/apps/actions/fetch-calendar-event-action/fetch-calendar-event.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarEventResponseDto>","body":"    const command: FetchCalendarEventCommand = {\n      eventId: id,\n      user,\n    };\n    const event =\n      await this.calendarEventService.fetchCalendarEventById(command);\n\n    // Fetch reminders for this event\n    const reminders = await this.eventReminderRepository.findByEventId(\n      event.id\n    );\n    const reminderDtos = reminders.map(r => new EventReminderResponseDto(r));\n\n    return new CalendarEventResponseDto(event, reminderDtos);","dto":null,"returns":{"type":"CalendarEventResponseDto","file":"calendar-events/apps/dtos/responses/calendar-event.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarEventResponseDto {\n  id: number;\n  calendarId: number;\n  userId: number;\n  title: string;\n  description?: string;\n  color?: string;\n  startDate: Date;\n  endDate: Date;\n  createdAt: Date;\n  updatedAt: Date;\n  isRecurring?: boolean;\n  recurringEventId?: number;\n  reminders?: EventReminderResponseDto[];\n\n  constructor(event: CalendarEvent, reminders?: EventReminderResponseDto[]) {\n    this.id = event.id;\n    this.calendarId = event.calendarId;\n    this.userId = event.userId;\n    this.title = event.title;\n    this.description = event.description;\n    this.color = event.color;\n    this.startDate = event.startDate;\n    this.endDate = event.endDate;\n    this.createdAt = event.createdAt;\n    this.updatedAt = event.updatedAt;\n    this.isRecurring = event.recurringEventId !== null;\n    this.recurringEventId = event.recurringEventId;\n    this.reminders = reminders;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"fetchCalendarEventById","prop":"calendarEventService","sig":"fetchCalendarEventById(command: FetchCalendarEventCommand): Promise<CalendarEvent>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/fetch-calendar-event-TS/fetch-calendar-event.transaction.script.ts","cls":"FetchCalendarEventTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"fetchCalendarEventTransactionScript","sig":"apply(command: FetchCalendarEventCommand, calendarIds: number[]): Promise<CalendarEvent>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByEventId","prop":"eventReminderRepository","sig":"findByEventId(calendarEventId: number, manager?: EntityManager): Promise<EventReminder[]>","depth":1,"inferred":false}]},{"id":"PUT /calendar-events/:id#apply","verb":"PUT","route":"/calendar-events/:id","handler":"apply","cls":"UpdateCalendarEventAction","file":"calendar-events/apps/actions/update-calendar-event-action/update-calendar-event.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"Body","decoArg":"","name":"dto","type":"UpdateCalendarEventRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarEventResponseDto>","body":"    const command: UpdateCalendarEventCommand = {\n      eventId: id,\n      title: dto.title,\n      description: dto.description,\n      color: dto.color,\n      startDate: new Date(dto.startDate),\n      endDate: new Date(dto.endDate),\n      user,\n    };\n    const event = await this.calendarEventService.updateCalendarEvent(command);\n    return new CalendarEventResponseDto(event);","dto":{"type":"UpdateCalendarEventRequestDto","file":"calendar-events/apps/actions/update-calendar-event-action/dtos/requests/update-calendar-event.dto.ts","src":"export class UpdateCalendarEventRequestDto {\n  @IsString()\n  @IsNotEmpty()\n  @MaxLength(255)\n  title: string;\n\n  @IsString()\n  @IsOptional()\n  description?: string;\n\n  @IsString()\n  @IsOptional()\n  @MaxLength(20)\n  color?: string;\n\n  @IsDateString()\n  @IsNotEmpty()\n  startDate: string;\n\n  @IsDateString()\n  @IsNotEmpty()\n  endDate: string;\n}"},"returns":{"type":"CalendarEventResponseDto","file":"calendar-events/apps/dtos/responses/calendar-event.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarEventResponseDto {\n  id: number;\n  calendarId: number;\n  userId: number;\n  title: string;\n  description?: string;\n  color?: string;\n  startDate: Date;\n  endDate: Date;\n  createdAt: Date;\n  updatedAt: Date;\n  isRecurring?: boolean;\n  recurringEventId?: number;\n  reminders?: EventReminderResponseDto[];\n\n  constructor(event: CalendarEvent, reminders?: EventReminderResponseDto[]) {\n    this.id = event.id;\n    this.calendarId = event.calendarId;\n    this.userId = event.userId;\n    this.title = event.title;\n    this.description = event.description;\n    this.color = event.color;\n    this.startDate = event.startDate;\n    this.endDate = event.endDate;\n    this.createdAt = event.createdAt;\n    this.updatedAt = event.updatedAt;\n    this.isRecurring = event.recurringEventId !== null;\n    this.recurringEventId = event.recurringEventId;\n    this.reminders = reminders;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"updateCalendarEvent","prop":"calendarEventService","sig":"updateCalendarEvent(command: UpdateCalendarEventCommand): Promise<CalendarEvent>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/update-calendar-event-TS/update-calendar-event.transaction.script.ts","cls":"UpdateCalendarEventTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"updateCalendarEventTransactionScript","sig":"apply(command: UpdateCalendarEventCommand, calendarIds: number[]): Promise<CalendarEvent>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"update","prop":"calendarEventRepository","sig":"update(id: number, calendarIds: number[], updates: Partial<CalendarEvent>): Promise<CalendarEvent>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"resetSentAtByEventId","prop":"eventReminderRepository","sig":"resetSentAtByEventId(calendarEventId: number, manager?: EntityManager): Promise<void>","depth":3,"inferred":false}]},{"id":"GET /calendar-events/:id/reminders#apply","verb":"GET","route":"/calendar-events/:id/reminders","handler":"apply","cls":"FetchEventRemindersAction","file":"calendar-events/apps/actions/fetch-event-reminders-action/fetch-event-reminders.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<EventReminderResponseDto[]>","body":"    const command: FetchEventRemindersCommand = {\n      calendarEventId: id,\n      user,\n    };\n    const reminders =\n      await this.calendarEventService.getRemindersForEvent(command);\n    return reminders.map(reminder => new EventReminderResponseDto(reminder));","dto":null,"returns":{"type":"EventReminderResponseDto","file":"calendar-events/apps/actions/fetch-event-reminders-action/dtos/responses/event-reminder.response.dto.ts","kind":"dto","fields":null,"src":"export class EventReminderResponseDto {\n  id: number;\n  calendarEventId: number;\n  reminderMinutes: number;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(reminder: EventReminder) {\n    this.id = reminder.id;\n    this.calendarEventId = reminder.calendarEventId;\n    this.reminderMinutes = reminder.reminderMinutes;\n    this.createdAt = reminder.createdAt;\n    this.updatedAt = reminder.updatedAt;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"getRemindersForEvent","prop":"calendarEventService","sig":"getRemindersForEvent(command: FetchEventRemindersCommand): Promise<EventReminder[]>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.transaction.script.ts","cls":"FetchEventRemindersTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"fetchEventRemindersTransactionScript","sig":"apply(command: FetchEventRemindersCommand, calendarIds: number[]): Promise<EventReminder[]>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByEventId","prop":"eventReminderRepository","sig":"findByEventId(calendarEventId: number, manager?: EntityManager): Promise<EventReminder[]>","depth":3,"inferred":false}]},{"id":"POST /calendar-events/:id/reminders#apply","verb":"POST","route":"/calendar-events/:id/reminders","handler":"apply","cls":"CreateEventReminderAction","file":"calendar-events/apps/actions/create-event-reminder-action/create-event-reminder.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"Body","decoArg":"","name":"dto","type":"CreateEventReminderRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<EventReminderResponseDto>","body":"    const command: CreateEventReminderCommand = {\n      calendarEventId: id,\n      reminderMinutes: dto.reminderMinutes,\n      user,\n    };\n    const reminder = await this.calendarEventService.createReminder(command);\n    return new EventReminderResponseDto(reminder);","dto":{"type":"CreateEventReminderRequestDto","file":"calendar-events/apps/actions/create-event-reminder-action/dtos/requests/create-event-reminder.dto.ts","src":"export class CreateEventReminderRequestDto {\n  @IsInt()\n  @IsNotEmpty()\n  @Min(0)\n  reminderMinutes: number;\n}"},"returns":{"type":"EventReminderResponseDto","file":"calendar-events/apps/actions/create-event-reminder-action/dtos/responses/event-reminder.response.dto.ts","kind":"dto","fields":null,"src":"export class EventReminderResponseDto {\n  id: number;\n  calendarEventId: number;\n  reminderMinutes: number;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(reminder: EventReminder) {\n    this.id = reminder.id;\n    this.calendarEventId = reminder.calendarEventId;\n    this.reminderMinutes = reminder.reminderMinutes;\n    this.createdAt = reminder.createdAt;\n    this.updatedAt = reminder.updatedAt;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"createReminder","prop":"calendarEventService","sig":"createReminder(command: CreateEventReminderCommand): Promise<EventReminder>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script.ts","cls":"CreateEventReminderTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"createEventReminderTransactionScript","sig":"apply(command: CreateEventReminderCommand, calendarIds: number[], manager?: EntityManager): Promise<EventReminder>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByEventId","prop":"eventReminderRepository","sig":"findByEventId(calendarEventId: number, manager?: EntityManager): Promise<EventReminder[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"create","prop":"eventReminderRepository","sig":"create(reminder: Partial<EventReminder>, manager?: EntityManager): Promise<EventReminder>","depth":3,"inferred":false}]},{"id":"PUT /calendar-events/:id/reminders#apply","verb":"PUT","route":"/calendar-events/:id/reminders","handler":"apply","cls":"SyncEventRemindersAction","file":"calendar-events/apps/actions/sync-event-reminders-action/sync-event-reminders.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"Body","decoArg":"","name":"dto","type":"SyncEventRemindersRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<EventReminderResponseDto[]>","body":"    const command: SyncEventRemindersCommand = {\n      calendarEventId: id,\n      reminderMinutes: dto.reminderMinutes,\n      user,\n    };\n    const reminders = await this.calendarEventService.syncReminders(command);\n    return reminders.map(reminder => new EventReminderResponseDto(reminder));","dto":{"type":"SyncEventRemindersRequestDto","file":"calendar-events/apps/actions/sync-event-reminders-action/dtos/requests/sync-event-reminders.dto.ts","src":"export class SyncEventRemindersRequestDto {\n  /**\n   * The complete desired set of offsets, in minutes before the event starts.\n   * An empty array removes every reminder. Duplicates are collapsed.\n   */\n  @IsArray()\n  @ArrayMaxSize(MAX_REMINDERS_PER_EVENT)\n  @IsInt({ each: true })\n  @Min(0, { each: true })\n  @Max(MAX_REMINDER_MINUTES, { each: true })\n  reminderMinutes: number[];\n}"},"returns":{"type":"EventReminderResponseDto","file":"calendar-events/apps/actions/sync-event-reminders-action/dtos/responses/event-reminder.response.dto.ts","kind":"dto","fields":null,"src":"export class EventReminderResponseDto {\n  id: number;\n  calendarEventId: number;\n  reminderMinutes: number;\n  sentAt?: Date | null;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(reminder: EventReminder) {\n    this.id = reminder.id;\n    this.calendarEventId = reminder.calendarEventId;\n    this.reminderMinutes = reminder.reminderMinutes;\n    this.sentAt = reminder.sentAt;\n    this.createdAt = reminder.createdAt;\n    this.updatedAt = reminder.updatedAt;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"syncReminders","prop":"calendarEventService","sig":"syncReminders(command: SyncEventRemindersCommand): Promise<EventReminder[]>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/sync-event-reminders-TS/sync-event-reminders.transaction.script.ts","cls":"SyncEventRemindersTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"syncEventRemindersTransactionScript","sig":"apply(command: SyncEventRemindersCommand, calendarIds: number[], manager?: EntityManager): Promise<EventReminder[]>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"calendarEventRepository","sig":"findById(id: number, calendarIds: number[], manager?: EntityManager): Promise<CalendarEvent | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByEventId","prop":"eventReminderRepository","sig":"findByEventId(calendarEventId: number, manager?: EntityManager): Promise<EventReminder[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"delete","prop":"eventReminderRepository","sig":"delete(id: number, manager?: EntityManager): Promise<void>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/event-reminder.repository.ts","cls":"EventReminderRepository","kind":"repository","tier":6,"module":"calendar-events","method":"create","prop":"eventReminderRepository","sig":"create(reminder: Partial<EventReminder>, manager?: EntityManager): Promise<EventReminder>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"markRemindersCustomized","prop":"calendarEventRepository","sig":"markRemindersCustomized(id: number, manager?: EntityManager): Promise<void>","depth":3,"inferred":false}]},{"id":"POST /calendar-events/recurring#apply","verb":"POST","route":"/calendar-events/recurring","handler":"apply","cls":"CreateRecurringEventAction","file":"calendar-events/apps/actions/create-recurring-event-action/create-recurring-event.action.ts","module":"calendar-events","params":[{"deco":"Body","decoArg":"","name":"dto","type":"CreateRecurringEventRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<RecurringEventResponseDtoClass>","body":"    const command: CreateRecurringEventCommand = {\n      title: dto.title,\n      description: dto.description,\n      color: dto.color,\n      startDate: new Date(dto.startDate),\n      endDate: new Date(dto.endDate),\n      recurrencePattern: {\n        type: dto.recurrencePattern.type,\n        interval: dto.recurrencePattern.interval,\n        daysOfWeek: dto.recurrencePattern.daysOfWeek,\n        dayOfMonth: dto.recurrencePattern.dayOfMonth,\n        monthOfYear: dto.recurrencePattern.monthOfYear,\n      },\n      recurrenceEndDate: dto.recurrenceEndDate\n        ? new Date(dto.recurrenceEndDate)\n        : undefined,\n      noEndDate: dto.noEndDate,\n      reminderMinutes: dto.reminderMinutes,","dto":{"type":"CreateRecurringEventRequestDto","file":"calendar-events/apps/actions/create-recurring-event-action/dtos/requests/create-recurring-event.dto.ts","src":"export class IsEndDateAfterStartDateConstraint\n  implements ValidatorConstraintInterface\n{\n  validate(endDate: string, args: ValidationArguments): boolean {\n    const startDate = (args.object as CreateRecurringEventRequestDto).startDate;\n    if (!startDate || !endDate) {\n      return true;\n    }\n    return new Date(endDate) > new Date(startDate);\n  }\n\n  defaultMessage(): string {\n    return 'End date must be after start date';\n  }\n}"},"returns":{"type":"RecurringEventResponseDtoClass","file":"calendar-events/apps/dtos/responses/recurring-event.response.dto.ts","kind":"dto","fields":null,"src":"export class RecurringEventResponseDtoClass {\n  id: number;\n  userId: number;\n  title: string;\n  description?: string;\n  color?: string;\n  startDate: Date;\n  endDate: Date;\n  recurrencePattern: RecurrencePatternResponseDto;\n  recurrenceEndDate?: Date;\n  noEndDate: boolean;\n  reminderMinutes?: number;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(event: RecurringEvent) {\n    this.id = event.id;\n    this.userId = event.userId;\n    this.title = event.title;\n    this.description = event.description;\n    this.color = event.color;\n    this.startDate = event.startDate;\n    this.endDate = event.endDate;\n    this.recurrencePattern = {\n      type: event.recurrencePattern.type,\n      interval: event.recurrencePattern.interval,\n      daysOfWeek: event.recurrencePattern.daysOfWeek,\n      dayOfMonth: event.recurrencePattern.dayOfMonth,\n      monthOfYear: event.recurrencePattern.monthOfYear,\n    };\n    this.recurrenceEndDate = event.recurrenceEndDate;\n    this.noEndDate = event.noEndDate;\n    this.reminderMinutes = event.reminderMinutes;\n    this.createdAt = event.createdAt;\n    this.updatedAt = event.updatedAt;\n  }\n}"},"flat":[{"file":"calendar-events/domain/services/recurring-event.service.ts","cls":"RecurringEventService","kind":"service","tier":2,"module":"calendar-events","method":"createRecurringEvent","prop":"recurringEventService","sig":"createRecurringEvent(command: CreateRecurringEventCommand): Promise<RecurringEvent>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/create-recurring-event.transaction.script.ts","cls":"CreateRecurringEventTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"createRecurringEventTransactionScript","sig":"apply(command: CreateRecurringEventCommand): Promise<RecurringEvent>","depth":2,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-infrastructure.converter.ts","cls":"RecurringEventToInfrastructureConverter","kind":"converter","tier":5,"module":"calendar-events","method":"apply","prop":"toInfrastructureConverter","sig":"apply(domain: Partial<RecurringEvent>, rruleString: string): Partial<RecurringEventEntity>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/recurring-event.repository.ts","cls":"RecurringEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"create","prop":"recurringEventRepository","sig":"create(entity: Partial<RecurringEventEntity>): Promise<RecurringEventEntity>","depth":3,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-domain.converter.ts","cls":"RecurringEventToDomainConverter","kind":"converter","tier":5,"module":"calendar-events","method":"apply","prop":"toDomainConverter","sig":"apply(infra: RecurringEventEntity): RecurringEvent","depth":3,"inferred":false}]},{"id":"DELETE /calendar-events/recurring/:id#apply","verb":"DELETE","route":"/calendar-events/recurring/:id","handler":"apply","cls":"DeleteRecurringEventAction","file":"calendar-events/apps/actions/delete-recurring-event-action/delete-recurring-event.action.ts","module":"calendar-events","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<{ success: boolean }>","body":"    const command: DeleteRecurringEventCommand = {\n      recurringEventId: id,\n      user,\n    };\n    await this.recurringEventService.deleteRecurringEvent(command);\n    return { success: true };","dto":null,"returns":{"type":"success","file":null},"flat":[{"file":"calendar-events/domain/services/recurring-event.service.ts","cls":"RecurringEventService","kind":"service","tier":2,"module":"calendar-events","method":"deleteRecurringEvent","prop":"recurringEventService","sig":"deleteRecurringEvent(command: DeleteRecurringEventCommand): Promise<void>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/delete-recurring-event-TS/delete-recurring-event.transaction.script.ts","cls":"DeleteRecurringEventTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"deleteRecurringEventTransactionScript","sig":"apply(command: DeleteRecurringEventCommand, calendarIds: number[]): Promise<void>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/recurring-event.repository.ts","cls":"RecurringEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findById","prop":"recurringEventRepository","sig":"findById(id: number, userId: number): Promise<RecurringEventEntity | null>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"findByRecurringEventId","prop":"calendarEventRepository","sig":"findByRecurringEventId(recurringEventId: number): Promise<CalendarEvent[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"delete","prop":"calendarEventRepository","sig":"delete(id: number, calendarIds: number[]): Promise<void>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/recurring-event.repository.ts","cls":"RecurringEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"delete","prop":"recurringEventRepository","sig":"delete(id: number, userId: number): Promise<void>","depth":3,"inferred":false}]},{"id":"GET /calendar-events/search#apply","verb":"GET","route":"/calendar-events/search","handler":"apply","cls":"SearchCalendarEventsAction","file":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.action.ts","module":"calendar-events","params":[{"deco":"Query","decoArg":"","name":"dto","type":"SearchCalendarEventsRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<SearchCalendarEventsResultDto[]>","body":"    const query = dto.query.trim();\n    if (query.length < 2) {\n      throw new BadRequestException('Query must be at least 2 characters');\n    }\n    const command: SearchCalendarEventsCommand = { query, user };\n    const results = await this.calendarEventService.searchCalendarEvents(\n      command\n    );\n    return this.searchCalendarEventsResponder.apply(results);","dto":null,"returns":{"type":"SearchCalendarEventsResultDto","file":"calendar-events/apps/dtos/responses/search-calendar-events.response.dto.ts","kind":"dto","fields":null,"src":"export class OneTimeEventSearchResultDto {\n  kind: 'one-time' = 'one-time';\n  eventId: number;\n  calendarId: number;\n  title: string;\n  color?: string;\n  startDate: Date;\n  endDate: Date;\n}"},"flat":[{"file":"calendar-events/domain/services/calendar-event.service.ts","cls":"CalendarEventService","kind":"service","tier":2,"module":"calendar-events","method":"searchCalendarEvents","prop":"calendarEventService","sig":"searchCalendarEvents(command: SearchCalendarEventsCommand): Promise<CalendarEventSearchResult[]>","depth":1,"inferred":false},{"file":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.transaction.script.ts","cls":"SearchCalendarEventsTransactionScript","kind":"transaction-script","tier":4,"module":"calendar-events","method":"apply","prop":"searchCalendarEventsTransactionScript","sig":"apply(command: SearchCalendarEventsCommand, calendarIds: number[]): Promise<CalendarEventSearchResult[]>","depth":2,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"searchOneTimeEvents","prop":"calendarEventRepository","sig":"searchOneTimeEvents(calendarIds: number[], query: string): Promise<CalendarEvent[]>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/recurring-event.repository.ts","cls":"RecurringEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"searchSeries","prop":"recurringEventRepository","sig":"searchSeries(calendarIds: number[], query: string): Promise<RecurringEventEntity[]>","depth":3,"inferred":false},{"file":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.responder.ts","cls":"SearchCalendarEventsResponder","kind":"responder","tier":0,"module":"calendar-events","method":"apply","prop":"searchCalendarEventsResponder","sig":"apply(results: CalendarEventSearchResult[]): SearchCalendarEventsResultDto[]","depth":1,"inferred":false}]},{"id":"GET /calendar-invitations#apply","verb":"GET","route":"/calendar-invitations","handler":"apply","cls":"FetchInvitationsAction","file":"calendars/apps/actions/fetch-invitations-action/fetch-invitations.action.ts","module":"calendars","params":[{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<PendingInvitationResponseDto[]>","body":"    const invitations = await this.calendarSharingService.fetchInvitations(\n      user.userId\n    );\n    return invitations.map(\n      invitation => new PendingInvitationResponseDto(invitation)\n    );","dto":null,"returns":{"type":"PendingInvitationResponseDto","file":"calendars/apps/dtos/responses/pending-invitation.response.dto.ts","kind":"dto","fields":null,"src":"export class PendingInvitationResponseDto {\n  id: number;\n  calendarId: number;\n  calendarName: string;\n  inviterUsername: string;\n  createdAt: Date;\n\n  constructor(projection: PendingInvitationProjection) {\n    this.id = projection.id;\n    this.calendarId = projection.calendarId;\n    this.calendarName = projection.calendarName;\n    this.inviterUsername = projection.inviterUsername;\n    this.createdAt = projection.createdAt;\n  }\n}"},"flat":[{"file":"calendars/domain/services/calendar-sharing.service.ts","cls":"CalendarSharingService","kind":"service","tier":2,"module":"calendars","method":"fetchInvitations","prop":"calendarSharingService","sig":"fetchInvitations(userId: number): Promise<PendingInvitationProjection[]>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/fetch-invitations-TS/fetch-invitations.transaction.script.ts","cls":"FetchInvitationsTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"fetchInvitationsTransactionScript","sig":"apply(userId: number): Promise<PendingInvitationProjection[]>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar-invitation.repository.ts","cls":"CalendarInvitationRepository","kind":"repository","tier":6,"module":"calendars","method":"findPendingByInviteeId","prop":"calendarInvitationRepository","sig":"findPendingByInviteeId(inviteeId: number): Promise<CalendarInvitation[]>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"findById","prop":"calendarRepository","sig":"findById(id: number): Promise<Calendar | null>","depth":3,"inferred":false},{"file":"users/domain/aggregators/user.aggregator.ts","cls":"UserAggregator","kind":"aggregator","tier":3,"module":"users","method":"findUsernameById","prop":"userAggregator","sig":"findUsernameById(id: number): Promise<string | null>","depth":3,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"findById","prop":"userRepository","sig":"findById(id: number | string): Promise<User | null>","depth":4,"inferred":false}]},{"id":"POST /calendar-invitations/:id/respond#apply","verb":"POST","route":"/calendar-invitations/:id/respond","handler":"apply","cls":"RespondToInvitationAction","file":"calendars/apps/actions/respond-to-invitation-action/respond-to-invitation.action.ts","module":"calendars","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"Body","decoArg":"","name":"dto","type":"RespondToInvitationRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<void>","body":"    await this.calendarSharingService.respondToInvitation({\n      invitationId: id,\n      userId: user.userId,\n      accept: dto.accept,\n    });","dto":{"type":"RespondToInvitationRequestDto","file":"calendars/apps/actions/respond-to-invitation-action/dtos/requests/respond-to-invitation.dto.ts","src":"export class RespondToInvitationRequestDto {\n  @IsBoolean()\n  accept: boolean;\n}"},"returns":{"type":"void","file":null},"flat":[{"file":"calendars/domain/services/calendar-sharing.service.ts","cls":"CalendarSharingService","kind":"service","tier":2,"module":"calendars","method":"respondToInvitation","prop":"calendarSharingService","sig":"respondToInvitation(command: RespondToInvitationCommand): Promise<void>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/respond-to-invitation-TS/respond-to-invitation.transaction.script.ts","cls":"RespondToInvitationTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"respondToInvitationTransactionScript","sig":"apply(command: RespondToInvitationCommand): Promise<void>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar-invitation.repository.ts","cls":"CalendarInvitationRepository","kind":"repository","tier":6,"module":"calendars","method":"findById","prop":"calendarInvitationRepository","sig":"findById(id: number): Promise<CalendarInvitation | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-invitation.repository.ts","cls":"CalendarInvitationRepository","kind":"repository","tier":6,"module":"calendars","method":"updateStatus","prop":"calendarInvitationRepository","sig":"updateStatus(id: number, status: InvitationStatus, respondedAt: Date, manager?: EntityManager): Promise<void>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"findOne","prop":"calendarMemberRepository","sig":"findOne(calendarId: number, userId: number): Promise<CalendarMember | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"create","prop":"calendarMemberRepository","sig":"create(member: Partial<CalendarMember>, manager?: EntityManager): Promise<CalendarMember>","depth":3,"inferred":false}]},{"id":"GET /calendars#apply","verb":"GET","route":"/calendars","handler":"apply","cls":"FetchCalendarsAction","file":"calendars/apps/actions/fetch-calendars-action/fetch-calendars.action.ts","module":"calendars","params":[{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarResponseDto[]>","body":"    const calendars = await this.calendarService.fetchCalendars(user.userId);\n    return calendars.map(calendar => new CalendarResponseDto(calendar));","dto":null,"returns":{"type":"CalendarResponseDto","file":"calendars/apps/dtos/responses/calendar.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarResponseDto {\n  id: number;\n  name: string;\n  color?: string;\n  ownerId: number;\n  isPersonal: boolean;\n  role?: CalendarRole;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(calendar: Calendar & { role?: CalendarRole }) {\n    this.id = calendar.id;\n    this.name = calendar.name;\n    this.color = calendar.color;\n    this.ownerId = calendar.ownerId;\n    this.isPersonal = calendar.isPersonal;\n    this.role = calendar.role;\n    this.createdAt = calendar.createdAt;\n    this.updatedAt = calendar.updatedAt;\n  }\n}"},"flat":[{"file":"calendars/domain/services/calendar.service.ts","cls":"CalendarService","kind":"service","tier":2,"module":"calendars","method":"fetchCalendars","prop":"calendarService","sig":"fetchCalendars(userId: number): Promise<CalendarWithRole[]>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/fetch-calendars-TS/fetch-calendars.transaction.script.ts","cls":"FetchCalendarsTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"fetchCalendarsTransactionScript","sig":"apply(userId: number): Promise<CalendarWithRole[]>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"findByUserId","prop":"calendarMemberRepository","sig":"findByUserId(userId: number): Promise<CalendarMember[]>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"findByIds","prop":"calendarRepository","sig":"findByIds(ids: number[]): Promise<Calendar[]>","depth":3,"inferred":false}]},{"id":"POST /calendars#apply","verb":"POST","route":"/calendars","handler":"apply","cls":"CreateCalendarAction","file":"calendars/apps/actions/create-calendar-action/create-calendar.action.ts","module":"calendars","params":[{"deco":"Body","decoArg":"","name":"dto","type":"CreateCalendarRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarResponseDto>","body":"    const calendar = await this.calendarService.createCalendar({\n      userId: user.userId,\n      name: dto.name,\n      color: dto.color,\n    });\n    return new CalendarResponseDto({ ...calendar, role: 'owner' });","dto":{"type":"CreateCalendarRequestDto","file":"calendars/apps/actions/create-calendar-action/dtos/requests/create-calendar.dto.ts","src":"export class CreateCalendarRequestDto {\n  @IsString()\n  @IsNotEmpty()\n  @MaxLength(60)\n  name: string;\n\n  @IsString()\n  @IsOptional()\n  @MaxLength(20)\n  color?: string;\n}"},"returns":{"type":"CalendarResponseDto","file":"calendars/apps/dtos/responses/calendar.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarResponseDto {\n  id: number;\n  name: string;\n  color?: string;\n  ownerId: number;\n  isPersonal: boolean;\n  role?: CalendarRole;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(calendar: Calendar & { role?: CalendarRole }) {\n    this.id = calendar.id;\n    this.name = calendar.name;\n    this.color = calendar.color;\n    this.ownerId = calendar.ownerId;\n    this.isPersonal = calendar.isPersonal;\n    this.role = calendar.role;\n    this.createdAt = calendar.createdAt;\n    this.updatedAt = calendar.updatedAt;\n  }\n}"},"flat":[{"file":"calendars/domain/services/calendar.service.ts","cls":"CalendarService","kind":"service","tier":2,"module":"calendars","method":"createCalendar","prop":"calendarService","sig":"createCalendar(command: CreateCalendarCommand): Promise<Calendar>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/create-calendar-TS/create-calendar.transaction.script.ts","cls":"CreateCalendarTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"createCalendarTransactionScript","sig":"apply(command: CreateCalendarCommand): Promise<Calendar>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"create","prop":"calendarRepository","sig":"create(calendar: Partial<Calendar>, manager?: EntityManager): Promise<Calendar>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"create","prop":"calendarMemberRepository","sig":"create(member: Partial<CalendarMember>, manager?: EntityManager): Promise<CalendarMember>","depth":3,"inferred":false}]},{"id":"DELETE /calendars/:id#apply","verb":"DELETE","route":"/calendars/:id","handler":"apply","cls":"DeleteCalendarAction","file":"calendars/apps/actions/delete-calendar-action/delete-calendar.action.ts","module":"calendars","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<void>","body":"    await this.calendarService.deleteCalendar({\n      calendarId: id,\n      userId: user.userId,\n    });","dto":null,"returns":{"type":"void","file":null},"flat":[{"file":"calendars/domain/services/calendar.service.ts","cls":"CalendarService","kind":"service","tier":2,"module":"calendars","method":"deleteCalendar","prop":"calendarService","sig":"deleteCalendar(command: DeleteCalendarCommand): Promise<void>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/delete-calendar-TS/delete-calendar.transaction.script.ts","cls":"DeleteCalendarTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"deleteCalendarTransactionScript","sig":"apply(command: DeleteCalendarCommand): Promise<void>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"findById","prop":"calendarRepository","sig":"findById(id: number): Promise<Calendar | null>","depth":3,"inferred":false},{"file":"calendar-events/domain/aggregators/calendar-events.aggregator.ts","cls":"CalendarEventsAggregator","kind":"aggregator","tier":3,"module":"calendar-events","method":"hasEventsInCalendar","prop":"calendarEventsAggregator","sig":"hasEventsInCalendar(calendarId: number): Promise<boolean>","depth":3,"inferred":false},{"file":"calendar-events/infra/repositories/calendar-event.repository.ts","cls":"CalendarEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"countByCalendarId","prop":"calendarEventRepository","sig":"countByCalendarId(calendarId: number): Promise<number>","depth":4,"inferred":false},{"file":"calendar-events/infra/repositories/recurring-event.repository.ts","cls":"RecurringEventRepository","kind":"repository","tier":6,"module":"calendar-events","method":"countByCalendarId","prop":"recurringEventRepository","sig":"countByCalendarId(calendarId: number): Promise<number>","depth":4,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"delete","prop":"calendarRepository","sig":"delete(id: number): Promise<void>","depth":3,"inferred":false}]},{"id":"PATCH /calendars/:id#apply","verb":"PATCH","route":"/calendars/:id","handler":"apply","cls":"UpdateCalendarAction","file":"calendars/apps/actions/update-calendar-action/update-calendar.action.ts","module":"calendars","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"Body","decoArg":"","name":"dto","type":"UpdateCalendarRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarResponseDto>","body":"    const calendar = await this.calendarService.updateCalendar({\n      calendarId: id,\n      userId: user.userId,\n      name: dto.name,\n      color: dto.color,\n    });\n    return new CalendarResponseDto(calendar);","dto":{"type":"UpdateCalendarRequestDto","file":"calendars/apps/actions/update-calendar-action/dtos/requests/update-calendar.dto.ts","src":"export class UpdateCalendarRequestDto {\n  @IsString()\n  @IsOptional()\n  @MaxLength(60)\n  name?: string;\n\n  @IsString()\n  @IsOptional()\n  @MaxLength(20)\n  color?: string;\n}"},"returns":{"type":"CalendarResponseDto","file":"calendars/apps/dtos/responses/calendar.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarResponseDto {\n  id: number;\n  name: string;\n  color?: string;\n  ownerId: number;\n  isPersonal: boolean;\n  role?: CalendarRole;\n  createdAt: Date;\n  updatedAt: Date;\n\n  constructor(calendar: Calendar & { role?: CalendarRole }) {\n    this.id = calendar.id;\n    this.name = calendar.name;\n    this.color = calendar.color;\n    this.ownerId = calendar.ownerId;\n    this.isPersonal = calendar.isPersonal;\n    this.role = calendar.role;\n    this.createdAt = calendar.createdAt;\n    this.updatedAt = calendar.updatedAt;\n  }\n}"},"flat":[{"file":"calendars/domain/services/calendar.service.ts","cls":"CalendarService","kind":"service","tier":2,"module":"calendars","method":"updateCalendar","prop":"calendarService","sig":"updateCalendar(command: UpdateCalendarCommand): Promise<Calendar>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/update-calendar-TS/update-calendar.transaction.script.ts","cls":"UpdateCalendarTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"updateCalendarTransactionScript","sig":"apply(command: UpdateCalendarCommand): Promise<Calendar>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"findById","prop":"calendarRepository","sig":"findById(id: number): Promise<Calendar | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"update","prop":"calendarRepository","sig":"update(id: number, updates: Partial<Calendar>): Promise<Calendar>","depth":3,"inferred":false}]},{"id":"POST /calendars/:id/invitations#apply","verb":"POST","route":"/calendars/:id/invitations","handler":"apply","cls":"InviteMemberAction","file":"calendars/apps/actions/invite-member-action/invite-member.action.ts","module":"calendars","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"Body","decoArg":"","name":"dto","type":"InviteMemberRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarInvitationResponseDto>","body":"    const invitation = await this.calendarSharingService.inviteMember({\n      calendarId: id,\n      inviterUserId: user.userId,\n      inviteeUsername: dto.username,\n    });\n    return new CalendarInvitationResponseDto(invitation);","dto":{"type":"InviteMemberRequestDto","file":"calendars/apps/actions/invite-member-action/dtos/requests/invite-member.dto.ts","src":"export class InviteMemberRequestDto {\n  @IsString()\n  @IsNotEmpty()\n  @MaxLength(255)\n  username: string;\n}"},"returns":{"type":"CalendarInvitationResponseDto","file":"calendars/apps/dtos/responses/calendar-invitation.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarInvitationResponseDto {\n  id: number;\n  calendarId: number;\n  inviteeId: number;\n  status: InvitationStatus;\n  createdAt: Date;\n\n  constructor(invitation: CalendarInvitation) {\n    this.id = invitation.id;\n    this.calendarId = invitation.calendarId;\n    this.inviteeId = invitation.inviteeId;\n    this.status = invitation.status;\n    this.createdAt = invitation.createdAt;\n  }\n}"},"flat":[{"file":"calendars/domain/services/calendar-sharing.service.ts","cls":"CalendarSharingService","kind":"service","tier":2,"module":"calendars","method":"inviteMember","prop":"calendarSharingService","sig":"inviteMember(command: InviteMemberCommand): Promise<CalendarInvitation>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/invite-member-TS/invite-member.transaction.script.ts","cls":"InviteMemberTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"inviteMemberTransactionScript","sig":"apply(command: InviteMemberCommand): Promise<CalendarInvitation>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"findById","prop":"calendarRepository","sig":"findById(id: number): Promise<Calendar | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"findOne","prop":"calendarMemberRepository","sig":"findOne(calendarId: number, userId: number): Promise<CalendarMember | null>","depth":3,"inferred":false},{"file":"users/domain/aggregators/user.aggregator.ts","cls":"UserAggregator","kind":"aggregator","tier":3,"module":"users","method":"findUserIdByUsername","prop":"userAggregator","sig":"findUserIdByUsername(username: string): Promise<number | null>","depth":3,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"findByUsername","prop":"userRepository","sig":"findByUsername(username: string): Promise<User | null>","depth":4,"inferred":false},{"file":"calendars/infra/repositories/calendar-invitation.repository.ts","cls":"CalendarInvitationRepository","kind":"repository","tier":6,"module":"calendars","method":"findPending","prop":"calendarInvitationRepository","sig":"findPending(calendarId: number, inviteeId: number): Promise<CalendarInvitation | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-invitation.repository.ts","cls":"CalendarInvitationRepository","kind":"repository","tier":6,"module":"calendars","method":"create","prop":"calendarInvitationRepository","sig":"create(invitation: Partial<CalendarInvitation>, manager?: EntityManager): Promise<CalendarInvitation>","depth":3,"inferred":false}]},{"id":"GET /calendars/:id/members#apply","verb":"GET","route":"/calendars/:id/members","handler":"apply","cls":"FetchMembersAction","file":"calendars/apps/actions/fetch-members-action/fetch-members.action.ts","module":"calendars","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<CalendarMemberResponseDto[]>","body":"    const members = await this.calendarSharingService.fetchMembers({\n      calendarId: id,\n      userId: user.userId,\n    });\n    return members.map(member => new CalendarMemberResponseDto(member));","dto":null,"returns":{"type":"CalendarMemberResponseDto","file":"calendars/apps/dtos/responses/calendar-member.response.dto.ts","kind":"dto","fields":null,"src":"export class CalendarMemberResponseDto {\n  userId: number;\n  username: string;\n  role: CalendarRole;\n\n  constructor(projection: CalendarMemberProjection) {\n    this.userId = projection.userId;\n    this.username = projection.username;\n    this.role = projection.role;\n  }\n}"},"flat":[{"file":"calendars/domain/services/calendar-sharing.service.ts","cls":"CalendarSharingService","kind":"service","tier":2,"module":"calendars","method":"fetchMembers","prop":"calendarSharingService","sig":"fetchMembers(command: FetchMembersCommand): Promise<CalendarMemberProjection[]>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/fetch-members-TS/fetch-members.transaction.script.ts","cls":"FetchMembersTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"fetchMembersTransactionScript","sig":"apply(command: FetchMembersCommand): Promise<CalendarMemberProjection[]>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"findOne","prop":"calendarMemberRepository","sig":"findOne(calendarId: number, userId: number): Promise<CalendarMember | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"findByCalendarId","prop":"calendarMemberRepository","sig":"findByCalendarId(calendarId: number): Promise<CalendarMember[]>","depth":3,"inferred":false},{"file":"users/domain/aggregators/user.aggregator.ts","cls":"UserAggregator","kind":"aggregator","tier":3,"module":"users","method":"findUsernameById","prop":"userAggregator","sig":"findUsernameById(id: number): Promise<string | null>","depth":3,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"findById","prop":"userRepository","sig":"findById(id: number | string): Promise<User | null>","depth":4,"inferred":false}]},{"id":"DELETE /calendars/:id/members/:userId#apply","verb":"DELETE","route":"/calendars/:id/members/:userId","handler":"apply","cls":"RemoveMemberAction","file":"calendars/apps/actions/remove-member-action/remove-member.action.ts","module":"calendars","params":[{"deco":"Param","decoArg":"id, ParseIntPipe","name":"id","type":"number"},{"deco":"Param","decoArg":"userId, ParseIntPipe","name":"userId","type":"number"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"Promise<void>","body":"    await this.calendarSharingService.removeMember({\n      calendarId: id,\n      requesterUserId: user.userId,\n      targetUserId: userId,\n    });","dto":null,"returns":{"type":"void","file":null},"flat":[{"file":"calendars/domain/services/calendar-sharing.service.ts","cls":"CalendarSharingService","kind":"service","tier":2,"module":"calendars","method":"removeMember","prop":"calendarSharingService","sig":"removeMember(command: RemoveMemberCommand): Promise<void>","depth":1,"inferred":false},{"file":"calendars/domain/transaction-scripts/remove-member-TS/remove-member.transaction.script.ts","cls":"RemoveMemberTransactionScript","kind":"transaction-script","tier":4,"module":"calendars","method":"apply","prop":"removeMemberTransactionScript","sig":"apply(command: RemoveMemberCommand): Promise<void>","depth":2,"inferred":false},{"file":"calendars/infra/repositories/calendar.repository.ts","cls":"CalendarRepository","kind":"repository","tier":6,"module":"calendars","method":"findById","prop":"calendarRepository","sig":"findById(id: number): Promise<Calendar | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"findOne","prop":"calendarMemberRepository","sig":"findOne(calendarId: number, userId: number): Promise<CalendarMember | null>","depth":3,"inferred":false},{"file":"calendars/infra/repositories/calendar-member.repository.ts","cls":"CalendarMemberRepository","kind":"repository","tier":6,"module":"calendars","method":"delete","prop":"calendarMemberRepository","sig":"delete(calendarId: number, userId: number): Promise<void>","depth":3,"inferred":false}]},{"id":"GET /healthz#check","verb":"GET","route":"/healthz","handler":"check","cls":"HealthController","file":"health/health.controller.ts","module":"health","params":[],"ret":"","body":" status: string","dto":null,"returns":{"type":"void","file":null},"flat":[]},{"id":"PUT /users/password#apply","verb":"PUT","route":"/users/password","handler":"apply","cls":"UpdatePasswordAction","file":"users/app/actions/update-password-action/update-password.action.ts","module":"users","params":[{"deco":"Body","decoArg":"","name":"dto","type":"UpdatePasswordRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"void","body":"    // Validate password confirmation\n    if (dto.newPassword !== dto.confirmPassword) {\n      throw new BadRequestException(\n        'New password and confirmation password do not match'\n      );\n    }\n\n    const command: UpdatePasswordCommand = {\n      userId: user.userId,\n      currentPassword: dto.currentPassword,\n      newPassword: dto.newPassword,\n      user,\n    };\n    await this.usersService.updatePassword(command);\n    return { success: true };","dto":{"type":"UpdatePasswordRequestDto","file":"users/app/actions/update-password-action/dtos/requests/update-password.dto.ts","src":"export class UpdatePasswordRequestDto {\n  @IsString()\n  @IsNotEmpty()\n  readonly currentPassword: string;\n\n  @IsString()\n  @IsNotEmpty()\n  @MinLength(6)\n  @MaxLength(50)\n  readonly newPassword: string;\n\n  @IsString()\n  @IsNotEmpty()\n  readonly confirmPassword: string;\n}"},"returns":{"type":"void","file":null},"flat":[{"file":"users/domain/users.service.ts","cls":"UsersService","kind":"service","tier":2,"module":"users","method":"updatePassword","prop":"usersService","sig":"updatePassword(command: UpdatePasswordCommand): Promise<void>","depth":1,"inferred":false},{"file":"users/domain/transaction-scripts/update-password-TS/update-password.transaction.script.ts","cls":"UpdatePasswordTransactionScript","kind":"transaction-script","tier":4,"module":"users","method":"apply","prop":"updatePasswordTransactionScript","sig":"apply(command: UpdatePasswordCommand): Promise<void>","depth":2,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"findById","prop":"userRepository","sig":"findById(id: number | string): Promise<User | null>","depth":3,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"update","prop":"userRepository","sig":"update(id: number, updates: Partial<User>): Promise<User>","depth":3,"inferred":false}]},{"id":"GET /users/profile#getProfile","verb":"GET","route":"/users/profile","handler":"getProfile","cls":"UsersController","file":"users/app/controllers/users.controller.ts","module":"users","params":[{"deco":"Req","decoArg":"","name":"@Req() req","type":""}],"ret":"void","body":"    return req.user;","dto":null,"returns":{"type":"void","file":null},"flat":[{"file":"users/domain/users.service.ts","cls":"UsersService","kind":"service","tier":2,"module":"users","method":null,"prop":"usersService","sig":null,"depth":1,"inferred":true}]},{"id":"POST /users/register#register","verb":"POST","route":"/users/register","handler":"register","cls":"UsersController","file":"users/app/controllers/users.controller.ts","module":"users","params":[{"deco":"Body","decoArg":"","name":"registerUserRequestDto","type":"RegisterUserRequestDto"},{"deco":"Req","decoArg":"","name":"req","type":"Request"}],"ret":"void","body":"    return this.usersService.register(registerUserRequestDto, {\n      ip: req.ip ?? req.socket?.remoteAddress,\n      userAgent: req.headers['user-agent'],\n    });","dto":{"type":"RegisterUserRequestDto","file":"users/app/controllers/dtos/requests/create-user.request.dto.ts","src":"export class RegisterUserRequestDto {\n  @IsString()\n  @IsNotEmpty()\n  @MaxLength(200)\n  @IsEmail(\n    { require_tld: true, allow_ip_domain: false },\n    { message: 'username must be a valid email address' }\n  )\n  readonly username: string;\n\n  @IsString()\n  @IsNotEmpty()\n  @MinLength(6)\n  @MaxLength(50)\n  readonly password: string;\n}"},"returns":{"type":"void","file":null},"flat":[{"file":"users/domain/users.service.ts","cls":"UsersService","kind":"service","tier":2,"module":"users","method":"register","prop":"usersService","sig":"register(registerUserRequestDto: RegisterUserRequestDto, context: DisabledRegistrationContext): Promise<Omit<User, 'password'>>","depth":1,"inferred":false},{"file":"security-events/domain/aggregators/security-event.aggregator.ts","cls":"SecurityEventAggregator","kind":"aggregator","tier":3,"module":"security-events","method":"logDisabledRegistrationAttempt","prop":"securityEventAggregator","sig":"logDisabledRegistrationAttempt(context: DisabledRegistrationContext): Promise<void>","depth":2,"inferred":false},{"file":"security-events/infra/repositories/security-event.repository.ts","cls":"SecurityEventRepository","kind":"repository","tier":6,"module":"security-events","method":"create","prop":"securityEventRepository","sig":"create(eventType: SecurityEventType, metadata: Record<string, unknown>): Promise<SecurityEvent>","depth":3,"inferred":false}]},{"id":"PUT /users/username#apply","verb":"PUT","route":"/users/username","handler":"apply","cls":"UpdateUsernameAction","file":"users/app/actions/update-username-action/update-username.action.ts","module":"users","params":[{"deco":"Body","decoArg":"","name":"dto","type":"UpdateUsernameRequestDto"},{"deco":"GetAuthUser","decoArg":"","name":"user","type":"AuthUser"}],"ret":"void","body":"    const command: UpdateUsernameCommand = {\n      userId: user.userId,\n      newUsername: dto.newUsername,\n      currentPassword: dto.currentPassword,\n      user,\n    };\n    return await this.usersService.updateUsername(command);","dto":{"type":"UpdateUsernameRequestDto","file":"users/app/actions/update-username-action/dtos/requests/update-username.dto.ts","src":"export class UpdateUsernameRequestDto {\n  @IsString()\n  @IsNotEmpty()\n  @MinLength(4)\n  @MaxLength(20)\n  readonly newUsername: string;\n\n  @IsString()\n  @IsNotEmpty()\n  readonly currentPassword: string;\n}"},"returns":{"type":"void","file":null},"flat":[{"file":"users/domain/users.service.ts","cls":"UsersService","kind":"service","tier":2,"module":"users","method":"updateUsername","prop":"usersService","sig":"updateUsername(command: UpdateUsernameCommand): Promise<Omit<User, 'password'>>","depth":1,"inferred":false},{"file":"users/domain/transaction-scripts/update-username-TS/update-username.transaction.script.ts","cls":"UpdateUsernameTransactionScript","kind":"transaction-script","tier":4,"module":"users","method":"apply","prop":"updateUsernameTransactionScript","sig":"apply(command: UpdateUsernameCommand): Promise<Omit<User, 'password'>>","depth":2,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"findById","prop":"userRepository","sig":"findById(id: number | string): Promise<User | null>","depth":3,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"findByUsername","prop":"userRepository","sig":"findByUsername(username: string): Promise<User | null>","depth":3,"inferred":false},{"file":"users/infra/repositories/user.repository.ts","cls":"UserRepository","kind":"repository","tier":6,"module":"users","method":"update","prop":"userRepository","sig":"update(id: number, updates: Partial<User>): Promise<User>","depth":3,"inferred":false}]}]}</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById('flow').textContent);
+var EP = D.endpoints;
+document.getElementById('gen').textContent = new Date(D.generatedAt).toISOString().slice(0,10);
+
+// Lanes are the model's tiers, in the order a request travels. Typed here they
+// would drift from the config the model was scanned with (and drop any tier
+// beyond the seventh), so they come from the data instead.
+var LANES = D.tiers.map(function(t, i){ return { i:i, name:t.name, sub:t.sub || '' }; });
+var DENSITY = {
+  compact:     { rowH:20, laneW:112, gut:236, route:9.5,  cls:0,   dot:2.8 },
+  comfortable: { rowH:30, laneW:132, gut:262, route:10.5, cls:8.5, dot:3.6 },
+  roomy:       { rowH:44, laneW:158, gut:300, route:12.5, cls:10,  dot:4.6 }
+};
+var V = { gut:262, laneW:132, rowH:30, headH:46, pad:10, route:10.5, cls:8.5, dot:3.6 };
+function applyDensity(name){
+  var d = DENSITY[name] || DENSITY.comfortable;
+  V.rowH = d.rowH; V.laneW = d.laneW; V.gut = d.gut;
+  V.route = d.route; V.cls = d.cls; V.dot = d.dot;
+}
+
+// stations per endpoint: lane -> nodes
+EP.forEach(function(e){
+  var by = {};
+  by[0] = [{ cls:e.cls, kind:'action', method:e.handler, sig:null, file:e.file, module:e.module }];
+  e.flat.forEach(function(n){ (by[n.tier] = by[n.tier] || []).push(n); });
+  e.stations = Object.keys(by).map(Number).sort(function(a,b){return a-b;})
+    .map(function(l){ return { lane:l, nodes:by[l] }; });
+});
+
+var state = { play:true, speed:1, q:'', verbs:{}, sel:null };
+applyDensity('comfortable');
+['GET','POST','PATCH','PUT','DELETE'].forEach(function(v){ state.verbs[v] = true; });
+
+document.getElementById('verbs').innerHTML = ['GET','POST','PATCH','PUT','DELETE'].map(function(v){
+  return '<button class="btn on vfilter" data-v="'+v+'" aria-pressed="true"><span class="vb v-'+v+'">'+v+'</span></button>';
+}).join(' ');
+
+function visible(){
+  var q = state.q.trim().toLowerCase();
+  return EP.filter(function(e){
+    if (!state.verbs[e.verb]) return false;
+    if (!q) return true;
+    return (e.verb+' '+e.route+' '+e.cls+' '+e.module).toLowerCase().indexOf(q) >= 0;
+  });
+}
+
+var rows = [], dots = [], svg;
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function laneX(l){ return V.gut + l*V.laneW + V.laneW/2; }
+
+function render(){
+  rows = visible();
+  var h = V.headH + rows.length*V.rowH + V.pad;
+  var w = V.gut + LANES.length*V.laneW;
+  var s = [];
+  s.push('<svg class="board" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Endpoint request traffic board">');
+
+  LANES.forEach(function(L){
+    var x = V.gut + L.i*V.laneW;
+    s.push('<line class="lline" x1="'+x+'" y1="0" x2="'+x+'" y2="'+h+'"/>');
+    s.push('<text class="lanehead" x="'+(x+10)+'" y="20">'+esc(L.name)+'</text>');
+    s.push('<text class="lanesub" x="'+(x+10)+'" y="33">'+esc(L.sub)+'</text>');
+  });
+  s.push('<line class="lline" x1="0" y1="'+V.headH+'" x2="'+w+'" y2="'+V.headH+'" stroke-width="1.5"/>');
+
+  rows.forEach(function(e, i){
+    var y = V.headH + i*V.rowH, cy = y + V.rowH/2;
+    var sel = state.sel === e.id;
+    s.push('<g class="rowg'+(sel?' sel':'')+'" data-id="'+esc(e.id)+'" tabindex="0" role="button" aria-label="'+esc(e.verb+' '+e.route)+'">');
+    s.push('<rect class="rowbg'+(i%2?' alt':'')+(sel?' sel':'')+'" x="0" y="'+y+'" width="'+w+'" height="'+V.rowH+'"/>');
+    var ty = V.cls ? cy - 1 : cy + V.route*0.36;
+    // the gutter is fixed, so clip the route rather than letting it run into the lanes
+    var avail = V.gut - 22 - (e.verb.length + 1) * V.route * 0.62;
+    var maxChars = Math.max(6, Math.floor(avail / (V.route * 0.60)));
+    var routeTxt = e.route.length > maxChars ? '…' + e.route.slice(-(maxChars - 1)) : e.route;
+    s.push('<text class="route" style="font-size:'+V.route+'px" x="10" y="'+ty+'"><tspan class="v-'+e.verb+'" style="font-weight:600">'+e.verb+'</tspan> '+esc(routeTxt)+'<title>'+esc(e.verb+' '+e.route)+'</title></text>');
+    if (V.cls) {
+      var clsMax = Math.max(8, Math.floor((V.gut - 22) / (V.cls * 0.60)));
+      var clsTxt = e.cls.length > clsMax ? e.cls.slice(0, clsMax - 1) + '…' : e.cls;
+      s.push('<text class="rcls" style="font-size:'+V.cls+'px" x="10" y="'+(cy+10)+'">'+esc(clsTxt)+'</text>');
+    }
+
+    var xs = e.stations.map(function(st){ return laneX(st.lane); });
+    if (xs.length > 1) s.push('<line class="track" x1="'+xs[0]+'" y1="'+cy+'" x2="'+xs[xs.length-1]+'" y2="'+cy+'"/>');
+    e.stations.forEach(function(st, k){
+      var x = xs[k], n = st.nodes.length;
+      var r = (n > 1 ? 8 : 6) * (V.rowH/30 < 0.8 ? 0.75 : (V.rowH/30 > 1.2 ? 1.15 : 1));
+      s.push('<circle class="st l'+st.lane+' s'+st.lane+'" cx="'+x+'" cy="'+cy+'" r="'+r+'" fill-opacity="'+(n>1?'1':'.85')+'"/>');
+      // reached through a port: the call crossed a DI binding, not a direct reference
+      if (st.nodes.some(function(nd){ return nd.viaPort; })) s.push('<circle class="via" cx="'+x+'" cy="'+cy+'" r="'+(r+3)+'"/>');
+      if (n > 1) s.push('<text class="stn" x="'+x+'" y="'+(cy+3)+'" text-anchor="middle">'+n+'</text>');
+    });
+    s.push('<circle class="dot" r="'+V.dot+'" fill="var(--dot)" cx="'+xs[0]+'" cy="'+cy+'" data-row="'+i+'"/>');
+    s.push('</g>');
+  });
+  s.push('</svg>');
+  document.getElementById('board').innerHTML = s.join('');
+  svg = document.querySelector('svg.board');
+  svg.classList.toggle('solo', !!state.sel);
+  dots = [].slice.call(svg.querySelectorAll('.dot'));
+
+  svg.querySelectorAll('.rowg').forEach(function(g){
+    var id = g.getAttribute('data-id');
+    g.addEventListener('click', function(){ select(state.sel===id?null:id); });
+    g.addEventListener('keydown', function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); g.click(); } });
+  });
+  document.getElementById('count').textContent = rows.length + ' of ' + EP.length + ' endpoints';
+  var ft = document.getElementById('fullTitle');
+  if (ft) ft.textContent = rows.length + ' of ' + EP.length + ' endpoints · ' + densityName;
+}
+
+function select(id){
+  state.sel = id;
+  render();
+  inspect(id ? EP.filter(function(e){ return e.id===id; })[0] : null);
+}
+
+/* ---------- animation ---------- */
+var t0 = performance.now(), acc = 0, last = t0;
+function ease(t){
+  var u = (t - 0.18) / 0.60;
+  u = u < 0 ? 0 : (u > 1 ? 1 : u);
+  return u*u*(3-2*u);
+}
+function frame(now){
+  var dt = now - last; last = now;
+  if (state.play) acc += dt * state.speed;
+  for (var i=0;i<dots.length;i++){
+    var d = dots[i], e = rows[i];
+    if (!e) continue;
+    var xs = e.stations.map(function(st){ return laneX(st.lane); });
+    if (xs.length === 1) { d.setAttribute('cx', xs[0]); continue; }
+    var dur = 1400 + xs.length*900;
+    var phase = ((acc + i*370) % dur) / dur;
+    // The first frame can be timestamped before t0, so acc can start negative;
+    // a negative phase floors k to -1 and xs[-1] is undefined, so cx goes NaN.
+    if (phase < 0) phase += 1;
+    var seg = phase * (xs.length - 1);
+    var k = Math.floor(seg); if (k > xs.length-2) k = xs.length-2;
+    var t = ease(seg - k);
+    d.setAttribute('cx', xs[k] + (xs[k+1]-xs[k]) * t);
+    d.setAttribute('opacity', phase > 0.985 ? 0 : 1);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- inspector ---------- */
+function hl(code){
+  // Keywords before decorators: the decorator pass inserts class="d", and a
+  // keyword pass running after it would wrap that class attribute in a span.
+  return esc(code)
+    .replace(/\b(export|class|async|await|return|const|let|new|extends|implements|private|readonly|public|this|if|else)\b/g, '<span class="k">$1</span>')
+    .replace(/(@[A-Za-z]+)/g, '<span class="d">$1</span>')
+    .replace(/('[^']*')/g, '<span class="s">$1</span>');
+}
+function inspect(e){
+  var el = document.getElementById('insp');
+  if (!e) {
+    el.innerHTML = '<p class="empty">Pick a row. You will get the request DTO with its validators, the handler body, every hop with its real method signature, and the shape that comes back — all lifted from the source.</p>';
+    return;
+  }
+  var h = [];
+  h.push('<div class="ihead"><span class="vb v-'+e.verb+'">'+e.verb+'</span><span class="iroute">'+esc(e.route)+'</span></div>');
+  h.push('<p class="isub">'+esc(e.file)+' · '+esc(e.cls)+'.'+esc(e.handler)+'()</p>');
+
+  if (e.params && e.params.length) {
+    h.push('<p class="ilab">Accepts</p><ul class="plist">'+e.params.map(function(p){
+      return '<li><i>@'+esc(p.deco||'—')+(p.decoArg?"('"+esc(p.decoArg)+"')":'')+'</i><b>'+esc(p.name)+'</b>: '+esc(p.type)+'</li>';
+    }).join('')+'</ul>');
+  }
+  if (e.dto && e.dto.src) {
+    h.push('<p class="ilab">Payload — '+esc(e.dto.type)+'</p><pre>'+hl(e.dto.src)+'</pre>');
+  } else if (e.dto) {
+    h.push('<p class="ilab">Payload</p><p class="empty" style="font-size:13px">'+esc(e.dto.type)+' — declared outside src, not resolved.</p>');
+  }
+
+  h.push('<p class="ilab">Handler</p><pre>'+hl(e.body || '(empty)')+'</pre>');
+
+  h.push('<p class="ilab">Trace — '+e.flat.length+' hop'+(e.flat.length===1?'':'s')+'</p>');
+  h.push(e.flat.length ? '<ul class="tree">'+e.flat.map(function(n){
+    return '<li style="padding-left:'+((n.depth-1)*13)+'px">'+
+      '<span class="kind k-'+esc(n.kind)+'">'+esc(n.kind)+'</span>'+
+      '<span class="cls">'+esc(n.cls)+'.'+esc(n.method||'?')+'</span>'+
+      (n.inferred ? ' <em style="color:var(--ink3);font-size:9px">injected, no call resolved</em>' : '') +
+      (n.viaPort ? ' <em style="color:var(--ink2);font-size:9px" title="'+esc(n.token)+' bound in '+esc(n.boundIn)+'">through '+esc(n.viaPort)+'</em>' : '') +
+      (n.sig ? '<span class="sig">'+esc(n.sig)+'</span>' : '') + '</li>';
+  }).join('')+'</ul>' : '<p class="empty" style="font-size:13px">No calls — this handler returns directly.</p>');
+
+  h.push('<p class="ilab">Returns — '+esc(e.ret)+'</p>');
+  if (e.returns && e.returns.fields && e.returns.fields.length) {
+    h.push('<table class="fields"><tbody>'+e.returns.fields.map(function(f){
+      return '<tr><td class="d">@'+esc(f.deco)+'</td><td class="n">'+esc(f.name)+'</td><td>'+esc(f.type)+'</td></tr>';
+    }).join('')+'</tbody></table>');
+  } else if (e.returns && e.returns.src) {
+    h.push('<pre>'+hl(e.returns.src)+'</pre>');
+  } else {
+    h.push('<p class="empty" style="font-size:13px">'+esc(e.ret)+'</p>');
+  }
+  el.innerHTML = h.join('');
+  el.scrollTop = 0;
+}
+
+/* ---------- legend + observations ---------- */
+document.getElementById('legend').innerHTML = LANES.map(function(L){
+  return '<span class="lg"><i style="background:var(--l'+L.i+')"></i>'+esc(L.name)+'</span>';
+}).join('') + '<span class="lg"><i style="background:var(--dot)"></i>request in flight</span>' +
+  '<span class="lg"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle class="via" cx="7" cy="7" r="5"/></svg>reached through a port</span>' +
+  '<span class="lg" style="color:var(--ink3)">numbered stop = more than one class at that lane</span>';
+
+// Lane indices come from the model's tier names, so a project that renames or
+// drops a tier shifts or removes the card instead of miscounting it.
+function laneOf(name){ for (var i=0;i<D.tiers.length;i++) if (D.tiers[i].name===name) return i; return -1; }
+var serviceLane = laneOf('Service');
+var aggrLane = laneOf('Aggregator');
+var noService = serviceLane < 0 ? [] : EP.filter(function(e){
+  return !e.stations.some(function(s){ return s.lane===serviceLane; })
+      && e.stations.some(function(s){ return s.lane>serviceLane; });
+});
+var directRepo = EP.filter(function(e){ return e.flat.some(function(n){ return n.kind==='repository' && n.depth===1; }); });
+var crossers = aggrLane < 0 ? [] : EP.filter(function(e){ return e.stations.some(function(s){ return s.lane===aggrLane; }); });
+var obs = [];
+if (serviceLane >= 0) obs.push({ tone:'warn', h:'Requests that never touch a Service',
+  p:noService.length+' of '+EP.length+' endpoints go from the action straight past the Service lane — their rows have no stop in it.',
+  items: noService.slice(0,10).map(function(e){ return e.verb+' '+e.route; }) });
+obs.push({ tone:'warn', h:'Actions holding a Repository themselves',
+  p:directRepo.length+' endpoints call a repository as their very first hop — no service, no transaction script in between.',
+  items: directRepo.map(function(e){ return e.verb+' '+e.route; }) });
+if (aggrLane >= 0) obs.push({ tone:'good', h:'Requests that cross a bounded context',
+  p:crossers.length+' endpoints reach an Aggregator, and every one of them does it through that Aggregator rather than touching the other domain directly.',
+  items: crossers.slice(0,10).map(function(e){ return e.verb+' '+e.route; }) });
+// Prose that used to be typed in: endpoints with no calls, the deepest trace,
+// and the footer totals, all measured from the model.
+var noCalls = EP.filter(function(e){ return e.flat.length === 0; });
+var maxDepth = 0;
+var hopTotal = 0;
+var clsSet = {};
+EP.forEach(function(e){
+  clsSet[e.cls] = 1;
+  e.flat.forEach(function(n){ hopTotal++; clsSet[n.cls] = 1; if (n.depth > maxDepth) maxDepth = n.depth; });
+});
+document.getElementById('noCalls').textContent = (function(){
+  if (!noCalls.length) return 'every endpoint resolves at least one call';
+  var list = noCalls.slice(0,3).map(function(e){ return e.verb+' '+e.route; }).join(', ');
+  if (noCalls.length > 3) list += ', …';
+  return noCalls.length + ' endpoint' + (noCalls.length===1 ? '' : 's') + ' — ' + list +
+    ' — resolve to no calls at all: the handler returns directly';
+})();
+document.getElementById('maxDepth').textContent = String(maxDepth);
+document.getElementById('footstats').textContent = EP.length + ' endpoints, ' + hopTotal + ' traced hops, ' + Object.keys(clsSet).length + ' distinct classes.';
+document.getElementById('obs').innerHTML = obs.map(function(o){
+  return '<div class="card '+o.tone+'"><h3>'+esc(o.h)+'</h3><p>'+esc(o.p)+'</p>'+
+    (o.items.length?'<ul>'+o.items.map(function(i){return '<li>'+esc(i)+'</li>';}).join('')+'</ul>':'')+'</div>';
+}).join('');
+
+/* ---------- controls ---------- */
+var playBtn = document.getElementById('play');
+playBtn.addEventListener('click', function(){
+  state.play = !state.play;
+  playBtn.textContent = state.play ? '⏸ pause' : '▶ play';
+  playBtn.classList.toggle('on', state.play);
+});
+var SPEEDS = [1, 2, 0.35];
+var si = 0;
+var spBtn = document.getElementById('speed');
+spBtn.addEventListener('click', function(){
+  si = (si+1) % SPEEDS.length; state.speed = SPEEDS[si];
+  spBtn.textContent = SPEEDS[si] + '×';
+});
+document.getElementById('verbs').addEventListener('click', function(ev){
+  var b = ev.target.closest('.vfilter'); if (!b) return;
+  var v = b.getAttribute('data-v');
+  state.verbs[v] = !state.verbs[v];
+  b.classList.toggle('on', state.verbs[v]);
+  b.setAttribute('aria-pressed', String(state.verbs[v]));
+  render();
+});
+document.getElementById('q').addEventListener('input', function(e){ state.q = e.target.value; render(); });
+document.getElementById('clear').addEventListener('click', function(){
+  state.q = ''; state.sel = null;
+  document.getElementById('q').value = '';
+  ['GET','POST','PATCH','PUT','DELETE'].forEach(function(v){ state.verbs[v] = true; });
+  document.querySelectorAll('.vfilter').forEach(function(b){ b.classList.add('on'); b.setAttribute('aria-pressed','true'); });
+  render(); inspect(null);
+});
+
+/* ---------- density ---------- */
+var densityName = 'comfortable';
+function setDensity(name){
+  if (!DENSITY[name]) return;
+  densityName = name;
+  applyDensity(name);
+  ['Compact','Comfortable','Roomy'].forEach(function(k){
+    var lower = k.toLowerCase();
+    ['d'+k, 'f'+k].forEach(function(id){
+      var b = document.getElementById(id);
+      if (b) b.classList.toggle('on', lower === name);
+    });
+  });
+  render();
+}
+['Compact','Comfortable','Roomy'].forEach(function(k){
+  ['d'+k, 'f'+k].forEach(function(id){
+    var b = document.getElementById(id);
+    if (b) b.addEventListener('click', function(){ setDensity(k.toLowerCase()); });
+  });
+});
+
+/* ---------- full screen ---------- */
+var plate = document.getElementById('plate');
+function isFull(){ return plate.classList.contains('full'); }
+function setFull(on){
+  plate.classList.toggle('full', on);
+  document.body.classList.toggle('locked', on);
+  // native full screen where the browser allows it; the CSS fallback already
+  // covers the viewport, so this is best-effort and never load-bearing
+  try {
+    if (on && plate.requestFullscreen) plate.requestFullscreen().catch(function(){});
+    else if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+  } catch (e) {}
+  render();
+}
+document.getElementById('expand').addEventListener('click', function(){ setFull(!isFull()); });
+document.getElementById('fullExit').addEventListener('click', function(){ setFull(false); });
+document.addEventListener('keydown', function(ev){
+  if (ev.key === 'Escape' && isFull()) { ev.preventDefault(); setFull(false); }
+});
+document.addEventListener('fullscreenchange', function(){
+  if (!document.fullscreenElement && isFull()) setFull(false);
+});
+document.getElementById('fullPlay').addEventListener('click', function(){
+  document.getElementById('play').click();
+  this.textContent = state.play ? '⏸ pause' : '▶ play';
+});
+window.addEventListener('resize', function(){ if (isFull()) render(); });
+
+inspect(null);
+render();
+})();
+</script>
+
+
+<style>
+.metatron-full { position:fixed !important; inset:0 !important; z-index:9999;
+  margin:0 !important; border-radius:0 !important; display:flex; flex-direction:column;
+  background:var(--paper, var(--surface, #111)); }
+.metatron-full [data-fs-grow] { flex:1; min-height:0; }
+.metatron-full [data-fs-grow] > * { max-height:none !important; height:100% !important; }
+body.metatron-locked { overflow:hidden; }
+.metatron-fsbtn { position:absolute; top:8px; right:10px; z-index:3;
+  font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:11px; letter-spacing:.04em;
+  padding:5px 10px; cursor:pointer; color:var(--ink2, #889); background:var(--surface, #1a222c);
+  border:1px solid var(--rule2, #445); opacity:.72; }
+.metatron-fsbtn:hover { opacity:1; color:var(--ink, #eee); }
+.metatron-fsbtn:focus-visible { outline:2px solid var(--blue, #79a4e6); outline-offset:2px; }
+</style>
+<script>
+(function(){
+  var plate = document.querySelector('[data-fullscreen]');
+  if (!plate) return;
+  if (getComputedStyle(plate).position === 'static') plate.style.position = 'relative';
+  var btn = document.createElement('button');
+  btn.className = 'metatron-fsbtn';
+  btn.type = 'button';
+  btn.textContent = '⤢ full screen';
+  btn.title = 'Fill the screen (Esc to leave)';
+  plate.appendChild(btn);
+  function on(){ return plate.classList.contains('metatron-full'); }
+  function set(v){
+    plate.classList.toggle('metatron-full', v);
+    document.body.classList.toggle('metatron-locked', v);
+    btn.textContent = v ? '✕ exit' : '⤢ full screen';
+    try {
+      if (v && plate.requestFullscreen) plate.requestFullscreen().catch(function(){});
+      else if (!v && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+    } catch (e) {}
+    // canvas lenses watch their own container, but nudge anything that does not
+    window.dispatchEvent(new Event('resize'));
+  }
+  btn.addEventListener('click', function(){ set(!on()); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && on()) { e.preventDefault(); set(false); } });
+  document.addEventListener('fullscreenchange', function(){ if (!document.fullscreenElement && on()) set(false); });
+})();
+</script>
+<script id="__narr" type="application/json">{"scale":"<strong>209 files</strong> under the scanned root, wired together by 684 internal imports across 49 directories and 9 modules. 28 HTTP endpoints were traced through 147 call hops.","flow":"Read left to right and it is the intended request path: <span class=\"mono\">action</span> → <span class=\"mono\">service</span> → <span class=\"mono\">transaction-script</span> → <span class=\"mono\">repository</span>. Anything that jumps a station is a layering violation, and the lenses colour it as one.","layering":"<strong>6 links skip a layer</strong> — 4 where service reaches repository directly, skipping transaction script, 2 where action reaches repository directly, skipping service and transaction script. The 2 most severe start in <span class=\"mono\">calendar-events</span>.","crossDomain":"10 dependencies cross a bounded context — 10 aggregators. <strong>Every one lands on an allowed gateway</strong> — nothing reaches an entity, a repository or a use-case script in another context.","absent":"<strong><span class=\"mono\">mapper</span>, <span class=\"mono\">assembler</span>, <span class=\"mono\">resolver</span>, <span class=\"mono\">gateway</span>, and 7 others are configured but exist nowhere in the code</strong>. Either the architecture document describes a shape that was never built, or the config names something this project does not use.","skyline":"Height is layers, not importance: a module carries one floor per directory, stacked in architectural order, so <strong>its silhouette is its layer profile</strong>. <span class=\"mono\">calendar-events</span> is the most complete, carrying 8 of 8 tiers. <span class=\"mono\">health</span> is the outlier, missing <span class=\"mono\">Contract</span>, <span class=\"mono\">Service</span>, <span class=\"mono\">Aggregator</span>, <span class=\"mono\">Transaction Script</span>, and 3 others. <span class=\"mono\">security-events</span> has no Entry floor at all — no route reaches it directly.","cycles":"<strong>The module graph still has 1 cycle after the sanctioned carve-outs</strong> ({calendar-events, calendars}), so the dependency direction is not fully one-way.","upheld":"<strong>3 of the rules this codebase writes down for itself hold across all 684 imports</strong>: Every cross-domain edge goes through an allowed gateway; No same-level injection; No upward calls.","deviations":"<strong>7 kinds of deviation</strong> were found, covering 32 files or imports in total. Each is measured against a stated rule, not against taste.","endpoints":"28 endpoints, traced by following <span class=\"mono\">this.x.y()</span> through real method bodies rather than guessed from the folder layout.","schema":"16 entities, 72 columns, 6 references between them. <strong>3 are declared to the ORM; 3 exist only as a bare id column</strong>. 3 cross a bounded context — which is usually the reason the relation was left undeclared, since declaring it would couple the two contexts. The dependency is still there; it is just the application's job to honour it rather than the database's. 15 entities do not name their table in <span class=\"mono\">@Entity()</span>, so the name comes from the class.","hotspots":"Across 36 commits, the file scoring highest on both axes is <span class=\"mono\">calendar-events/infra/repositories/calendar-event.repository.ts</span> — <strong>6 commits and 26 dependents</strong>. <span class=\"mono\">shared-kernel/apps/decorators/protected-action.decorator.ts</span> is depended on by the most files (48). A file high on one axis alone is usually fine; it is the overlap that costs. 184 of the 195 files with history have no test file — the dashed rings — and a ring in the corner is where to test first. \"Tested\" means a spec file was located by name, not that the spec asserts anything: presence, not quality.","coupling":"Across 36 commits (2 ignored for touching more than 25 files), 0 pairs of files land in the same commit at least 30% of the time they move, and 0 of those pairs share no import edge — the ones worth reading. Commits are a proxy for change, and one team's commit granularity is not another's: a squash-merge workflow and a commit-per-thought workflow produce different numbers from identical work. Co-change is correlation, not mechanism — two files dragged along by the same sweeping rename are not coupled in any meaningful sense, and the size cap only blunts that, imperfectly. And the absence of coupling is not evidence of independence; it may just be young code.","provenance":"Generated from <span class=\"mono\">omega</span> by metatron. Every box is a directory that exists and every line is an <span class=\"mono\">import</span> that a file actually writes. 202 of 209 files (96.7%) matched a configured pattern.","caveats":"Imports are not calls: a type-only import counts the same as a constructor injection everywhere except the endpoint traces. Anything resolved through a DI token string rather than an imported symbol leaves no edge, so coupling is understated. Positions and footprints are chosen for legibility — only heights, tiers, links and colours carry meaning."}</script>
+<script>
+(function(){
+  var N;
+  try { N = JSON.parse(document.getElementById('__narr').textContent); } catch (e) { return; }
+  var slots = document.querySelectorAll('[data-narr]');
+  for (var i = 0; i < slots.length; i++) {
+    var el = slots[i], key = el.getAttribute('data-narr');
+    if (N[key]) el.innerHTML = N[key];
+    else if (el.parentNode) el.parentNode.removeChild(el);   // nothing to say, so say nothing
+  }
+})();
+</script>

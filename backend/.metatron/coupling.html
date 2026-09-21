@@ -1,0 +1,563 @@
+<!-- metatron: Which files change together without referencing each other? A dependency structure matrix over co-change, with the import graph overlaid to mark what it explains. -->
+<title>Omega Coupling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap">
+
+<style>
+:root {
+  --paper:#F2F4F8; --surface:#FFFFFF; --surface2:#E7ECF3; --sunk:#DEE5EF;
+  --ink:#151E29; --ink2:#485A6F; --ink3:#7A8B9F;
+  --rule:#D2DAE4; --rule2:#B9C4D2;
+  --blue:#2B5CA8; --amber:#A85B06; --rose:#A31C39; --green:#1B6448; --violet:#54479A; --teal:#136A80;
+  --hot:#A31C39; --warm:#A85B06; --calm:#5C7086;
+  --shadow:0 1px 2px rgba(21,30,41,.06), 0 8px 24px rgba(21,30,41,.07);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#0E141B; --surface:#151D26; --surface2:#1C2631; --sunk:#111922;
+    --ink:#E3EAF2; --ink2:#9EAFC1; --ink3:#6B7C91;
+    --rule:#28343F; --rule2:#36454F;
+    --blue:#79A4E6; --amber:#E0A04A; --rose:#EE7189; --green:#4FC195; --violet:#A093E6; --teal:#4FB6CE;
+    --hot:#EE7189; --warm:#E0A04A; --calm:#67788C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#0E141B; --surface:#151D26; --surface2:#1C2631; --sunk:#111922;
+  --ink:#E3EAF2; --ink2:#9EAFC1; --ink3:#6B7C91;
+  --rule:#28343F; --rule2:#36454F;
+  --blue:#79A4E6; --amber:#E0A04A; --rose:#EE7189; --green:#4FC195; --violet:#A093E6; --teal:#4FB6CE;
+  --hot:#EE7189; --warm:#E0A04A; --calm:#67788C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Archivo',ui-sans-serif,system-ui,sans-serif; font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; }
+.mono { font-family:'IBM Plex Mono',ui-monospace,monospace; }
+.wrap { max-width:1560px; margin:0 auto; padding:0 26px 80px; }
+
+.mast { padding:48px 0 24px; border-bottom:2px solid var(--ink); }
+.eyebrow { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink3); margin:0 0 16px; }
+h1 { font-size:clamp(34px,5.2vw,58px); line-height:1.03; letter-spacing:-.03em; font-weight:700; margin:0; text-wrap:balance; }
+.dek { font-family:'Source Serif 4',Georgia,serif; font-size:18px; line-height:1.6; color:var(--ink2);
+  max-width:64ch; margin:18px 0 0; }
+.statrow { display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); margin-top:32px; }
+.stat { background:var(--paper); padding:13px 15px; }
+.stat b { display:block; font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.stat span { display:block; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink3); margin-top:3px; }
+.stat.hot b { color:var(--hot); }
+
+.bar { display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin:26px 0 12px; }
+.btn { font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.04em;
+  border:1px solid var(--rule2); background:var(--surface); color:var(--ink2); padding:6px 11px; cursor:pointer; }
+.btn:hover { border-color:var(--ink3); color:var(--ink); }
+.btn.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.btn:focus-visible, input:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.sep { width:1px; height:20px; background:var(--rule2); margin:0 3px; }
+.thr { display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink2); }
+.thr input[type=range] { width:130px; accent-color:var(--ink); }
+.thr b { color:var(--ink); font-weight:500; min-width:34px; text-align:right; font-variant-numeric:tabular-nums; }
+
+.plate { border:1px solid var(--rule2); background:var(--surface); box-shadow:var(--shadow); }
+.split { display:grid; grid-template-columns:minmax(0,1fr) 330px; }
+@media (max-width:1100px){ .split { grid-template-columns:minmax(0,1fr); } }
+.chart { overflow:hidden; }
+svg.sc { display:block; width:100%; height:auto; }
+svg.sc text { font-family:'IBM Plex Mono',monospace; }
+.cell { cursor:pointer; }
+.cell:hover { stroke:var(--ink); stroke-width:1.5; }
+.cell.sel { stroke:var(--ink); stroke-width:2; }
+.mlab { font-size:10px; fill:var(--ink2); }
+.mlab.top { font-size:9.5px; }
+.flab { font-size:9px; fill:var(--ink3); }
+.modsep { stroke:var(--ink); stroke-width:1.5; opacity:.5; }
+.modcap { font-size:9px; fill:var(--ink3); letter-spacing:.08em; }
+.insp { border-left:1px solid var(--rule2); padding:38px 18px 16px; overflow:auto; max-height:min(74vh,820px); }
+@media (max-width:1100px){ .insp { border-left:0; border-top:1px solid var(--rule2); max-height:520px; } }
+.insp .empty { font-family:'Source Serif 4',Georgia,serif; font-style:italic; color:var(--ink3); }
+.insp h3 { margin:0 0 3px; font-size:14px; font-weight:600; word-break:break-all; }
+.insp .sub { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink3); margin:0 0 12px; word-break:break-all; }
+.insp .pair2 { margin:10px 0 0; }
+.ilab { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--ink3); margin:14px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--rule); }
+.kv { list-style:none; margin:0; padding:0; }
+.kv li { display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink2); padding:3px 0; }
+.kv li b { color:var(--ink); font-weight:500; margin-left:auto; font-variant-numeric:tabular-nums; }
+.legend { display:flex; flex-wrap:wrap; gap:11px 18px; padding:11px 16px; border-top:1px solid var(--rule); background:var(--surface2); }
+.lg { display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink2); }
+.lg i { width:10px; height:10px; display:block; }
+
+section { margin-top:52px; }
+.shead { display:flex; align-items:baseline; gap:13px; border-bottom:1px solid var(--rule2);
+  padding-bottom:9px; margin-bottom:18px; flex-wrap:wrap; }
+.shead h2 { font-size:21px; font-weight:600; letter-spacing:-.015em; margin:0; }
+.shead .num { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink3); letter-spacing:.1em; }
+.note { font-family:'Source Serif 4',Georgia,serif; font-size:16.5px; line-height:1.65; color:var(--ink2); max-width:68ch; }
+.note + .note { margin-top:12px; }
+.note strong { color:var(--ink); font-weight:400; box-shadow:inset 0 -0.5em 0 color-mix(in srgb, var(--amber) 18%, transparent); }
+.tblwrap { overflow-x:auto; border:1px solid var(--rule2); background:var(--surface); box-shadow:var(--shadow); }
+table { border-collapse:collapse; width:100%; font-size:13px; }
+th,td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--rule); white-space:nowrap; }
+th { font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink3); font-weight:500; background:var(--surface2); }
+td.n { font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; text-align:right; }
+td.p { font-family:'IBM Plex Mono',monospace; font-size:11px; white-space:normal; word-break:break-all; }
+tbody tr { cursor:pointer; }
+tbody tr:hover { background:var(--surface2); }
+.none { padding:40px 24px; font-family:'Source Serif 4',Georgia,serif; font-style:italic; color:var(--ink3); }
+footer { margin-top:60px; padding-top:20px; border-top:2px solid var(--ink); color:var(--ink3); }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Co-change × import graph · from git history</p>
+  <h1>Omega Coupling</h1>
+  <p class="dek">One cell per pair of files that keeps landing in the same commit, shaded by how often. Every graph this tool draws comes from <span class="mono">import</span> statements; this is the only one that comes from history. <strong>The import overlay marks the pairs the graph already explains — the ones it cannot are a duplicated rule or a missing abstraction.</strong> Click a module block to zoom into the files behind it.</p>
+  <div class="statrow" id="statrow"></div>
+</header>
+
+<div class="bar" id="bar">
+  <button class="btn on" id="gModule">modules</button>
+  <button class="btn" id="gFile">files</button>
+  <span class="sep"></span>
+  <button class="btn on" id="tOverlay">import overlay</button>
+  <span class="sep"></span>
+  <span class="thr">min degree
+    <input id="thr" type="range" aria-label="Minimum coupling degree">
+    <b id="thrv"></b>
+  </span>
+  <span class="sep"></span>
+  <button class="btn" id="reset">reset</button>
+</div>
+
+<div class="plate" data-fullscreen>
+  <div class="split" data-fs-grow>
+    <div class="chart" id="chart"></div>
+    <aside class="insp" id="insp"></aside>
+  </div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<section>
+  <div class="shead"><span class="num">01</span><h2>Reading it</h2></div>
+  <p class="note" data-narr="coupling"></p>
+  <p class="note">Both axes are the same list of files, so the matrix is symmetric and the diagonal is each module co-changing with itself. Shade is the Jaccard degree: of all the commits that touched either file, the fraction that touched both. The <span class="mono">a→b</span> column in the table below is the asymmetric reading — a file that always drags its partner along is a different story from one that is dragged.</p>
+</section>
+
+<section>
+  <div class="shead"><span class="num">02</span><h2>Pairs</h2></div>
+  <div class="tblwrap">
+    <table id="tbl"><thead><tr><th>File A</th><th>File B</th><th style="text-align:right">Together</th><th style="text-align:right">Degree</th><th style="text-align:right">A→B</th><th style="text-align:right">B→A</th><th>Import</th><th>Modules</th></tr></thead><tbody></tbody></table>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="num">03</span><h2>What this does not know</h2></div>
+  <p class="note" data-narr="coupling"></p>
+</section>
+
+<footer>
+  <p class="note" style="font-size:14px" data-narr="provenance"></p>
+</footer>
+
+</div>
+
+<script id="data" type="application/json">{"generatedAt":"2026-09-20T13:51:59.197Z","project":"omega","root":"src","coupling":{"pairs":[],"eligible":["calendar-events/infra/repositories/calendar-event.repository.ts"],"meta":{"commits":36,"excludedCommits":2,"eligibleFiles":1,"maxFiles":25,"minChanges":5,"minDegree":0.3,"reason":null}},"fileNodes":[{"f":"app.module.ts","m":"(root)","p":"bootstrap","t":9,"loc":86,"cls":"AppModule"},{"f":"auth/app/actions/login.action.ts","m":"auth","p":"action","t":0,"loc":35,"cls":"LoginAction"},{"f":"auth/auth.module.ts","m":"auth","p":"module","t":8,"loc":36,"cls":"AuthModule"},{"f":"auth/domain/auth.service.ts","m":"auth","p":"service","t":2,"loc":58,"cls":"AuthService"},{"f":"auth/jwt.strategy.ts","m":"auth","p":"strategy","t":8,"loc":28,"cls":"JwtStrategy"},{"f":"calendar-events/apps/actions/create-calendar-event-action/create-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"loc":61,"cls":"CreateCalendarEventAction"},{"f":"calendar-events/apps/actions/create-calendar-event-action/create-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":19,"cls":null},{"f":"calendar-events/apps/actions/create-calendar-event-action/dtos/requests/create-calendar-event.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":58,"cls":"CreateCalendarEventRequestDto"},{"f":"calendar-events/apps/actions/create-event-reminder-action/create-event-reminder.action.ts","m":"calendar-events","p":"action","t":0,"loc":60,"cls":"CreateEventReminderAction"},{"f":"calendar-events/apps/actions/create-event-reminder-action/create-event-reminder.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":23,"cls":null},{"f":"calendar-events/apps/actions/create-event-reminder-action/dtos/requests/create-event-reminder.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":9,"cls":"CreateEventReminderRequestDto"},{"f":"calendar-events/apps/actions/create-event-reminder-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":18,"cls":"EventReminderResponseDto"},{"f":"calendar-events/apps/actions/create-recurring-event-action/create-recurring-event.action.ts","m":"calendar-events","p":"action","t":0,"loc":73,"cls":"CreateRecurringEventAction"},{"f":"calendar-events/apps/actions/create-recurring-event-action/create-recurring-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":20,"cls":null},{"f":"calendar-events/apps/actions/create-recurring-event-action/dtos/requests/create-recurring-event.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":163,"cls":"IsEndDateAfterStartDateConstraint"},{"f":"calendar-events/apps/actions/delete-calendar-event-action/delete-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"loc":52,"cls":"DeleteCalendarEventAction"},{"f":"calendar-events/apps/actions/delete-calendar-event-action/delete-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":20,"cls":null},{"f":"calendar-events/apps/actions/delete-event-reminder-action/delete-event-reminder.action.ts","m":"calendar-events","p":"action","t":0,"loc":53,"cls":"DeleteEventReminderAction"},{"f":"calendar-events/apps/actions/delete-event-reminder-action/delete-event-reminder.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":17,"cls":null},{"f":"calendar-events/apps/actions/delete-recurring-event-action/delete-recurring-event.action.ts","m":"calendar-events","p":"action","t":0,"loc":53,"cls":"DeleteRecurringEventAction"},{"f":"calendar-events/apps/actions/delete-recurring-event-action/delete-recurring-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":21,"cls":null},{"f":"calendar-events/apps/actions/fetch-calendar-event-action/fetch-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"loc":66,"cls":"FetchCalendarEventAction"},{"f":"calendar-events/apps/actions/fetch-calendar-event-action/fetch-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":19,"cls":null},{"f":"calendar-events/apps/actions/fetch-calendar-events-action/dtos/requests/fetch-calendar-events.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":12,"cls":"FetchCalendarEventsRequestDto"},{"f":"calendar-events/apps/actions/fetch-calendar-events-action/fetch-calendar-events.action.ts","m":"calendar-events","p":"action","t":0,"loc":102,"cls":"FetchCalendarEventsAction"},{"f":"calendar-events/apps/actions/fetch-calendar-events-action/fetch-calendar-events.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":19,"cls":null},{"f":"calendar-events/apps/actions/fetch-event-reminders-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":18,"cls":"EventReminderResponseDto"},{"f":"calendar-events/apps/actions/fetch-event-reminders-action/fetch-event-reminders.action.ts","m":"calendar-events","p":"action","t":0,"loc":54,"cls":"FetchEventRemindersAction"},{"f":"calendar-events/apps/actions/fetch-event-reminders-action/fetch-event-reminders.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":19,"cls":null},{"f":"calendar-events/apps/actions/search-calendar-events-action/__specs__/search-calendar-events.responder.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":123,"cls":null},{"f":"calendar-events/apps/actions/search-calendar-events-action/dtos/requests/search-calendar-events.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":11,"cls":"SearchCalendarEventsRequestDto"},{"f":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.action.ts","m":"calendar-events","p":"action","t":0,"loc":62,"cls":"SearchCalendarEventsAction"},{"f":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.responder.ts","m":"calendar-events","p":"responder","t":0,"loc":54,"cls":"SearchCalendarEventsResponder"},{"f":"calendar-events/apps/actions/search-calendar-events-action/search-calendar-events.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":23,"cls":null},{"f":"calendar-events/apps/actions/sync-event-reminders-action/dtos/requests/sync-event-reminders.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":19,"cls":"SyncEventRemindersRequestDto"},{"f":"calendar-events/apps/actions/sync-event-reminders-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":20,"cls":"EventReminderResponseDto"},{"f":"calendar-events/apps/actions/sync-event-reminders-action/sync-event-reminders.action.ts","m":"calendar-events","p":"action","t":0,"loc":60,"cls":"SyncEventRemindersAction"},{"f":"calendar-events/apps/actions/sync-event-reminders-action/sync-event-reminders.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":23,"cls":null},{"f":"calendar-events/apps/actions/update-calendar-event-action/dtos/requests/update-calendar-event.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":32,"cls":"UpdateCalendarEventRequestDto"},{"f":"calendar-events/apps/actions/update-calendar-event-action/update-calendar-event.action.ts","m":"calendar-events","p":"action","t":0,"loc":62,"cls":"UpdateCalendarEventAction"},{"f":"calendar-events/apps/actions/update-calendar-event-action/update-calendar-event.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":23,"cls":null},{"f":"calendar-events/apps/actions/update-event-reminder-action/dtos/requests/update-event-reminder.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":9,"cls":"UpdateEventReminderRequestDto"},{"f":"calendar-events/apps/actions/update-event-reminder-action/dtos/responses/event-reminder.response.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":18,"cls":"EventReminderResponseDto"},{"f":"calendar-events/apps/actions/update-event-reminder-action/update-event-reminder.action.ts","m":"calendar-events","p":"action","t":0,"loc":59,"cls":"UpdateEventReminderAction"},{"f":"calendar-events/apps/actions/update-event-reminder-action/update-event-reminder.swagger.ts","m":"calendar-events","p":"swagger","t":0,"loc":23,"cls":null},{"f":"calendar-events/apps/dtos/responses/calendar-event.response.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":35,"cls":"CalendarEventResponseDto"},{"f":"calendar-events/apps/dtos/responses/recurring-event.response.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":64,"cls":"RecurringEventResponseDtoClass"},{"f":"calendar-events/apps/dtos/responses/search-calendar-events.response.dto.ts","m":"calendar-events","p":"dto","t":1,"loc":36,"cls":"OneTimeEventSearchResultDto"},{"f":"calendar-events/apps/schedulers/reminder-scheduler/__specs__/reminder.scheduler.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":243,"cls":null},{"f":"calendar-events/apps/schedulers/reminder-scheduler/reminder.scheduler.ts","m":"calendar-events","p":"other","t":8,"loc":172,"cls":"ReminderScheduler"},{"f":"calendar-events/calendar-events.module.ts","m":"calendar-events","p":"module","t":8,"loc":119,"cls":"CalendarEventsModule"},{"f":"calendar-events/domain/aggregators/calendar-events.aggregator.ts","m":"calendar-events","p":"aggregator","t":3,"loc":31,"cls":"CalendarEventsAggregator"},{"f":"calendar-events/domain/entities/calendar-event.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":26,"cls":null},{"f":"calendar-events/domain/entities/event-reminder.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":14,"cls":null},{"f":"calendar-events/domain/entities/recurrence-exception.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":11,"cls":null},{"f":"calendar-events/domain/entities/recurrence-pattern.value-object.ts","m":"calendar-events","p":"other","t":8,"loc":12,"cls":null},{"f":"calendar-events/domain/entities/recurring-event.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":23,"cls":null},{"f":"calendar-events/domain/reminder.constants.ts","m":"calendar-events","p":"config","t":8,"loc":31,"cls":null},{"f":"calendar-events/domain/services/__specs__/calendar-event.service.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":400,"cls":null},{"f":"calendar-events/domain/services/calendar-event.service.ts","m":"calendar-events","p":"service","t":2,"loc":375,"cls":"CalendarEventService"},{"f":"calendar-events/domain/services/recurring-event.service.ts","m":"calendar-events","p":"service","t":2,"loc":85,"cls":"RecurringEventService"},{"f":"calendar-events/domain/transaction-scripts/create-calendar-event-TS/__specs__/create-calendar-event.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":247,"cls":null},{"f":"calendar-events/domain/transaction-scripts/create-calendar-event-TS/create-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"loc":15,"cls":null},{"f":"calendar-events/domain/transaction-scripts/create-calendar-event-TS/create-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":54,"cls":"CreateCalendarEventTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/__specs__/create-event-reminder.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":254,"cls":null},{"f":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.command.ts","m":"calendar-events","p":"command","t":1,"loc":8,"cls":null},{"f":"calendar-events/domain/transaction-scripts/create-event-reminder-TS/create-event-reminder.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":91,"cls":"CreateEventReminderTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/__specs__/create-recurring-event.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":197,"cls":null},{"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/create-recurring-event.command.ts","m":"calendar-events","p":"command","t":1,"loc":19,"cls":null},{"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/create-recurring-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":68,"cls":"CreateRecurringEventTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-domain.converter.ts","m":"calendar-events","p":"converter","t":5,"loc":42,"cls":"RecurringEventToDomainConverter"},{"f":"calendar-events/domain/transaction-scripts/create-recurring-event-TS/recurring-event-to-infrastructure.converter.ts","m":"calendar-events","p":"converter","t":5,"loc":41,"cls":"RecurringEventToInfrastructureConverter"},{"f":"calendar-events/domain/transaction-scripts/delete-calendar-event-TS/delete-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"loc":10,"cls":null},{"f":"calendar-events/domain/transaction-scripts/delete-calendar-event-TS/delete-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":113,"cls":"DeleteCalendarEventTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/delete-event-reminder-TS/delete-event-reminder.command.ts","m":"calendar-events","p":"command","t":1,"loc":7,"cls":null},{"f":"calendar-events/domain/transaction-scripts/delete-event-reminder-TS/delete-event-reminder.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":45,"cls":"DeleteEventReminderTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/delete-recurring-event-TS/delete-recurring-event.command.ts","m":"calendar-events","p":"command","t":1,"loc":10,"cls":null},{"f":"calendar-events/domain/transaction-scripts/delete-recurring-event-TS/delete-recurring-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":87,"cls":"DeleteRecurringEventTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/fetch-calendar-event-TS/fetch-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"loc":7,"cls":null},{"f":"calendar-events/domain/transaction-scripts/fetch-calendar-event-TS/fetch-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":54,"cls":"FetchCalendarEventTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/fetch-calendar-events-TS/fetch-calendar-events.command.ts","m":"calendar-events","p":"command","t":1,"loc":9,"cls":null},{"f":"calendar-events/domain/transaction-scripts/fetch-calendar-events-TS/fetch-calendar-events.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":54,"cls":"FetchCalendarEventsTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.command.ts","m":"calendar-events","p":"command","t":1,"loc":7,"cls":null},{"f":"calendar-events/domain/transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":41,"cls":"FetchEventRemindersTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/fetch-recurring-events-TS/fetch-recurring-events.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":30,"cls":"FetchRecurringEventsTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/generate-event-instances-TS/__specs__/generate-event-instances.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":755,"cls":null},{"f":"calendar-events/domain/transaction-scripts/generate-event-instances-TS/generate-event-instances.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":201,"cls":"GenerateEventInstancesTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/__specs__/search-calendar-events.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":351,"cls":null},{"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.command.ts","m":"calendar-events","p":"command","t":1,"loc":7,"cls":null},{"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.result.ts","m":"calendar-events","p":"other","t":8,"loc":42,"cls":null},{"f":"calendar-events/domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":150,"cls":"SearchCalendarEventsTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/sync-event-reminders-TS/__specs__/sync-event-reminders.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":255,"cls":null},{"f":"calendar-events/domain/transaction-scripts/sync-event-reminders-TS/sync-event-reminders.command.ts","m":"calendar-events","p":"command","t":1,"loc":9,"cls":null},{"f":"calendar-events/domain/transaction-scripts/sync-event-reminders-TS/sync-event-reminders.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":119,"cls":"SyncEventRemindersTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/update-calendar-event-TS/update-calendar-event.command.ts","m":"calendar-events","p":"command","t":1,"loc":12,"cls":null},{"f":"calendar-events/domain/transaction-scripts/update-calendar-event-TS/update-calendar-event.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":67,"cls":"UpdateCalendarEventTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/__specs__/update-event-reminder.transaction.script.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":349,"cls":null},{"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/__specs__/update-event-reminder.validator.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":237,"cls":null},{"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.command.ts","m":"calendar-events","p":"command","t":1,"loc":8,"cls":null},{"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.transaction.script.ts","m":"calendar-events","p":"transaction-script","t":4,"loc":69,"cls":"UpdateEventReminderTransactionScript"},{"f":"calendar-events/domain/transaction-scripts/update-event-reminder-TS/update-event-reminder.validator.ts","m":"calendar-events","p":"other","t":8,"loc":66,"cls":"UpdateEventReminderValidator"},{"f":"calendar-events/domain/utils/date-utc.utils.ts","m":"calendar-events","p":"util","t":8,"loc":25,"cls":null},{"f":"calendar-events/domain/utils/rrule-pattern.utils.ts","m":"calendar-events","p":"util","t":8,"loc":180,"cls":null},{"f":"calendar-events/infra/entities/calendar-event.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":111,"cls":"CalendarEventEntity"},{"f":"calendar-events/infra/entities/event-reminder.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":50,"cls":"EventReminderEntity"},{"f":"calendar-events/infra/entities/recurrence-exception.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":38,"cls":"RecurrenceExceptionEntity"},{"f":"calendar-events/infra/entities/recurring-event.entity.ts","m":"calendar-events","p":"entity","t":7,"loc":74,"cls":"RecurringEventEntity"},{"f":"calendar-events/infra/repositories/__specs__/calendar-event.repository.integration.spec.ts","m":"calendar-events","p":"spec","t":10,"loc":832,"cls":null},{"f":"calendar-events/infra/repositories/calendar-event.repository.ts","m":"calendar-events","p":"repository","t":6,"loc":345,"cls":"CalendarEventRepository"},{"f":"calendar-events/infra/repositories/event-reminder.repository.ts","m":"calendar-events","p":"repository","t":6,"loc":218,"cls":"EventReminderRepository"},{"f":"calendar-events/infra/repositories/recurrence-exception.repository.ts","m":"calendar-events","p":"repository","t":6,"loc":92,"cls":"RecurrenceExceptionRepository"},{"f":"calendar-events/infra/repositories/recurring-event.repository.ts","m":"calendar-events","p":"repository","t":6,"loc":123,"cls":"RecurringEventRepository"},{"f":"calendars/apps/actions/create-calendar-action/create-calendar.action.ts","m":"calendars","p":"action","t":0,"loc":50,"cls":"CreateCalendarAction"},{"f":"calendars/apps/actions/create-calendar-action/create-calendar.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":19,"cls":null},{"f":"calendars/apps/actions/create-calendar-action/dtos/requests/create-calendar.dto.ts","m":"calendars","p":"dto","t":1,"loc":14,"cls":"CreateCalendarRequestDto"},{"f":"calendars/apps/actions/delete-calendar-action/delete-calendar.action.ts","m":"calendars","p":"action","t":0,"loc":47,"cls":"DeleteCalendarAction"},{"f":"calendars/apps/actions/delete-calendar-action/delete-calendar.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":21,"cls":null},{"f":"calendars/apps/actions/fetch-calendars-action/fetch-calendars.action.ts","m":"calendars","p":"action","t":0,"loc":34,"cls":"FetchCalendarsAction"},{"f":"calendars/apps/actions/fetch-calendars-action/fetch-calendars.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":15,"cls":null},{"f":"calendars/apps/actions/fetch-invitations-action/fetch-invitations.action.ts","m":"calendars","p":"action","t":0,"loc":37,"cls":"FetchInvitationsAction"},{"f":"calendars/apps/actions/fetch-invitations-action/fetch-invitations.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":15,"cls":null},{"f":"calendars/apps/actions/fetch-members-action/fetch-members.action.ts","m":"calendars","p":"action","t":0,"loc":43,"cls":"FetchMembersAction"},{"f":"calendars/apps/actions/fetch-members-action/fetch-members.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":16,"cls":null},{"f":"calendars/apps/actions/invite-member-action/dtos/requests/invite-member.dto.ts","m":"calendars","p":"dto","t":1,"loc":9,"cls":"InviteMemberRequestDto"},{"f":"calendars/apps/actions/invite-member-action/invite-member.action.ts","m":"calendars","p":"action","t":0,"loc":50,"cls":"InviteMemberAction"},{"f":"calendars/apps/actions/invite-member-action/invite-member.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":17,"cls":null},{"f":"calendars/apps/actions/remove-member-action/remove-member.action.ts","m":"calendars","p":"action","t":0,"loc":46,"cls":"RemoveMemberAction"},{"f":"calendars/apps/actions/remove-member-action/remove-member.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":12,"cls":null},{"f":"calendars/apps/actions/respond-to-invitation-action/dtos/requests/respond-to-invitation.dto.ts","m":"calendars","p":"dto","t":1,"loc":7,"cls":"RespondToInvitationRequestDto"},{"f":"calendars/apps/actions/respond-to-invitation-action/respond-to-invitation.action.ts","m":"calendars","p":"action","t":0,"loc":48,"cls":"RespondToInvitationAction"},{"f":"calendars/apps/actions/respond-to-invitation-action/respond-to-invitation.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":12,"cls":null},{"f":"calendars/apps/actions/update-calendar-action/dtos/requests/update-calendar.dto.ts","m":"calendars","p":"dto","t":1,"loc":14,"cls":"UpdateCalendarRequestDto"},{"f":"calendars/apps/actions/update-calendar-action/update-calendar.action.ts","m":"calendars","p":"action","t":0,"loc":51,"cls":"UpdateCalendarAction"},{"f":"calendars/apps/actions/update-calendar-action/update-calendar.swagger.ts","m":"calendars","p":"swagger","t":0,"loc":19,"cls":null},{"f":"calendars/apps/dtos/responses/calendar-invitation.response.dto.ts","m":"calendars","p":"dto","t":1,"loc":22,"cls":"CalendarInvitationResponseDto"},{"f":"calendars/apps/dtos/responses/calendar-member.response.dto.ts","m":"calendars","p":"dto","t":1,"loc":18,"cls":"CalendarMemberResponseDto"},{"f":"calendars/apps/dtos/responses/calendar.response.dto.ts","m":"calendars","p":"dto","t":1,"loc":28,"cls":"CalendarResponseDto"},{"f":"calendars/apps/dtos/responses/pending-invitation.response.dto.ts","m":"calendars","p":"dto","t":1,"loc":21,"cls":"PendingInvitationResponseDto"},{"f":"calendars/apps/listeners/user-registered.listener.ts","m":"calendars","p":"listener","t":0,"loc":28,"cls":"UserRegisteredListener"},{"f":"calendars/calendars.module.ts","m":"calendars","p":"module","t":8,"loc":84,"cls":"CalendarsModule"},{"f":"calendars/domain/aggregators/calendar-access.aggregator.ts","m":"calendars","p":"aggregator","t":3,"loc":46,"cls":"CalendarAccessAggregator"},{"f":"calendars/domain/entities/calendar-invitation.entity.ts","m":"calendars","p":"entity","t":7,"loc":17,"cls":null},{"f":"calendars/domain/entities/calendar-member.entity.ts","m":"calendars","p":"entity","t":7,"loc":16,"cls":null},{"f":"calendars/domain/entities/calendar-role.type.ts","m":"calendars","p":"other","t":8,"loc":8,"cls":null},{"f":"calendars/domain/entities/calendar.entity.ts","m":"calendars","p":"entity","t":7,"loc":17,"cls":null},{"f":"calendars/domain/entities/invitation-status.type.ts","m":"calendars","p":"other","t":8,"loc":5,"cls":null},{"f":"calendars/domain/services/calendar-sharing.service.ts","m":"calendars","p":"service","t":2,"loc":55,"cls":"CalendarSharingService"},{"f":"calendars/domain/services/calendar.service.ts","m":"calendars","p":"service","t":2,"loc":53,"cls":"CalendarService"},{"f":"calendars/domain/transaction-scripts/create-calendar-TS/create-calendar.command.ts","m":"calendars","p":"command","t":1,"loc":9,"cls":null},{"f":"calendars/domain/transaction-scripts/create-calendar-TS/create-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":55,"cls":"CreateCalendarTransactionScript"},{"f":"calendars/domain/transaction-scripts/delete-calendar-TS/delete-calendar.command.ts","m":"calendars","p":"command","t":1,"loc":8,"cls":null},{"f":"calendars/domain/transaction-scripts/delete-calendar-TS/delete-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":52,"cls":"DeleteCalendarTransactionScript"},{"f":"calendars/domain/transaction-scripts/fetch-calendars-TS/calendar-with-role.type.ts","m":"calendars","p":"other","t":8,"loc":10,"cls":null},{"f":"calendars/domain/transaction-scripts/fetch-calendars-TS/fetch-calendars.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":35,"cls":"FetchCalendarsTransactionScript"},{"f":"calendars/domain/transaction-scripts/fetch-invitations-TS/fetch-invitations.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":41,"cls":"FetchInvitationsTransactionScript"},{"f":"calendars/domain/transaction-scripts/fetch-invitations-TS/pending-invitation.projection.ts","m":"calendars","p":"projection","t":4,"loc":11,"cls":null},{"f":"calendars/domain/transaction-scripts/fetch-members-TS/calendar-member.projection.ts","m":"calendars","p":"projection","t":4,"loc":11,"cls":null},{"f":"calendars/domain/transaction-scripts/fetch-members-TS/fetch-members.command.ts","m":"calendars","p":"command","t":1,"loc":8,"cls":null},{"f":"calendars/domain/transaction-scripts/fetch-members-TS/fetch-members.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":45,"cls":"FetchMembersTransactionScript"},{"f":"calendars/domain/transaction-scripts/invite-member-TS/invite-member.command.ts","m":"calendars","p":"command","t":1,"loc":9,"cls":null},{"f":"calendars/domain/transaction-scripts/invite-member-TS/invite-member.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":77,"cls":"InviteMemberTransactionScript"},{"f":"calendars/domain/transaction-scripts/provision-personal-calendar-TS/provision-personal-calendar.command.ts","m":"calendars","p":"command","t":1,"loc":7,"cls":null},{"f":"calendars/domain/transaction-scripts/provision-personal-calendar-TS/provision-personal-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":51,"cls":"ProvisionPersonalCalendarTransactionScript"},{"f":"calendars/domain/transaction-scripts/remove-member-TS/remove-member.command.ts","m":"calendars","p":"command","t":1,"loc":10,"cls":null},{"f":"calendars/domain/transaction-scripts/remove-member-TS/remove-member.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":54,"cls":"RemoveMemberTransactionScript"},{"f":"calendars/domain/transaction-scripts/respond-to-invitation-TS/respond-to-invitation.command.ts","m":"calendars","p":"command","t":1,"loc":9,"cls":null},{"f":"calendars/domain/transaction-scripts/respond-to-invitation-TS/respond-to-invitation.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":71,"cls":"RespondToInvitationTransactionScript"},{"f":"calendars/domain/transaction-scripts/update-calendar-TS/update-calendar.command.ts","m":"calendars","p":"command","t":1,"loc":10,"cls":null},{"f":"calendars/domain/transaction-scripts/update-calendar-TS/update-calendar.transaction.script.ts","m":"calendars","p":"transaction-script","t":4,"loc":50,"cls":"UpdateCalendarTransactionScript"},{"f":"calendars/infra/entities/calendar-invitation.entity.ts","m":"calendars","p":"entity","t":7,"loc":54,"cls":"CalendarInvitationEntity"},{"f":"calendars/infra/entities/calendar-member.entity.ts","m":"calendars","p":"entity","t":7,"loc":41,"cls":"CalendarMemberEntity"},{"f":"calendars/infra/entities/calendar.entity.ts","m":"calendars","p":"entity","t":7,"loc":38,"cls":"CalendarEntity"},{"f":"calendars/infra/repositories/calendar-invitation.repository.ts","m":"calendars","p":"repository","t":6,"loc":108,"cls":"CalendarInvitationRepository"},{"f":"calendars/infra/repositories/calendar-member.repository.ts","m":"calendars","p":"repository","t":6,"loc":115,"cls":"CalendarMemberRepository"},{"f":"calendars/infra/repositories/calendar.repository.ts","m":"calendars","p":"repository","t":6,"loc":132,"cls":"CalendarRepository"},{"f":"health/health.controller.ts","m":"health","p":"controller","t":0,"loc":22,"cls":"HealthController"},{"f":"main.ts","m":"(root)","p":"bootstrap","t":9,"loc":106,"cls":null},{"f":"security-events/domain/aggregators/security-event.aggregator.ts","m":"security-events","p":"aggregator","t":3,"loc":45,"cls":"SecurityEventAggregator"},{"f":"security-events/domain/entities/security-event.entity.ts","m":"security-events","p":"entity","t":7,"loc":24,"cls":"SecurityEvent"},{"f":"security-events/infra/repositories/security-event.repository.ts","m":"security-events","p":"repository","t":6,"loc":27,"cls":"SecurityEventRepository"},{"f":"security-events/security-events.module.ts","m":"security-events","p":"module","t":8,"loc":13,"cls":"SecurityEventsModule"},{"f":"shared-kernel/apps/decorators/get-auth-user.decorator.ts","m":"shared-kernel","p":"decorator","t":0,"loc":15,"cls":null},{"f":"shared-kernel/apps/decorators/protected-action.decorator.ts","m":"shared-kernel","p":"decorator","t":0,"loc":47,"cls":null},{"f":"shared-kernel/apps/guards/jwt-auth.guard.ts","m":"shared-kernel","p":"guard","t":0,"loc":6,"cls":"JwtAuthGuard"},{"f":"shared-kernel/apps/logging/logging.module.ts","m":"shared-kernel","p":"module","t":8,"loc":62,"cls":"LoggingModule"},{"f":"shared-kernel/domain/events/user-registered.event.ts","m":"shared-kernel","p":"event","t":1,"loc":10,"cls":null},{"f":"shared-kernel/domain/services/email.service.ts","m":"shared-kernel","p":"service","t":2,"loc":84,"cls":"EmailService"},{"f":"shared-kernel/shared-kernel.module.ts","m":"shared-kernel","p":"module","t":8,"loc":9,"cls":"SharedKernelModule"},{"f":"shared-kernel/test-utils.ts","m":"shared-kernel","p":"test-util","t":10,"loc":79,"cls":null},{"f":"shared-kernel/utils/date.utils.ts","m":"shared-kernel","p":"util","t":8,"loc":79,"cls":null},{"f":"typeorm/data-source.ts","m":"typeorm","p":"bootstrap","t":9,"loc":24,"cls":null},{"f":"typeorm/migrations/1787275032098-InitialPostgresBaseline.ts","m":"typeorm","p":"migration","t":9,"loc":71,"cls":"InitialPostgresBaseline1787275032098"},{"f":"users/app/actions/update-password-action/dtos/requests/update-password.dto.ts","m":"users","p":"dto","t":1,"loc":18,"cls":"UpdatePasswordRequestDto"},{"f":"users/app/actions/update-password-action/update-password.action.ts","m":"users","p":"action","t":0,"loc":64,"cls":"UpdatePasswordAction"},{"f":"users/app/actions/update-password-action/update-password.swagger.ts","m":"users","p":"swagger","t":0,"loc":23,"cls":null},{"f":"users/app/actions/update-username-action/dtos/requests/update-username.dto.ts","m":"users","p":"dto","t":1,"loc":14,"cls":"UpdateUsernameRequestDto"},{"f":"users/app/actions/update-username-action/update-username.action.ts","m":"users","p":"action","t":0,"loc":55,"cls":"UpdateUsernameAction"},{"f":"users/app/actions/update-username-action/update-username.swagger.ts","m":"users","p":"swagger","t":0,"loc":25,"cls":null},{"f":"users/app/controllers/dtos/requests/create-user.request.dto.ts","m":"users","p":"dto","t":1,"loc":25,"cls":"RegisterUserRequestDto"},{"f":"users/app/controllers/users.controller.ts","m":"users","p":"controller","t":0,"loc":40,"cls":"UsersController"},{"f":"users/domain/aggregators/user.aggregator.ts","m":"users","p":"aggregator","t":3,"loc":66,"cls":"UserAggregator"},{"f":"users/domain/entities/user.entity.ts","m":"users","p":"entity","t":7,"loc":29,"cls":"User"},{"f":"users/domain/transaction-scripts/update-password-TS/update-password.command.ts","m":"users","p":"command","t":1,"loc":9,"cls":null},{"f":"users/domain/transaction-scripts/update-password-TS/update-password.transaction.script.ts","m":"users","p":"transaction-script","t":4,"loc":64,"cls":"UpdatePasswordTransactionScript"},{"f":"users/domain/transaction-scripts/update-username-TS/update-username.command.ts","m":"users","p":"command","t":1,"loc":9,"cls":null},{"f":"users/domain/transaction-scripts/update-username-TS/update-username.transaction.script.ts","m":"users","p":"transaction-script","t":4,"loc":82,"cls":"UpdateUsernameTransactionScript"},{"f":"users/domain/users.service.ts","m":"users","p":"service","t":2,"loc":106,"cls":"UsersService"},{"f":"users/infra/repositories/user.repository.ts","m":"users","p":"repository","t":6,"loc":36,"cls":"UserRepository"},{"f":"users/users.module.ts","m":"users","p":"module","t":8,"loc":32,"cls":"UsersModule"}],"modules":[{"id":"calendar-events","files":107,"nodes":12},{"id":"calendars","files":63,"nodes":10},{"id":"users","files":17,"nodes":8},{"id":"shared-kernel","files":9,"nodes":7},{"id":"auth","files":4,"nodes":3},{"id":"security-events","files":4,"nodes":4},{"id":"(root)","files":2,"nodes":2},{"id":"typeorm","files":2,"nodes":2},{"id":"health","files":1,"nodes":1}],"moduleImports":["(root)\u0000users","(root)\u0000auth","(root)\u0000calendar-events","(root)\u0000shared-kernel","(root)\u0000security-events","(root)\u0000health","auth\u0000users","auth\u0000security-events","calendar-events\u0000shared-kernel","calendar-events\u0000users","calendar-events\u0000calendars","calendars\u0000shared-kernel","calendars\u0000users","shared-kernel\u0000users","security-events\u0000users"]}</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById('data').textContent);
+var C = D.coupling || { pairs: [], eligible: [], meta: {} };
+var M = C.meta || {};
+var PAIRS = C.pairs || [];
+
+var FN = {};
+D.fileNodes.forEach(function(n){ FN[n.f] = n; });
+var MODIMPORT = {};
+D.moduleImports.forEach(function(s){ MODIMPORT[s] = 1; });
+var MODS = (D.modules || []).map(function(m){ return m.id; });
+var modIdx = {};
+MODS.forEach(function(m, i){ modIdx[m] = i; });
+
+var FILES = (C.eligible || []).slice().sort(function(a, b){
+  var A = FN[a] || {}, B = FN[b] || {};
+  var ma = modIdx[A.m] != null ? modIdx[A.m] : 9999;
+  var mb = modIdx[B.m] != null ? modIdx[B.m] : 9999;
+  return ma - mb || a.localeCompare(b);
+});
+var FILEIDX = {};
+FILES.forEach(function(f, i){ FILEIDX[f] = i; });
+
+var PMAP = {};
+PAIRS.forEach(function(p){ PMAP[p.a + '\u0000' + p.b] = p; });
+
+var DEF = function(){
+  return { gran:'module', overlay:true, thr: M.minDegree || 0.3, sel:null, focus:null };
+};
+var state = DEF();
+
+function visible(){
+  return PAIRS.filter(function(p){ return p.degree >= state.thr; });
+}
+function pairKey(a, b){ return a < b ? a + '\u0000' + b : b + '\u0000' + a; }
+function pairOf(f1, f2){ return PMAP[pairKey(f1, f2)]; }
+function modOf(f){ var n = FN[f]; return n ? n.m : '?'; }
+
+function focusFiles(){
+  if (!state.focus) return FILES;
+  return FILES.filter(function(f){ return state.focus.indexOf(modOf(f)) >= 0; });
+}
+
+/* ---- stats ---- */
+function renderStats(){
+  var v = visible();
+  var unexp = v.filter(function(p){ return p.imports === 0; });
+  var heavy = M.commits > 0 && M.excludedCommits / M.commits >= 0.25;
+  var stats = [
+    ['commits scanned', M.commits || 0, ''],
+    ['commits excluded', (M.excludedCommits || 0) + ' of ' + (M.commits || 0), heavy ? 'hot' : ''],
+    ['eligible files', FILES.length, ''],
+    ['pairs in view', v.length, ''],
+    ['unexplained pairs', unexp.length, unexp.length ? 'hot' : '']
+  ];
+  document.getElementById('statrow').innerHTML = stats.map(function(s){
+    return '<div class="stat ' + s[2] + '"><b>' + s[1] + '</b><span>' + s[0] + '</span></div>';
+  }).join('');
+}
+
+/* ---- dependency structure matrix ---- */
+function esc(s){ return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function base(f){ return f.split('/').pop().replace(/\.ts$/, ''); }
+function trunc(s, n){ return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+function cellStyle(v){
+  if (state.overlay) {
+    if (v.imports) return 'fill:var(--blue);fill-opacity:' + (0.1 + 0.4 * v.degree).toFixed(3) + ';stroke:var(--ink3);stroke-width:0.7';
+    return 'fill:var(--rose);fill-opacity:' + (0.12 + 0.78 * v.degree).toFixed(3);
+  }
+  return 'fill:var(--amber);fill-opacity:' + (0.1 + 0.65 * v.degree).toFixed(3);
+}
+
+// One axis of items: {id, label, file?} and the value lookup for a cell.
+function render(){
+  var el = document.getElementById('chart');
+  if (M.reason) {
+    el.innerHTML = '<p class="none">No git history available' + (M.reason ? ' — ' + esc(M.reason) : '') +
+      '. Co-change needs commit history to exist at all.</p>';
+    return;
+  }
+  var v = visible();
+  if (state.gran === 'file' && focusFiles().length < 2) {
+    el.innerHTML = '<p class="none">Fewer than two files here changed often enough to form a pair' +
+      (M.reason ? '' : ' — a file needs ' + (M.minChanges || 5) + ' commits before it can be coupled to anything.') + '</p>';
+    return;
+  }
+
+  var axis, cellOf, title;
+  if (state.gran === 'module') {
+    axis = MODS.filter(function(m){ return FILES.some(function(f){ return modOf(f) === m; }); });
+    cellOf = {};
+    // strongest pair above threshold between two modules; the import graph
+    // explains the cell when any file pair across them imports the other
+    var cellCache = {};
+    for (var i = 0; i < axis.length; i++) {
+      for (var j = 0; j < axis.length; j++) {
+        var k = i < j ? axis[i] + '\u0000' + axis[j] : axis[j] + '\u0000' + axis[i];
+        if (cellCache[k]) { cellOf[i + ',' + j] = cellOf[j + ',' + i] = cellCache[k]; continue; }
+        var best = null;
+        for (var q = 0; q < v.length; q++) {
+          var p = v[q];
+          var ma = modOf(p.a), mb = modOf(p.b);
+          var hit = i === j ? (ma === mb && ma === axis[i])
+            : ((ma === axis[i] && mb === axis[j]) || (ma === axis[j] && mb === axis[i]));
+          if (hit && (!best || p.degree > best.degree)) best = p;
+        }
+        var imp = MODIMPORT[k] ? 1 : 0;
+        cellCache[k] = best ? { degree: best.degree, imports: best.imports || imp, best: best }
+                            : { degree: 0, imports: imp };
+        cellOf[i + ',' + j] = cellOf[j + ',' + i] = cellCache[k];
+      }
+    }
+    title = 'Modules ordered by size, co-change between them';
+  } else {
+    axis = focusFiles().map(function(f){ return f; });
+    cellOf = {};
+    for (var a = 0; a < axis.length; a++) {
+      for (var b = 0; b < axis.length; b++) {
+        var pp = a === b ? null : pairOf(axis[a], axis[b]);
+        cellOf[a + ',' + b] = pp || null;
+      }
+    }
+    title = state.focus
+      ? 'Files in ' + state.focus.map(esc).join(' and ') + ', co-change with each other'
+      : 'All eligible files ordered by module, co-change between them';
+  }
+
+  var N = axis.length;
+  if (!N) { el.innerHTML = '<p class="none">No files changed often enough to pair.</p>'; return; }
+  var cell = state.gran === 'module'
+    ? Math.max(10, Math.min(44, Math.floor(700 / N)))
+    : Math.max(4, Math.min(18, Math.floor(900 / N)));
+  var PL = state.gran === 'module' ? 150 : 132, PR = 18, PT = state.gran === 'module' ? 92 : 78, PB = 16;
+  var W = PL + N * cell + PR, H = PT + N * cell + PB;
+
+  var s = [];
+  s.push('<svg class="sc" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + esc(title) + '">');
+
+  var topStep = cell >= 26 ? 1 : Math.ceil(26 / cell);
+  for (var i = 0; i < N; i++) {
+    for (var j = 0; j < N; j++) {
+      var vv = cellOf[i + ',' + j];
+      var x = PL + j * cell, y = PT + i * cell;
+      if (vv && vv.degree > 0) {
+        var isSel = state.sel && vv.best && state.sel === pairKey(vv.best.a, vv.best.b);
+        s.push('<rect class="cell' + (isSel ? ' sel' : '') + '" x="' + (x + 0.5) + '" y="' + (y + 0.5) +
+          '" width="' + (cell - 1) + '" height="' + (cell - 1) + '" style="' + cellStyle(vv) + '" data-i="' + i + '" data-j="' + j + '"></rect>');
+      }
+    }
+  }
+
+  // module block separators in file mode
+  if (state.gran === 'file') {
+    for (var b2 = 1; b2 < N; b2++) {
+      if (modOf(axis[b2 - 1]) !== modOf(axis[b2])) {
+        var yy = PT + b2 * cell;
+        s.push('<line class="modsep" x1="' + PL + '" y1="' + yy + '" x2="' + (W - PR) + '" y2="' + yy + '"/>');
+        s.push('<line class="modsep" x1="' + PL + '" y1="' + PT + '" x2="' + PL + '" y2="' + yy + '"/>');
+        var cap = trunc(modOf(axis[b2]), 20);
+        s.push('<text class="modcap" x="' + (PL + 4) + '" y="' + (yy + 9) + '">' + esc(cap) + '</text>');
+      }
+    }
+  }
+
+  // labels
+  for (var li = 0; li < N; li++) {
+    var lab = state.gran === 'module' ? trunc(axis[li], 16) : trunc(base(axis[li]), 18);
+    s.push('<text class="mlab" x="' + (PL - 8) + '" y="' + (PT + li * cell + cell / 2 + 3.5) + '" text-anchor="end">' + esc(lab) + '</text>');
+    if (li % topStep === 0) {
+      var tx = PL + li * cell + cell / 2, ty = PT - 8;
+      s.push('<text class="mlab top" transform="rotate(-55 ' + tx + ' ' + ty + ')" x="' + tx + '" y="' + ty + '">' + esc(lab) + '</text>');
+    }
+  }
+
+  s.push('</svg>');
+  el.innerHTML = s.join('');
+  el.querySelectorAll('.cell').forEach(function(r){
+    r.addEventListener('click', function(){
+      var i = Number(r.getAttribute('data-i')), j = Number(r.getAttribute('data-j'));
+      if (state.gran === 'module') {
+        if (i === j) { state.focus = [axis[i]]; }
+        else { state.focus = [axis[i], axis[j]]; }
+        state.gran = 'file';
+        syncGranBtns();
+        state.sel = null;
+      } else {
+        var key = i === j ? null : pairKey(axis[i], axis[j]);
+        state.sel = state.sel === key ? null : key;
+      }
+      render(); renderStats(); renderTable(); inspect();
+    });
+  });
+}
+
+function syncGranBtns(){
+  document.getElementById('gModule').classList.toggle('on', state.gran === 'module');
+  document.getElementById('gFile').classList.toggle('on', state.gran === 'file');
+}
+
+/* ---- inspector ---- */
+function pct(x){ return Math.round(x * 100) + '%'; }
+function inspect(){
+  var el = document.getElementById('insp');
+  if (!M.reason && state.sel && PMAP[state.sel]) {
+    var p = PMAP[state.sel];
+    var na = FN[p.a] || {}, nb = FN[p.b] || {};
+    var cross = na.m !== nb.m;
+    el.innerHTML =
+      '<h3>' + esc(base(p.a)) + ' <span style="color:var(--ink3)">~</span> ' + esc(base(p.b)) + '</h3>' +
+      '<p class="sub">' + esc(p.a) + '</p>' +
+      '<p class="sub pair2">' + esc(p.b) + '</p>' +
+      '<ul class="kv">' +
+        '<li>together<b>' + p.co + ' of ' + (p.changesA + p.changesB - p.co) + '</b></li>' +
+        '<li>degree<b>' + pct(p.degree) + '</b></li>' +
+        '<li>when ' + esc(base(p.a).slice(0, 14)) + ' changes<b>' + pct(p.aThenB) + '</b></li>' +
+        '<li>when ' + esc(base(p.b).slice(0, 14)) + ' changes<b>' + pct(p.bThenA) + '</b></li>' +
+        '<li>import edge<b>' + (p.imports ? 'yes' : 'no') + '</b></li>' +
+        '<li>modules<b>' + (cross ? esc(na.m) + ' × ' + esc(nb.m) : esc(na.m) + ' (same)') + '</b></li>' +
+      '</ul>' +
+      '<p class="ilab">Read</p>' +
+      '<p class="note" style="font-size:14px;max-width:none">' +
+      (p.imports
+        ? 'The import graph already explains this pair — of course a file changes with the thing it imports.'
+        : 'No import edge goes between them. ' +
+          (cross ? 'They sit in different modules, which makes the shared habit harder to excuse. ' : '') +
+          'Look for a rule that belongs in both of their heads.</p>');
+    return;
+  }
+  var v = visible().slice(0, 5);
+  if (!M.reason && v.length) {
+    el.innerHTML = '<p class="empty">Click a cell for the pair behind it. The strongest pairs in view:</p>' +
+      v.map(function(p){
+        return '<p class="sub" style="margin:6px 0 0">' + esc(trunc(base(p.a), 22)) + ' ~ ' + esc(trunc(base(p.b), 22)) +
+          ' <b style="color:var(--ink)">' + pct(p.degree) + '</b>' + (p.imports ? '' : ' <span style="color:var(--hot)">· unexplained</span>') + '</p>';
+      }).join('');
+    return;
+  }
+  el.innerHTML = '<p class="empty">Nothing to pair yet — click a cell once the history is there.</p>';
+}
+
+/* ---- table ---- */
+function renderTable(){
+  var v = visible().slice(0, 40);
+  var tb = document.querySelector('#tbl tbody');
+  if (M.reason || !v.length) {
+    tb.innerHTML = '<tr><td colspan="8" class="none" style="padding:32px 24px">' +
+      (M.reason
+        ? 'No git history available' + (M.reason ? ' — ' + esc(M.reason) : '') + '.'
+        : 'No pair of files reaches the current threshold.') +
+      '</td></tr>';
+    return;
+  }
+  tb.innerHTML = v.map(function(p){
+    var na = FN[p.a] || {}, nb = FN[p.b] || {};
+    var cross = na.m !== nb.m;
+    return '<tr data-key="' + esc(pairKey(p.a, p.b)) + '">' +
+      '<td class="p">' + esc(p.a) + '</td><td class="p">' + esc(p.b) + '</td>' +
+      '<td class="n">' + p.co + ' of ' + (p.changesA + p.changesB - p.co) + '</td>' +
+      '<td class="n" style="color:' + (p.imports ? 'var(--ink2)' : 'var(--hot)') + '">' + pct(p.degree) + '</td>' +
+      '<td class="n">' + pct(p.aThenB) + '</td><td class="n">' + pct(p.bThenA) + '</td>' +
+      '<td class="p">' + (p.imports ? 'yes' : '<span style="color:var(--hot)">no</span>') + '</td>' +
+      '<td class="p" style="color:var(--ink3)">' + (cross ? esc(na.m) + ' × ' + esc(nb.m) : esc(na.m) + ' (same)') + '</td></tr>';
+  }).join('');
+  document.querySelectorAll('#tbl tbody tr').forEach(function(tr){
+    tr.addEventListener('click', function(){
+      var key = tr.getAttribute('data-key');
+      var p = PMAP[key];
+      state.sel = state.sel === key ? null : key;
+      if (p && state.sel && state.gran === 'module') {
+        var ma = modOf(p.a), mb = modOf(p.b);
+        state.focus = ma === mb ? [ma] : [ma, mb];
+        state.gran = 'file';
+        syncGranBtns();
+      }
+      render(); renderStats(); renderTable(); inspect();
+    });
+  });
+}
+
+/* ---- legend ---- */
+function renderLegend(){
+  document.getElementById('legend').innerHTML =
+    '<span class="lg"><i style="background:var(--rose)"></i>co-changes, no import edge</span>' +
+    (state.overlay
+      ? '<span class="lg"><i style="background:var(--blue);outline:1px solid var(--ink3)"></i>also shares an import edge</span>'
+      : '<span class="lg"><i style="background:var(--amber)"></i>degree, overlay off</span>') +
+    '<span class="lg" style="color:var(--ink3)">shade = fraction of commits in which both changed · click a block to zoom into its files</span>';
+}
+
+/* ---- controls ---- */
+function tog(id, key, after){
+  var b = document.getElementById(id);
+  b.addEventListener('click', function(){
+    state[key] = !state[key];
+    b.classList.toggle('on', state[key]);
+    render(); renderStats(); renderTable(); inspect(); renderLegend();
+    if (after) after();
+  });
+}
+tog('tOverlay', 'overlay');
+document.getElementById('gModule').addEventListener('click', function(){
+  state.gran = 'module'; state.focus = null; state.sel = null;
+  syncGranBtns(); render(); renderTable(); inspect();
+});
+document.getElementById('gFile').addEventListener('click', function(){
+  state.gran = 'file'; state.sel = null;
+  syncGranBtns(); render(); renderTable(); inspect();
+});
+(function(){
+  var r = document.getElementById('thr');
+  r.min = String(M.minDegree || 0.3); r.max = '1'; r.step = '0.05';
+  r.value = String(state.thr);
+  document.getElementById('thrv').textContent = Math.round(state.thr * 100) + '%';
+  r.addEventListener('input', function(){
+    state.thr = Number(r.value);
+    document.getElementById('thrv').textContent = Math.round(state.thr * 100) + '%';
+    render(); renderStats(); renderTable(); inspect();
+  });
+})();
+document.getElementById('reset').addEventListener('click', function(){
+  state = DEF();
+  document.getElementById('thr').value = String(state.thr);
+  document.getElementById('thrv').textContent = Math.round(state.thr * 100) + '%';
+  document.getElementById('tOverlay').classList.add('on');
+  syncGranBtns();
+  render(); renderStats(); renderTable(); inspect(); renderLegend();
+});
+
+renderStats(); render(); renderTable(); inspect(); renderLegend();
+window.__coupling = { PAIRS: PAIRS, FILES: FILES, state: state, visible: visible };
+})();
+</script>
+
+<style>
+.metatron-full { position:fixed !important; inset:0 !important; z-index:9999;
+  margin:0 !important; border-radius:0 !important; display:flex; flex-direction:column;
+  background:var(--paper, var(--surface, #111)); }
+.metatron-full [data-fs-grow] { flex:1; min-height:0; }
+.metatron-full [data-fs-grow] > * { max-height:none !important; height:100% !important; }
+body.metatron-locked { overflow:hidden; }
+.metatron-fsbtn { position:absolute; top:8px; right:10px; z-index:3;
+  font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:11px; letter-spacing:.04em;
+  padding:5px 10px; cursor:pointer; color:var(--ink2, #889); background:var(--surface, #1a222c);
+  border:1px solid var(--rule2, #445); opacity:.72; }
+.metatron-fsbtn:hover { opacity:1; color:var(--ink, #eee); }
+.metatron-fsbtn:focus-visible { outline:2px solid var(--blue, #79a4e6); outline-offset:2px; }
+</style>
+<script>
+(function(){
+  var plate = document.querySelector('[data-fullscreen]');
+  if (!plate) return;
+  if (getComputedStyle(plate).position === 'static') plate.style.position = 'relative';
+  var btn = document.createElement('button');
+  btn.className = 'metatron-fsbtn';
+  btn.type = 'button';
+  btn.textContent = '⤢ full screen';
+  btn.title = 'Fill the screen (Esc to leave)';
+  plate.appendChild(btn);
+  function on(){ return plate.classList.contains('metatron-full'); }
+  function set(v){
+    plate.classList.toggle('metatron-full', v);
+    document.body.classList.toggle('metatron-locked', v);
+    btn.textContent = v ? '✕ exit' : '⤢ full screen';
+    try {
+      if (v && plate.requestFullscreen) plate.requestFullscreen().catch(function(){});
+      else if (!v && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+    } catch (e) {}
+    // canvas lenses watch their own container, but nudge anything that does not
+    window.dispatchEvent(new Event('resize'));
+  }
+  btn.addEventListener('click', function(){ set(!on()); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && on()) { e.preventDefault(); set(false); } });
+  document.addEventListener('fullscreenchange', function(){ if (!document.fullscreenElement && on()) set(false); });
+})();
+</script>
+<script id="__narr" type="application/json">{"scale":"<strong>209 files</strong> under the scanned root, wired together by 684 internal imports across 49 directories and 9 modules. 28 HTTP endpoints were traced through 147 call hops.","flow":"Read left to right and it is the intended request path: <span class=\"mono\">action</span> → <span class=\"mono\">service</span> → <span class=\"mono\">transaction-script</span> → <span class=\"mono\">repository</span>. Anything that jumps a station is a layering violation, and the lenses colour it as one.","layering":"<strong>6 links skip a layer</strong> — 4 where service reaches repository directly, skipping transaction script, 2 where action reaches repository directly, skipping service and transaction script. The 2 most severe start in <span class=\"mono\">calendar-events</span>.","crossDomain":"10 dependencies cross a bounded context — 10 aggregators. <strong>Every one lands on an allowed gateway</strong> — nothing reaches an entity, a repository or a use-case script in another context.","absent":"<strong><span class=\"mono\">mapper</span>, <span class=\"mono\">assembler</span>, <span class=\"mono\">resolver</span>, <span class=\"mono\">gateway</span>, and 7 others are configured but exist nowhere in the code</strong>. Either the architecture document describes a shape that was never built, or the config names something this project does not use.","skyline":"Height is layers, not importance: a module carries one floor per directory, stacked in architectural order, so <strong>its silhouette is its layer profile</strong>. <span class=\"mono\">calendar-events</span> is the most complete, carrying 8 of 8 tiers. <span class=\"mono\">health</span> is the outlier, missing <span class=\"mono\">Contract</span>, <span class=\"mono\">Service</span>, <span class=\"mono\">Aggregator</span>, <span class=\"mono\">Transaction Script</span>, and 3 others. <span class=\"mono\">security-events</span> has no Entry floor at all — no route reaches it directly.","cycles":"<strong>The module graph still has 1 cycle after the sanctioned carve-outs</strong> ({calendar-events, calendars}), so the dependency direction is not fully one-way.","upheld":"<strong>3 of the rules this codebase writes down for itself hold across all 684 imports</strong>: Every cross-domain edge goes through an allowed gateway; No same-level injection; No upward calls.","deviations":"<strong>7 kinds of deviation</strong> were found, covering 32 files or imports in total. Each is measured against a stated rule, not against taste.","endpoints":"28 endpoints, traced by following <span class=\"mono\">this.x.y()</span> through real method bodies rather than guessed from the folder layout.","schema":"16 entities, 72 columns, 6 references between them. <strong>3 are declared to the ORM; 3 exist only as a bare id column</strong>. 3 cross a bounded context — which is usually the reason the relation was left undeclared, since declaring it would couple the two contexts. The dependency is still there; it is just the application's job to honour it rather than the database's. 15 entities do not name their table in <span class=\"mono\">@Entity()</span>, so the name comes from the class.","hotspots":"Across 36 commits, the file scoring highest on both axes is <span class=\"mono\">calendar-events/infra/repositories/calendar-event.repository.ts</span> — <strong>6 commits and 26 dependents</strong>. <span class=\"mono\">shared-kernel/apps/decorators/protected-action.decorator.ts</span> is depended on by the most files (48). A file high on one axis alone is usually fine; it is the overlap that costs. 184 of the 195 files with history have no test file — the dashed rings — and a ring in the corner is where to test first. \"Tested\" means a spec file was located by name, not that the spec asserts anything: presence, not quality.","coupling":"Across 36 commits (2 ignored for touching more than 25 files), 0 pairs of files land in the same commit at least 30% of the time they move, and 0 of those pairs share no import edge — the ones worth reading. Commits are a proxy for change, and one team's commit granularity is not another's: a squash-merge workflow and a commit-per-thought workflow produce different numbers from identical work. Co-change is correlation, not mechanism — two files dragged along by the same sweeping rename are not coupled in any meaningful sense, and the size cap only blunts that, imperfectly. And the absence of coupling is not evidence of independence; it may just be young code.","provenance":"Generated from <span class=\"mono\">omega</span> by metatron. Every box is a directory that exists and every line is an <span class=\"mono\">import</span> that a file actually writes. 202 of 209 files (96.7%) matched a configured pattern.","caveats":"Imports are not calls: a type-only import counts the same as a constructor injection everywhere except the endpoint traces. Anything resolved through a DI token string rather than an imported symbol leaves no edge, so coupling is understated. Positions and footprints are chosen for legibility — only heights, tiers, links and colours carry meaning."}</script>
+<script>
+(function(){
+  var N;
+  try { N = JSON.parse(document.getElementById('__narr').textContent); } catch (e) { return; }
+  var slots = document.querySelectorAll('[data-narr]');
+  for (var i = 0; i < slots.length; i++) {
+    var el = slots[i], key = el.getAttribute('data-narr');
+    if (N[key]) el.innerHTML = N[key];
+    else if (el.parentNode) el.parentNode.removeChild(el);   // nothing to say, so say nothing
+  }
+})();
+</script>
