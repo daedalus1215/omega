@@ -3,6 +3,7 @@ import { ReminderScheduler } from '../reminder.scheduler';
 import { EventReminderRepository } from '../../../../infra/repositories/event-reminder.repository';
 import { CalendarEventRepository } from '../../../../infra/repositories/calendar-event.repository';
 import { UserAggregator } from '../../../../../users/domain/aggregators/user.aggregator';
+import { CalendarAccessAggregator } from '../../../../../calendars/domain/aggregators/calendar-access.aggregator';
 import { EmailService } from '../../../../../shared-kernel/domain/services/email.service';
 import { EventReminder } from '../../../../domain/entities/event-reminder.entity';
 import { CalendarEvent } from '../../../../domain/entities/calendar-event.entity';
@@ -18,6 +19,7 @@ describe('ReminderScheduler', () => {
   let mockCalendarEventRepository: jest.Mocked<CalendarEventRepository>;
   let mockUserAggregator: jest.Mocked<UserAggregator>;
   let mockEmailService: jest.Mocked<EmailService>;
+  let mockCalendarAccessAggregator: jest.Mocked<CalendarAccessAggregator>;
 
   const NOW = new Date('2024-06-01T12:00:00Z');
   const USER_ID = 7;
@@ -68,6 +70,9 @@ describe('ReminderScheduler', () => {
     mockEmailService = createMock<EmailService>({
       sendReminderEmail: jest.fn().mockResolvedValue(undefined),
     });
+    mockCalendarAccessAggregator = createMock<CalendarAccessAggregator>({
+      getMemberUserIds: jest.fn().mockResolvedValue([USER_ID]),
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -82,6 +87,7 @@ describe('ReminderScheduler', () => {
         },
         { provide: UserAggregator, useValue: mockUserAggregator },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: CalendarAccessAggregator, useValue: mockCalendarAccessAggregator },
       ],
     }).compile();
 
@@ -237,6 +243,92 @@ describe('ReminderScheduler', () => {
       );
 
       await expect(target.handleReminderCron()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('fan-out', () => {
+    it('delivers to every member whose username is a valid email', async () => {
+      const teammateId = 8;
+      mockCalendarAccessAggregator.getMemberUserIds.mockResolvedValue([
+        USER_ID,
+        teammateId,
+      ]);
+      mockUserAggregator.findUsernameById
+        .mockResolvedValueOnce('user@example.com')
+        .mockResolvedValueOnce('teammate@example.com');
+
+      await runWith(buildEvent(0));
+
+      expect(mockEmailService.sendReminderEmail).toHaveBeenCalledTimes(2);
+      expect(mockEmailService.sendReminderEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'Team Meeting',
+        expect.any(Date),
+        REMINDER_MINUTES,
+        false
+      );
+      expect(mockEmailService.sendReminderEmail).toHaveBeenCalledWith(
+        'teammate@example.com',
+        'Team Meeting',
+        expect.any(Date),
+        REMINDER_MINUTES,
+        false
+      );
+      expect(mockEventReminderRepository.markAsSent).toHaveBeenCalledTimes(1);
+      expect(mockEventReminderRepository.markAsSent).toHaveBeenCalledWith(1);
+    });
+
+    it('skips a bot-like member while delivering to the human member', async () => {
+      const botId = 99;
+      mockCalendarAccessAggregator.getMemberUserIds.mockResolvedValue([
+        botId,
+        USER_ID,
+      ]);
+      mockUserAggregator.findUsernameById
+        .mockResolvedValueOnce('assistant')
+        .mockResolvedValueOnce('user@example.com');
+
+      await runWith(buildEvent(0));
+
+      expect(mockEmailService.sendReminderEmail).toHaveBeenCalledTimes(1);
+      expect(mockEmailService.sendReminderEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'Team Meeting',
+        expect.any(Date),
+        REMINDER_MINUTES,
+        false
+      );
+      expect(mockEventReminderRepository.markAsSent).toHaveBeenCalledWith(1);
+    });
+
+    it('does not mark sent when one recipient fails, so the next tick retries', async () => {
+      const teammateId = 8;
+      mockCalendarAccessAggregator.getMemberUserIds.mockResolvedValue([
+        USER_ID,
+        teammateId,
+      ]);
+      mockUserAggregator.findUsernameById
+        .mockResolvedValueOnce('user@example.com')
+        .mockResolvedValueOnce('teammate@example.com');
+      mockEmailService.sendReminderEmail
+        .mockRejectedValueOnce(new Error('SMTP down'))
+        .mockResolvedValueOnce(undefined);
+
+      await runWith(buildEvent(0));
+
+      expect(mockEmailService.sendReminderEmail).toHaveBeenCalledTimes(2);
+      expect(mockEventReminderRepository.markAsSent).not.toHaveBeenCalled();
+    });
+
+    it('sends nothing and marks nothing when no member has a usable address', async () => {
+      const botId = 99;
+      mockCalendarAccessAggregator.getMemberUserIds.mockResolvedValue([botId]);
+      mockUserAggregator.findUsernameById.mockResolvedValue('assistant');
+
+      await runWith(buildEvent(0));
+
+      expect(mockEmailService.sendReminderEmail).not.toHaveBeenCalled();
+      expect(mockEventReminderRepository.markAsSent).not.toHaveBeenCalled();
     });
   });
 });

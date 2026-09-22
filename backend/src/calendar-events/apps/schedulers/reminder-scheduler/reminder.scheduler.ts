@@ -3,8 +3,10 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventReminderRepository } from '../../../infra/repositories/event-reminder.repository';
 import { CalendarEventRepository } from '../../../infra/repositories/calendar-event.repository';
 import { UserAggregator } from '../../../../users/domain/aggregators/user.aggregator';
+import { CalendarAccessAggregator } from '../../../../calendars/domain/aggregators/calendar-access.aggregator';
 import { EmailService } from '../../../../shared-kernel/domain/services/email.service';
 import { CalendarEvent } from '../../../domain/entities/calendar-event.entity';
+import { EventReminder } from '../../../domain/entities/event-reminder.entity';
 import {
   LATE_DELIVERY_GRACE_MINUTES,
   LATE_DELIVERY_NOTICE_SECONDS,
@@ -23,6 +25,7 @@ export class ReminderScheduler {
     private readonly eventReminderRepository: EventReminderRepository,
     private readonly calendarEventRepository: CalendarEventRepository,
     private readonly userAggregator: UserAggregator,
+    private readonly calendarAccessAggregator: CalendarAccessAggregator,
     private readonly emailService: EmailService
   ) {}
 
@@ -84,33 +87,9 @@ export class ReminderScheduler {
             continue;
           }
 
-          const userEmail = await this.resolveUserEmail(event);
-          if (!userEmail) {
-            continue;
-          }
-
           const isLate = latenessMs > LATE_DELIVERY_NOTICE_SECONDS * 1000;
-
-          try {
-            await this.emailService.sendReminderEmail(
-              userEmail,
-              event.title,
-              event.startDate,
-              reminder.reminderMinutes,
-              isLate
-            );
-
-            await this.eventReminderRepository.markAsSent(reminder.id);
-            this.logger.log(
-              `✓ Sent reminder ${reminder.id} for event "${event.title}" (ID: ${event.id}) to ${userEmail}${isLate ? ` (${Math.round(latenessMs / 1000)}s late)` : ''}`
-            );
-          } catch (error) {
-            // Deliberately not marked as sent, so the next tick retries it
-            // while it is still inside the grace period.
-            this.logger.error(
-              `Failed to send reminder ${reminder.id} to ${userEmail}: ${error.message}`
-            );
-          }
+          const lateSeconds = isLate ? Math.round(latenessMs / 1000) : 0;
+          await this.deliverToMembers(reminder, event, isLate, lateSeconds);
         } catch (error) {
           this.logger.error(
             `Error processing reminder ${reminder.id}: ${error.message}`,
@@ -139,24 +118,75 @@ export class ReminderScheduler {
   }
 
   /**
-   * Reminders are delivered to the username, which doubles as the email
-   * address. Returns null when it is not a usable address.
+   * Send one due reminder to every member of the event's calendar.
+   * Marks it sent only when every recipient was delivered; a partial failure
+   * leaves it unsent so the next tick retries within the grace period.
    */
-  private async resolveUserEmail(event: CalendarEvent): Promise<string | null> {
-    const username = await this.userAggregator.findUsernameById(event.userId);
-    if (!username) {
-      this.logger.warn(`User ${event.userId} not found for event ${event.id}`);
-      return null;
+  private async deliverToMembers(
+    reminder: EventReminder,
+    event: CalendarEvent,
+    isLate: boolean,
+    lateSeconds: number
+  ): Promise<void> {
+    const memberEmails = await this.resolveMemberEmails(event);
+    if (memberEmails.length === 0) {
+      return;
     }
 
-    if (!this.isValidEmail(username)) {
-      this.logger.warn(
-        `User ${event.userId} has username "${username}" which is not a valid email address. Skipping reminder for event ${event.id}.`
+    let allDelivered = true;
+    for (const email of memberEmails) {
+      try {
+        await this.emailService.sendReminderEmail(
+          email,
+          event.title,
+          event.startDate,
+          reminder.reminderMinutes,
+          isLate
+        );
+      } catch (error) {
+        allDelivered = false;
+        this.logger.error(
+          `Failed to send reminder ${reminder.id} to ${email}: ${error.message}`
+        );
+      }
+    }
+
+    if (allDelivered) {
+      await this.eventReminderRepository.markAsSent(reminder.id);
+      this.logger.log(
+        `✓ Sent reminder ${reminder.id} for event "${event.title}" (ID: ${event.id}) to ${memberEmails.length} member(s)${isLate ? ` (${lateSeconds}s late)` : ''}`
       );
-      return null;
     }
+  }
 
-    return username;
+  /**
+   * Email addresses of every member of the event's calendar. Reminders fan
+   * out to the calendar, not the creator. The username doubles as the email
+   * address; members without a usable address (e.g. bot accounts) are
+   * skipped with a warning.
+   */
+  private async resolveMemberEmails(
+    event: CalendarEvent
+  ): Promise<string[]> {
+    const memberUserIds = await this.calendarAccessAggregator.getMemberUserIds(
+      event.calendarId
+    );
+    const emails: string[] = [];
+    for (const userId of memberUserIds) {
+      const username = await this.userAggregator.findUsernameById(userId);
+      if (username === null) {
+        this.logger.warn(`User ${userId} not found for event ${event.id}`);
+        continue;
+      }
+      if (!this.isValidEmail(username)) {
+        this.logger.warn(
+          `User ${userId} has username "${username}" which is not a valid email address. Skipping reminder for event ${event.id}.`
+        );
+        continue;
+      }
+      emails.push(username);
+    }
+    return emails;
   }
 
   /**
