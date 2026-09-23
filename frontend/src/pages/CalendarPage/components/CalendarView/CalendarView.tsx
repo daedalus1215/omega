@@ -68,7 +68,7 @@ type CalendarViewProps = {
   events: CalendarEventResponseDto[];
   isLoading: boolean;
   onLoadMoreDays: (direction: 'left' | 'right') => void;
-  onTimeSlotClick?: (date: Date, hour: number) => void;
+  onTimeSlotClick?: (date: Date, hour: number, minutes: number) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
   onVisibleDateChange?: (date: Date) => void;
 };
@@ -462,6 +462,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       if (newEndDate <= newStartDate) {
         newEndDate = new Date(newStartDate.getTime() + CALENDAR_CONSTANTS.DRAG_SNAP_INTERVAL * 60 * 1000);
       }
+      // The drag may not have crossed a snap boundary - the computed times then
+      // equal the originals. Skip the mutation to avoid a no-op PUT and a
+      // misleading success toast.
+      const originalStart = new Date(eventToResize.startDate);
+      const originalEnd = new Date(eventToResize.endDate);
+      if (
+        newStartDate.getTime() === originalStart.getTime() &&
+        newEndDate.getTime() === originalEnd.getTime()
+      ) {
+        return;
+      }
 
       try {
         await updateMutation.mutateAsync({
@@ -737,8 +748,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             const startDate = new Date(draggedEvent.startDate);
             const endDate = new Date(draggedEvent.endDate);
             const durationMinutes = differenceInMinutes(endDate, startDate);
-            const heightPixels = (durationMinutes / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
-            const minHeight = (CALENDAR_CONSTANTS.DRAG_SNAP_INTERVAL / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+            const heightPixels =
+              (durationMinutes / CALENDAR_CONSTANTS.SLOT_MINUTES) *
+              CALENDAR_CONSTANTS.SLOT_HEIGHT;
+            const minHeight =
+              (CALENDAR_CONSTANTS.DRAG_SNAP_INTERVAL /
+                CALENDAR_CONSTANTS.SLOT_MINUTES) *
+              CALENDAR_CONSTANTS.SLOT_HEIGHT;
             const overlayColor = draggedEvent.color || EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value;
             const overlaySurface = getEventSurfaceText(overlayColor);
             

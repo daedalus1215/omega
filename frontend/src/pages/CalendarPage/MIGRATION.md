@@ -93,7 +93,9 @@ All layout values are now in one place:
 // frontend/src/pages/CalendarPage/constants/calendar.constants.ts
 
 export const CALENDAR_CONSTANTS = {
-  SLOT_HEIGHT: 60,                    // Height of each hour slot
+  SLOT_MINUTES: 15,                 // Minutes per time grid unit
+  SLOTS_PER_HOUR: 4,                // Grid units per hour (4 x 15 min)
+  SLOT_HEIGHT: 32,                  // Height of each 15-minute grid unit
   HEADER_HEIGHT: 60,                  // Desktop header height
   MOBILE_HEADER_HEIGHT: 55,           // Mobile header height
   DAY_WIDTH: 150,                     // Desktop day column width

@@ -86,6 +86,9 @@ export const EventCard: React.FC<EventCardProps> = ({
   const surfaceText = getEventSurfaceText(eventColor);
 
   // Calculate dimensions - use preview if available during resize
+  // One hour spans 4 grid units; convert fractional hours to pixels accordingly.
+  const pixelsPerHour =
+    CALENDAR_CONSTANTS.SLOTS_PER_HOUR * CALENDAR_CONSTANTS.SLOT_HEIGHT;
   let topPixels: number;
   let heightPixels: number;
 
@@ -104,27 +107,28 @@ export const EventCard: React.FC<EventCardProps> = ({
     // Calculate position and height
     const startHours = clampedStart.getHours() + clampedStart.getMinutes() / 60;
     const endHours = clampedEnd.getHours() + clampedEnd.getMinutes() / 60;
-    const startOffset = clampedStart.getMinutes() % 60 / 60;
 
     // Ensure end is after start
     const validEndHours = Math.max(startHours, endHours);
 
-    topPixels = startHours * CALENDAR_CONSTANTS.SLOT_HEIGHT + startOffset * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+    topPixels = startHours * pixelsPerHour;
     heightPixels = Math.max(
-      CALENDAR_CONSTANTS.DRAG_SNAP_INTERVAL / 60 * CALENDAR_CONSTANTS.SLOT_HEIGHT, // Minimum 15 minutes
-      (validEndHours - startHours) * CALENDAR_CONSTANTS.SLOT_HEIGHT
+      CALENDAR_CONSTANTS.SLOT_HEIGHT, // Minimum one 15-minute unit
+      (validEndHours - startHours) * pixelsPerHour
     );
 
-    // Clamp top to stay within day bounds (0 to 1440px)
-    topPixels = Math.max(0, Math.min(1440, topPixels));
+    // Clamp top to stay within day bounds
+    const dayContentHeight = CALENDAR_CONSTANTS.HOURS_PER_DAY * pixelsPerHour;
+    topPixels = Math.max(0, Math.min(dayContentHeight, topPixels));
 
     // Clamp height to not extend beyond day
-    const maxHeight = 1440 - topPixels;
+    const maxHeight = dayContentHeight - topPixels;
     heightPixels = Math.min(heightPixels, maxHeight);
   } else {
     // Use normal layout dimensions
-    topPixels = layout.startSlot * CALENDAR_CONSTANTS.SLOT_HEIGHT + layout.startOffset * CALENDAR_CONSTANTS.SLOT_HEIGHT;
-    heightPixels = layout.duration * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+    topPixels =
+      (layout.startSlot + layout.startOffset) * pixelsPerHour;
+    heightPixels = layout.duration * pixelsPerHour;
   }
 
   const style = {

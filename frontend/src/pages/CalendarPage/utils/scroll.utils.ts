@@ -35,7 +35,8 @@ export const scrollToHour = (
   behavior: ScrollBehavior = 'smooth'
 ): void => {
   const targetHour = Math.max(0, hour - offsetHours);
-  const targetScrollTop = targetHour * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+  const targetScrollTop =
+    targetHour * CALENDAR_CONSTANTS.SLOTS_PER_HOUR * CALENDAR_CONSTANTS.SLOT_HEIGHT;
 
   container.scrollTo({
     top: targetScrollTop,
@@ -94,12 +95,5 @@ export const snapToInterval = (value: number, interval: number): number => {
  * Converts minutes to pixels based on slot height
  */
 export const minutesToPixels = (minutes: number): number => {
-  return (minutes / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
-};
-
-/**
- * Converts pixels to minutes based on slot height
- */
-export const pixelsToMinutes = (pixels: number): number => {
-  return (pixels / CALENDAR_CONSTANTS.SLOT_HEIGHT) * 60;
+  return (minutes / CALENDAR_CONSTANTS.SLOT_MINUTES) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
 };

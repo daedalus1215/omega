@@ -96,7 +96,9 @@ export const calculateResizePosition = (
   const rect = dayContent.getBoundingClientRect();
   const relativeY = clientY - rect.top;
   const expectedHeight =
-    CALENDAR_CONSTANTS.HOURS_PER_DAY * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+    CALENDAR_CONSTANTS.HOURS_PER_DAY *
+    CALENDAR_CONSTANTS.SLOTS_PER_HOUR *
+    CALENDAR_CONSTANTS.SLOT_HEIGHT;
   const extraHeight = Math.max(0, rect.height - expectedHeight);
   const usableHeight = Math.max(1, rect.height - extraHeight);
 
@@ -117,15 +119,19 @@ export const calculateResizePosition = (
   }
 
   const totalMinutes = (relativeY / usableHeight) * (24 * 60);
-  const hour = Math.floor(totalMinutes / 60);
-  const minutes = Math.floor((totalMinutes % 60) / 15) * 15;
 
-  const clampedHour = Math.min(23, Math.max(0, hour));
-  const clampedMinutes = clampedHour === 23 ? 45 : Math.min(45, minutes);
+  // Snap to the nearest 15-minute slot. Rounding (rather than flooring) keeps
+  // the snap stable against subpixel drag offsets: with 15-minute grid units a
+  // pointer landing a pixel short of a boundary would otherwise fall back to
+  // the previous slot, making the drag feel unresponsive.
+  const slot = Math.round(totalMinutes / 15);
+  const clampedSlot = Math.min(95, Math.max(0, slot));
+  const hour = Math.floor(clampedSlot / 4);
+  const minutes = (clampedSlot % 4) * 15;
 
   return {
     day,
-    hour: clampedHour,
-    minutes: clampedMinutes,
+    hour,
+    minutes,
   };
 };

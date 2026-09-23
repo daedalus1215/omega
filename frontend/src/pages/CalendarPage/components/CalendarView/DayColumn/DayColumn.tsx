@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { format, isToday } from 'date-fns';
 import { EventLayoutMap } from '../../../hooks/useEventLayouts';
 import { EventCard } from './EventCard/EventCard';
+import { CALENDAR_CONSTANTS } from '../../../constants/calendar.constants';
 import styles from './DayColumn.module.css';
 
 type DayColumnProps = {
@@ -11,7 +12,7 @@ type DayColumnProps = {
   layoutMap: EventLayoutMap;
   timeSlots: number[];
   onEventSelect: (eventId: number) => void;
-  onTimeSlotClick?: (date: Date, hour: number) => void;
+  onTimeSlotClick?: (date: Date, hour: number, minutes: number) => void;
   resizePreview?: {
     eventId: number;
     startDate: Date;
@@ -29,7 +30,7 @@ type DayColumnProps = {
  * @param props - Component props
  * @param props.day - The date for this column
  * @param props.layoutMap - Map of event IDs to their layout information
- * @param props.timeSlots - Array of hour indices (0-23)
+ * @param props.timeSlots - Array of 15-minute unit indices (0-95, four per hour)
  * @param props.onEventSelect - Callback when an event is clicked
  * @param props.hideDayHeader - When true, omit the weekday/date header row
  */
@@ -49,12 +50,16 @@ export const DayColumn: React.FC<DayColumnProps> = ({
     },
   });
 
-  const handleTimeSlotClick = (hour: number, event: React.MouseEvent) => {
+  const handleTimeSlotClick = (unit: number, event: React.MouseEvent) => {
     // Only trigger if clicking directly on the time slot cell (not on an event)
     // Stop propagation to prevent event selection when clicking on empty space
     event.stopPropagation();
     if (event.target === event.currentTarget && onTimeSlotClick) {
-      onTimeSlotClick(day, hour);
+      onTimeSlotClick(
+        day,
+        Math.floor(unit / CALENDAR_CONSTANTS.SLOTS_PER_HOUR),
+        (unit % CALENDAR_CONSTANTS.SLOTS_PER_HOUR) * CALENDAR_CONSTANTS.SLOT_MINUTES
+      );
     }
   };
 
@@ -77,11 +82,11 @@ export const DayColumn: React.FC<DayColumnProps> = ({
         </Paper>
       ) : null}
       <Box className={styles.dayContent}>
-        {timeSlots.map(hour => (
+        {timeSlots.map(unit => (
           <Box
-            key={`${day.toISOString()}-${hour}`}
-            className={styles.timeSlotCell}
-            onClick={e => handleTimeSlotClick(hour, e)}
+            key={`${day.toISOString()}-${unit}`}
+            className={`${styles.timeSlotCell} ${unit % CALENDAR_CONSTANTS.SLOTS_PER_HOUR !== 0 ? styles.timeSlotSubCell : ''}`}
+            onClick={e => handleTimeSlotClick(unit, e)}
             sx={{ cursor: onTimeSlotClick ? 'pointer' : 'default' }}
           />
         ))}

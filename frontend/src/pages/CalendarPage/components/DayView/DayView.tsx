@@ -65,7 +65,7 @@ type DayViewProps = {
   isLoading: boolean;
   onDateChange: (date: Date) => void;
   onToday?: () => void;
-  onTimeSlotClick?: (date: Date, hour: number) => void;
+  onTimeSlotClick?: (date: Date, hour: number, minutes: number) => void;
 };
 
 const SWIPE_THRESHOLD = 50;
@@ -152,6 +152,16 @@ export const DayView: React.FC<DayViewProps> = ({
 
   const timeSlots = useMemo(
     () => Array.from({ length: CALENDAR_CONSTANTS.HOURS_PER_DAY }, (_, i) => i),
+    []
+  );
+
+  // 15-minute grid units: 96 per day (4 per hour)
+  const timeUnits = useMemo(
+    () =>
+      Array.from(
+        { length: CALENDAR_CONSTANTS.HOURS_PER_DAY * CALENDAR_CONSTANTS.SLOTS_PER_HOUR },
+        (_, i) => i
+      ),
     []
   );
 
@@ -464,9 +474,9 @@ export const DayView: React.FC<DayViewProps> = ({
     const startDate = new Date(event.startDate);
     const endDate = new Date(event.endDate);
     const durationMinutes = differenceInMinutes(endDate, startDate);
-    const heightPixels = (durationMinutes / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
-    const minHeight =
-      (CALENDAR_CONSTANTS.DRAG_SNAP_INTERVAL / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+    const heightPixels =
+      (durationMinutes / CALENDAR_CONSTANTS.SLOT_MINUTES) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+    const minHeight = CALENDAR_CONSTANTS.SLOT_HEIGHT;
     return Math.max(minHeight, heightPixels);
   };
 
@@ -503,7 +513,7 @@ export const DayView: React.FC<DayViewProps> = ({
             <DayColumn
               day={currentDate}
               layoutMap={dayLayoutMaps.get(startOfDay(currentDate).toISOString()) || new Map()}
-              timeSlots={timeSlots}
+              timeSlots={timeUnits}
               onEventSelect={setSelectedEventId}
               onTimeSlotClick={onTimeSlotClick}
               resizePreview={resizePreview}
