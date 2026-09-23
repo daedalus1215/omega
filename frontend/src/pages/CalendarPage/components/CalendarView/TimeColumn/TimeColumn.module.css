@@ -66,8 +66,8 @@
     to bottom,
     transparent 0,
     transparent 31px,
-    color-mix(in srgb, var(--color-border, #333) 45%, transparent) 31px,
-    color-mix(in srgb, var(--color-border, #333) 45%, transparent) 32px
+    color-mix(in srgb, var(--color-border, #333) 70%, transparent) 31px,
+    color-mix(in srgb, var(--color-border, #333) 70%, transparent) 32px
   );
 }
 

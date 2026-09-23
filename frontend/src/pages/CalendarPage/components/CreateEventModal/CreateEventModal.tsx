@@ -35,6 +35,7 @@ type CreateEventModalProps = {
   isOpen: boolean;
   onClose: () => void;
   defaultDate?: Date;
+  defaultDurationMinutes?: number;
 };
 
 /**
@@ -46,11 +47,13 @@ type CreateEventModalProps = {
  * @param props.isOpen - Whether the modal is open
  * @param props.onClose - Callback to close the modal
  * @param props.defaultDate - Optional default date for the event (defaults to current date)
+ * @param props.defaultDurationMinutes - Optional default event duration in minutes (defaults to 60)
  */
 export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   isOpen,
   onClose,
   defaultDate,
+  defaultDurationMinutes = 60,
 }) => {
   const createMutation = useCreateCalendarEvent();
   const createRecurringMutation = useCreateRecurringEvent();
@@ -61,13 +64,14 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   // every page re-render would change the reset effect's deps and wipe an
   // in-progress form while the modal is open.
   const [baseDate, setBaseDate] = useState<Date>(defaultDate ?? new Date());
+  const defaultDurationMs = defaultDurationMinutes * 60 * 1000;
   const [formData, setFormData] = useState<CreateCalendarEventRequest>(() => ({
     title: '',
     description: '',
     color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
     startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
     endDate: format(
-      new Date(baseDate.getTime() + 60 * 60 * 1000),
+      new Date(baseDate.getTime() + defaultDurationMs),
       "yyyy-MM-dd'T'HH:mm"
     ),
   }));
@@ -108,7 +112,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
       startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
       endDate: format(
-        new Date(baseDate.getTime() + 60 * 60 * 1000),
+        new Date(baseDate.getTime() + defaultDurationMs),
         "yyyy-MM-dd'T'HH:mm"
       ),
     });
@@ -211,7 +215,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
         startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
-          new Date(baseDate.getTime() + 60 * 60 * 1000),
+          new Date(baseDate.getTime() + defaultDurationMs),
           "yyyy-MM-dd'T'HH:mm"
         ),
       });
@@ -238,7 +242,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         color: EVENT_COLORS[DEFAULT_EVENT_COLOR_KEY].value,
         startDate: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
         endDate: format(
-          new Date(baseDate.getTime() + 60 * 60 * 1000),
+          new Date(baseDate.getTime() + defaultDurationMs),
           "yyyy-MM-dd'T'HH:mm"
         ),
       });
