@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  height: 1500px; /* 60px header + 1440px content */
+  height: 3132px; /* 60px header + 3072px content (96 units * 32px) */
   flex-shrink: 0;
   opacity: 0.6;
   animation: pulse 1.5s ease-in-out infinite;
@@ -13,7 +13,7 @@
 @media (max-width: 600px) {
   .skeletonDayColumn {
     min-width: 100px;
-    height: 1495px; /* 55px header + 1440px content */
+    height: 3127px; /* 55px header + 3072px content (96 units * 32px) */
   }
 }
 
@@ -55,17 +55,21 @@
 .skeletonContent {
   display: flex;
   flex-direction: column;
-  height: 1440px; /* 24 hours * 60px per hour */
+  height: 3072px; /* 96 units * 32px per 15-minute unit */
   flex-shrink: 0;
   position: relative;
 }
 
 .skeletonSlot {
-  height: 60px;
-  min-height: 60px;
+  height: 32px;
+  min-height: 32px;
   border-bottom: 1px solid var(--color-border, #333);
   position: relative;
   flex-shrink: 0;
+}
+
+.skeletonSlotSub {
+  border-bottom-color: color-mix(in srgb, var(--color-border, #333) 45%, transparent);
 }
 
 @keyframes pulse {

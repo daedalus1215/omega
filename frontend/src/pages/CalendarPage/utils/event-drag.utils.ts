@@ -94,7 +94,9 @@ export const calculateDropPosition = (
   const rect = dayContent.getBoundingClientRect();
   const relativeY = clientY - rect.top;
   const expectedHeight =
-    CALENDAR_CONSTANTS.HOURS_PER_DAY * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+    CALENDAR_CONSTANTS.HOURS_PER_DAY *
+    CALENDAR_CONSTANTS.SLOTS_PER_HOUR *
+    CALENDAR_CONSTANTS.SLOT_HEIGHT;
   const extraHeight = Math.max(0, rect.height - expectedHeight);
   const usableHeight = Math.max(1, rect.height - extraHeight);
 

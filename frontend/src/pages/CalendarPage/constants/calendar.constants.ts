@@ -4,8 +4,14 @@
  */
 
 export const CALENDAR_CONSTANTS = {
-  /** Height of each hour slot in pixels */
-  SLOT_HEIGHT: 60,
+  /** Minutes per time grid unit; an hour spans 4 of these units */
+  SLOT_MINUTES: 15,
+  
+  /** Number of time grid units per hour (4 x 15 minutes) */
+  SLOTS_PER_HOUR: 4,
+  
+  /** Height of each time grid unit (15 minutes) in pixels */
+  SLOT_HEIGHT: 32,
   
   /** Height of day column header on desktop */
   HEADER_HEIGHT: 60,

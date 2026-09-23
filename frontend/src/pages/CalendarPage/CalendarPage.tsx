@@ -163,10 +163,10 @@ export const CalendarPage: React.FC = () => {
     []
   );
 
-  const handleTimeSlotClick = (date: Date, hour: number) => {
-    // Create a date with the clicked hour
+  const handleTimeSlotClick = (date: Date, hour: number, minutes: number) => {
+    // Create a date with the clicked 15-minute slot
     const clickedDate = new Date(date);
-    clickedDate.setHours(hour, 0, 0, 0);
+    clickedDate.setHours(hour, minutes, 0, 0);
     setCreateEventDate(clickedDate);
     setIsCreateModalOpen(true);
   };

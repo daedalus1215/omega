@@ -57,11 +57,12 @@ export const useCurrentTimeIndicator = ({
 
     const hours = currentTime.getHours();
     const minutes = currentTime.getMinutes();
+    const totalMinutes = hours * 60 + minutes;
 
     const position =
       headerHeight +
-      hours * CALENDAR_CONSTANTS.SLOT_HEIGHT +
-      (minutes / 60) * CALENDAR_CONSTANTS.SLOT_HEIGHT;
+      (totalMinutes / CALENDAR_CONSTANTS.SLOT_MINUTES) *
+        CALENDAR_CONSTANTS.SLOT_HEIGHT;
 
     return position;
   }, [isTodayInRange, currentTime, isMobile, hasScheduleHeaderRow]);
