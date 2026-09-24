@@ -165,7 +165,7 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
                       id={`calendar-name-${calendar.id}`}
                       htmlFor={`calendar-visibility-${calendar.id}`}
                       tabIndex={-1}
-                      sx={{ flex: 1 }}
+                      sx={{ flex: 1, justifyContent: 'flex-start' }}
                     >
                       {calendar.name}
                       {calendar.isPersonal && (
