@@ -118,6 +118,8 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
               <ListItem key={calendar.id} disableGutters sx={{ gap: 1 }}>
                 <Checkbox
                   edge="start"
+                  id={`calendar-visibility-${calendar.id}`}
+                  inputProps={{ 'aria-labelledby': `calendar-name-${calendar.id}` }}
                   checked={isCalendarVisible(calendar.id)}
                   onChange={() => toggleCalendarVisibility(calendar.id)}
                   sx={{
@@ -157,7 +159,12 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
                   </Stack>
                 ) : (
                   <>
-                    <Typography sx={{ flex: 1 }}>
+                    <Typography
+                      component="label"
+                      id={`calendar-name-${calendar.id}`}
+                      htmlFor={`calendar-visibility-${calendar.id}`}
+                      sx={{ flex: 1 }}
+                    >
                       {calendar.name}
                       {calendar.isPersonal && (
                         <Typography
