@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import {
   Box,
   Button,
+  ButtonBase,
   Checkbox,
   CircularProgress,
   IconButton,
@@ -159,10 +160,11 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
                   </Stack>
                 ) : (
                   <>
-                    <Typography
+                    <ButtonBase
                       component="label"
                       id={`calendar-name-${calendar.id}`}
                       htmlFor={`calendar-visibility-${calendar.id}`}
+                      tabIndex={-1}
                       sx={{ flex: 1 }}
                     >
                       {calendar.name}
@@ -176,7 +178,7 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
                           Personal
                         </Typography>
                       )}
-                    </Typography>
+                    </ButtonBase>
                     {calendar.role === 'owner' && (
                       <Tooltip title="Rename">
                         <IconButton
