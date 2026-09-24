@@ -110,6 +110,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     []
   );
 
+  // 15-minute grid units: 96 per day (4 per hour)
+  const timeUnits = useMemo(
+    () =>
+      Array.from(
+        { length: CALENDAR_CONSTANTS.HOURS_PER_DAY * CALENDAR_CONSTANTS.SLOTS_PER_HOUR },
+        (_, i) => i
+      ),
+    []
+  );
+
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [draggedEvent, setDraggedEvent] =
     useState<CalendarEventResponseDto | null>(null);
@@ -677,7 +687,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       height: '100%',
                     }}
                   >
-                    <SkeletonDayColumn timeSlots={timeSlots} />
+                    <SkeletonDayColumn timeSlots={timeUnits} />
                   </Box>
                 );
               })}
@@ -709,7 +719,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <DayColumn
                     day={day}
                     layoutMap={dayLayoutMaps.get(day.toISOString()) || new Map()}
-                    timeSlots={timeSlots}
+                    timeSlots={timeUnits}
                     onEventSelect={setSelectedEventId}
                     onTimeSlotClick={onTimeSlotClick}
                     resizePreview={resizePreview}
@@ -737,7 +747,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       height: '100%',
                     }}
                   >
-                    <SkeletonDayColumn timeSlots={timeSlots} />
+                    <SkeletonDayColumn timeSlots={timeUnits} />
                   </Box>
                 );
               })}

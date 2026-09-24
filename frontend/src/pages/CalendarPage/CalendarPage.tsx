@@ -272,6 +272,7 @@ export const CalendarPage: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}
         defaultDate={createEventDate}
+        defaultDurationMinutes={createEventDate ? 15 : undefined}
       />
       <EventDetailsModal
         isOpen={searchSelectedEventId !== null}

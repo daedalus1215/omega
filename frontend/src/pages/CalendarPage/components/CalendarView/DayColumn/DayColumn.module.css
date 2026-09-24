@@ -97,7 +97,7 @@
 }
 
 .timeSlotSubCell {
-  border-bottom-color: color-mix(in srgb, var(--color-border, #333) 45%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--color-border, #333) 70%, transparent);
 }
 
 .timeSlotCell:hover {
