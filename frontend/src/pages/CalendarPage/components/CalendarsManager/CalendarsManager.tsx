@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import {
   Box,
   Button,
+  ButtonBase,
   Checkbox,
   CircularProgress,
   IconButton,
@@ -118,6 +119,8 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
               <ListItem key={calendar.id} disableGutters sx={{ gap: 1 }}>
                 <Checkbox
                   edge="start"
+                  id={`calendar-visibility-${calendar.id}`}
+                  inputProps={{ 'aria-labelledby': `calendar-name-${calendar.id}` }}
                   checked={isCalendarVisible(calendar.id)}
                   onChange={() => toggleCalendarVisibility(calendar.id)}
                   sx={{
@@ -157,7 +160,13 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
                   </Stack>
                 ) : (
                   <>
-                    <Typography sx={{ flex: 1 }}>
+                    <ButtonBase
+                      component="label"
+                      id={`calendar-name-${calendar.id}`}
+                      htmlFor={`calendar-visibility-${calendar.id}`}
+                      tabIndex={-1}
+                      sx={{ flex: 1, justifyContent: 'flex-start' }}
+                    >
                       {calendar.name}
                       {calendar.isPersonal && (
                         <Typography
@@ -169,7 +178,7 @@ export const CalendarsManager: React.FC<CalendarsManagerProps> = ({
                           Personal
                         </Typography>
                       )}
-                    </Typography>
+                    </ButtonBase>
                     {calendar.role === 'owner' && (
                       <Tooltip title="Rename">
                         <IconButton
