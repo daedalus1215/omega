@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Box, Fab } from '@mui/material';
+import { Box, Fab, Tooltip } from '@mui/material';
 import {
   Add as AddIcon,
   CalendarMonth as CalendarMonthIcon,
@@ -49,8 +49,12 @@ export const CalendarPage: React.FC = () => {
   );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const { setCalendarMonthLabel, setOpenCreateEventModal, isCalendarVisible } =
-    React.useContext(CalendarContext);
+  const {
+    setCalendarMonthLabel,
+    setOpenCreateEventModal,
+    isCalendarVisible,
+    calendars,
+  } = React.useContext(CalendarContext);
 
   const { currentView, setView } = useCalendarView();
 
@@ -112,11 +116,15 @@ export const CalendarPage: React.FC = () => {
     getStartDate(),
     getEndDate()
   );
-
   // Hide events belonging to calendars the user has toggled off.
   const visibleEvents = events.filter(event =>
     isCalendarVisible(event.calendarId)
   );
+
+  // Count of the user's calendars currently hidden, for the FAB tooltip.
+  const hiddenCalendarCount = calendars.filter(
+    calendar => !isCalendarVisible(calendar.id)
+  ).length;
 
   // Simple handler - just update the date range
   // CalendarView handles scroll position adjustment via useLayoutEffect
@@ -255,19 +263,27 @@ export const CalendarPage: React.FC = () => {
           <AddIcon />
         </Fab>
       )}
-      <Fab
-        size="medium"
-        aria-label="manage calendars"
-        onClick={() => setIsCalendarsManagerOpen(true)}
-        sx={{
-          position: 'fixed',
-          bottom: '2rem',
-          left: '2rem',
-          zIndex: 1000,
-        }}
+      <Tooltip
+        title={
+          hiddenCalendarCount > 0
+            ? `${hiddenCalendarCount} of ${calendars.length} calendars hidden`
+            : undefined
+        }
       >
-        <CalendarMonthIcon />
-      </Fab>
+        <Fab
+          size="medium"
+          aria-label="manage calendars"
+          onClick={() => setIsCalendarsManagerOpen(true)}
+          sx={{
+            position: 'fixed',
+            bottom: '2rem',
+            left: '2rem',
+            zIndex: 1000,
+          }}
+        >
+          <CalendarMonthIcon />
+        </Fab>
+      </Tooltip>
       <CreateEventModal
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}
