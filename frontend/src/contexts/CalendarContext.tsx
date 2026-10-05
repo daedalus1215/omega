@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useCalendars } from '../pages/CalendarPage/hooks/useCalendars';
+import { usePersistentHiddenCalendarIds } from '../pages/CalendarPage/hooks/usePersistentHiddenCalendarIds';
+import { useAuth } from '../auth/useAuth';
 import { CalendarResponseDto } from '../api/dtos/calendars.dtos';
 
 type CalendarContextValue = {
@@ -45,8 +47,10 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
+  const { user } = useAuth();
   const { calendars, isLoading: isLoadingCalendars } = useCalendars();
-  const [hiddenCalendarIds, setHiddenCalendarIds] = useState<number[]>([]);
+  const { hiddenCalendarIds, setHiddenCalendarIds } =
+    usePersistentHiddenCalendarIds(user?.id ?? null);
   const [selectedCalendarId, setSelectedCalendarId] = useState<number | null>(
     null
   );

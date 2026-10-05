@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import {
   Box,
   Button,
@@ -31,6 +31,7 @@ import { useEventForm } from '../../hooks/useEventForm';
 import { EventFormFields } from './EventFormFields/EventFormFields';
 import { useEventReminders } from '../../hooks/useEventReminders';
 import { RemindersField } from './RemindersField/RemindersField';
+import { CalendarContext } from '../../../../contexts/CalendarContext';
 
 type EventDetailsModalProps = {
   isOpen: boolean;
@@ -64,6 +65,10 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteSeries, setDeleteSeries] = useState(false);
+  const { calendars } = useContext(CalendarContext);
+  const eventCalendar = calendars.find(
+    calendar => calendar.id === event?.calendarId
+  );
 
   const {
     formData,
@@ -248,6 +253,30 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
               <Typography variant="h6">
                 {isEditing ? 'Edit Event' : 'Event Details'}
               </Typography>
+              {eventCalendar && (
+                <Box
+                  aria-label={`Calendar: ${eventCalendar.name}`}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: 'text.secondary',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: eventCalendar.color || 'primary.main',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {eventCalendar.name}
+                  </Typography>
+                </Box>
+              )}
               {event.isRecurring && (
                 <Box
                   sx={{
