@@ -3,6 +3,7 @@ import { Container, Box, Typography, Button } from '@mui/material';
 import { useAuth } from '../../auth/useAuth';
 import { ChangeUsernameForm } from './components/ChangeUsernameForm/ChangeUsernameForm';
 import { ChangePasswordForm } from './components/ChangePasswordForm/ChangePasswordForm';
+import { ThemeModeSettings } from './components/ThemeModeSettings/ThemeModeSettings';
 
 export const SettingsPage: React.FC = () => {
   const { logout } = useAuth();
@@ -23,7 +24,8 @@ export const SettingsPage: React.FC = () => {
           Manage your account settings. Update your username or change your
           password.
         </Typography>
-        <Box sx={{ pb: 4 }}>
+        <ThemeModeSettings />
+        <Box sx={{ pb: 4, mb: 4, borderBottom: 1, borderColor: 'divider' }}>
           <ChangeUsernameForm />
           <ChangePasswordForm />
         </Box>
