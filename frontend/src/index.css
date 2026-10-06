@@ -21,7 +21,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --radius: 0.5rem;
+  color-scheme: light;
 
   /* Tailwind / shadcn semantic (light) */
   --background: oklch(0.99 0.002 285);
@@ -208,7 +208,7 @@ button:focus-visible {
 
 /* Optional dark mode: add class "dark" on a root ancestor */
 .dark {
-  --background: oklch(0.129 0.042 264.695);
+  color-scheme: dark;
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
   --card-foreground: oklch(0.984 0.003 247.858);

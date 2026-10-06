@@ -1,3 +1,4 @@
+import React, { useContext, useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -7,11 +8,15 @@ import {
 import { AuthProvider } from './auth/AuthContext';
 import { useAuth } from './auth/useAuth';
 import { SidebarProvider } from './contexts/SidebarContext';
+import {
+  ThemeModeContext,
+  ThemeModeProvider,
+} from './contexts/ThemeModeContext';
 import { LoginPage } from './pages/LoginPage/LoginPage';
 import { RegisterPage } from './pages/RegisterPage/RegisterPage';
 import { LandingPage } from './pages/LandingPage/LandingPage';
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import { muiTheme } from './theme';
+import { createMuiTheme } from './theme';
 import { CalendarPage } from './pages/CalendarPage/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage/SettingsPage';
 import { ROUTES } from './constants/routes';
@@ -51,17 +56,28 @@ const AppRoutes = () => {
   );
 };
 
+const AppShell: React.FC = () => {
+  const { resolvedMode } = useContext(ThemeModeContext);
+  const theme = useMemo(() => createMuiTheme(resolvedMode), [resolvedMode]);
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <SidebarProvider>
+          <AppRoutes />
+        </SidebarProvider>
+      </Router>
+    </ThemeProvider>
+  );
+};
+
 export const App = () => {
   return (
     <AuthProvider>
-      <ThemeProvider theme={muiTheme}>
-        <CssBaseline />
-        <Router>
-          <SidebarProvider>
-            <AppRoutes />
-          </SidebarProvider>
-        </Router>
-      </ThemeProvider>
+      <ThemeModeProvider>
+        <AppShell />
+      </ThemeModeProvider>
     </AuthProvider>
   );
 };
