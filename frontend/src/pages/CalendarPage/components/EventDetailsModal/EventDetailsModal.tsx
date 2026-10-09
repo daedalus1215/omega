@@ -205,6 +205,18 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     setDeleteSeries(false);
   };
 
+  // Closing sets eventId to null, which disables the detail query and
+  // momentarily leaves `event` undefined. BottomSheet is still mounted and
+  // playing its exit transition at this point, so render nothing rather
+  // than flashing the "Error" view below for a real fetch failure.
+  if (!eventId) {
+    return (
+      <BottomSheet isOpen={isOpen} onClose={handleClose}>
+        {null}
+      </BottomSheet>
+    );
+  }
+
   if (isLoading) {
     return (
       <BottomSheet isOpen={isOpen} onClose={handleClose}>

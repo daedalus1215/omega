@@ -11,7 +11,7 @@ import { calendarEventKeys } from './useCalendarEvents';
  */
 export const useCalendarEvent = (id: number | null) => {
   return useQuery({
-    queryKey: [...calendarEventKeys.all, 'detail', id],
+    queryKey: calendarEventKeys.detail(id),
     queryFn: async () => {
       if (!id) {
         throw new Error('Event ID is required');

@@ -16,9 +16,11 @@ export const useDeleteCalendarEvent = () => {
       return await deleteCalendarEvent(id);
     },
     onSuccess: () => {
-      // Invalidate and refetch all calendar event queries
+      // Only the list queries, not `.all` - invalidating the deleted event's
+      // own detail query would refetch it while its modal is still mounted
+      // and closing, and the backend correctly 404s an id that's now gone.
       queryClient.invalidateQueries({
-        queryKey: calendarEventKeys.all,
+        queryKey: calendarEventKeys.lists(),
         refetchType: 'active',
       });
     },
