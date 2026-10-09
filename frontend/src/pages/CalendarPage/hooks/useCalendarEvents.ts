@@ -12,6 +12,8 @@ export const calendarEventKeys = {
   lists: () => [...calendarEventKeys.all, 'list'] as const,
   list: (startDate: string, endDate: string) =>
     [...calendarEventKeys.lists(), { startDate, endDate }] as const,
+  details: () => [...calendarEventKeys.all, 'detail'] as const,
+  detail: (id: number | null) => [...calendarEventKeys.details(), id] as const,
 };
 
 /**
