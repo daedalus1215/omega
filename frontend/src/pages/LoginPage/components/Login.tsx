@@ -11,6 +11,8 @@ import {
   Typography,
 } from '@mui/material';
 import { Logo } from '../../../components/Logo/Logo';
+import { isNativeApp } from '../../../native/server-config';
+import { useServerConfig } from '../../../native/ServerConfigGate';
 
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<boolean>;
@@ -21,6 +23,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { editServerConfig } = useServerConfig();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +33,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       const success = await onLogin(username, password);
       if (!success) {
-        setError('Invalid credentials');
+        setError('Incorrect username or password.');
       }
     } catch {
-      setError('An error occurred during login');
+      setError(
+        isNativeApp()
+          ? "Couldn't reach Omega. Check your connection, or the server settings below."
+          : "Couldn't reach Omega. Check your connection and try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -81,6 +88,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             disabled={isSubmitting}
             fullWidth
             autoComplete="username"
+            // Usernames match exactly; stop phone keyboards capitalizing them.
+            slotProps={{
+              htmlInput: {
+                autoCapitalize: 'none',
+                autoCorrect: 'off',
+                spellCheck: false,
+              },
+            }}
           />
 
           <TextField
@@ -126,6 +141,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 Register here
               </Link>
             </Typography>
+            {isNativeApp() && (
+              <Button
+                size="small"
+                onClick={editServerConfig}
+                sx={{ mt: 1, textTransform: 'none' }}
+              >
+                Server settings
+              </Button>
+            )}
           </Box>
         </Stack>
       </CardContent>

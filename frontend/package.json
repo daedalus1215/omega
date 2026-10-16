@@ -11,12 +11,13 @@
     "prettier": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "prettier:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "preview": "vite preview",
-    "android:sync": "npm run build && npx cap sync android",
+    "android:sync": "tsc && vite build --mode android && npx cap sync android",
     "android:open": "npx cap open android"
   },
   "dependencies": {
     "@capacitor/android": "7.6.9",
     "@capacitor/core": "7.6.9",
+    "@capacitor/preferences": "7.0.4",
     "@capacitor/status-bar": "7.0.6",
     "@dnd-kit/sortable": "^10.0.0",
     "@emotion/react": "^11.14.0",

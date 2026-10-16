@@ -1,35 +1,30 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// The axios client uses baseURL '/' and prefixes /api per request (see
-// src/api/axios.interceptor.ts), so it needs to be served from the same
-// origin as the API. Bundled assets have no such origin, so instead of
-// shipping dist/ we point the WebView at the live site: same code, same
-// origin, no app changes. Set via CI; unset for a local Android Studio
-// build, which then falls back to the bundled dist/ (and has no API).
-const serverUrl = process.env.CAPACITOR_SERVER_URL;
+// The app ships the built UI (dist/, built with --mode android) and talks to
+// Omega over the network. The server address, and a Cloudflare Access
+// service token when Access protects it, are entered on first launch (see
+// src/native/server-config.ts).
+//
+// It used to point the WebView at the live site instead, but with Access in
+// front there was no way through: Access's sign-in is for browsers, and a
+// WebView can't add the token's headers to the page's own requests.
 
-// 'dev' targets a LAN deployment over plain HTTP, which Android blocks by
-// default, hence cleartext below. A distinct appId/appName lets the dev
-// build install alongside the prod app instead of replacing it.
+// A distinct appId/appName lets the dev build install alongside the prod app
+// instead of replacing it (app/build.gradle reads CAPACITOR_TARGET too).
 const isDev = process.env.CAPACITOR_TARGET === 'dev';
 
 const config: CapacitorConfig = {
   appId: isDev ? 'com.omega.app.dev' : 'com.omega.app',
   appName: isDev ? 'Omega Dev' : 'Omega',
   webDir: 'dist',
-  ...(serverUrl
-    ? {
-        server: {
-          url: serverUrl,
-          cleartext: isDev,
-          // If the site sits behind Cloudflare Access (as Chronus does), its
-          // SSO step redirects here. Without this, the WebView hands that
-          // redirect to the system browser and the auth cookie lands in the
-          // wrong cookie jar. A no-op when there is no Access in front.
-          allowNavigation: ['*.cloudflareaccess.com'],
-        },
-      }
-    : {}),
+  // The dev deployment is plain HTTP on the LAN, which Android blocks by
+  // default.
+  ...(isDev ? { server: { cleartext: true } } : {}),
+  plugins: {
+    // Sends fetch/XHR to absolute URLs (all API calls) through native HTTP,
+    // so they skip CORS and carry the Access headers.
+    CapacitorHttp: { enabled: true },
+  },
 };
 
 export default config;

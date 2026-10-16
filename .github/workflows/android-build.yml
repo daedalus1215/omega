@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: Which deployment to point the APK at
+        description: Which app to build (dev installs alongside prod as "Omega Dev")
         type: choice
         options: [prod, dev]
         default: prod
@@ -34,6 +34,9 @@ jobs:
       - run: cp vite.env.config.sample.ts vite.env.config.ts
 
       # push/pull_request carry no event.inputs, so this always falls back to prod there.
+      # The URL only prefills the app's first-launch screen; the Cloudflare Access
+      # token is entered there too, never built in, since anyone signed in to
+      # GitHub can download this repo's artifacts.
       - id: target
         run: |
           if [ "${{ github.event.inputs.target }}" = "dev" ]; then
@@ -46,7 +49,7 @@ jobs:
 
       - run: npm run android:sync
         env:
-          CAPACITOR_SERVER_URL: ${{ steps.target.outputs.url }}
+          VITE_DEFAULT_SERVER_URL: ${{ steps.target.outputs.url }}
           CAPACITOR_TARGET: ${{ steps.target.outputs.name }}
 
       - uses: actions/setup-java@v4

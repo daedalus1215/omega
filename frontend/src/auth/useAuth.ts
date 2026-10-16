@@ -5,6 +5,7 @@ import {
   useState,
   useEffect,
 } from 'react';
+import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import api from '../api/axios.interceptor';
 
@@ -64,6 +65,11 @@ export const useAuthProvider = () => {
         );
 
         const { access_token } = response.data;
+        // Cloudflare Access turns a request away with its sign-in page,
+        // which can arrive as a 200.
+        if (typeof access_token !== 'string') {
+          throw new Error('Login response carried no token');
+        }
 
         // Decode the JWT to get user information
         const decoded = jwtDecode<JwtPayload>(access_token);
@@ -76,8 +82,14 @@ export const useAuthProvider = () => {
         setUser(userData);
         return true;
       } catch (error) {
+        // false means Omega itself said no. Anything else means no real
+        // answer came back (offline, server down, or blocked by Cloudflare
+        // Access), which the login form reports differently.
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          return false;
+        }
         console.error('Login failed:', error);
-        return false;
+        throw error;
       }
     },
     []

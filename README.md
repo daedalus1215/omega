@@ -39,20 +39,31 @@ npm run dev            # Starts dev server on port 5174
 
 ### Android
 
-Capacitor wraps the same React build in a native shell under `frontend/android/`.
-The APK's WebView loads the live site (`CAPACITOR_SERVER_URL`), so the app is
-always the deployed version and needs no separate release for web changes.
+Capacitor packages the React build into an Android app under `frontend/android/`.
+The app carries its own copy of the UI and talks to an Omega server over the
+network. On first launch it asks for the server's address and, if Cloudflare
+Access protects the server, an Access service token: Access's sign-in page is
+meant for browsers, so the app gets through with the token instead. Logging in
+to Omega then works as on the web. **Server settings** on the login screen
+changes them later.
 
 ```bash
 cd frontend
-CAPACITOR_SERVER_URL=https://<omega-host> npm run android:sync   # build + sync into android/
-npm run android:open                                            # open in Android Studio
-npm run icons                                                   # redraw launcher/splash images
+npm run android:sync   # build + sync into android/
+npm run android:open   # open in Android Studio
+npm run icons          # redraw launcher/splash images
 ```
 
 CI (`.github/workflows/android-build.yml`) builds a debug APK on every frontend
-change, pointed at the `ANDROID_SERVER_URL` repository variable. A manual run can
-target `ANDROID_SERVER_URL_DEV` instead, which installs alongside as "Omega Dev".
+change. The `ANDROID_SERVER_URL` repository variable prefills the address on the
+first-launch screen. A manual run can build the dev app instead, which
+installs alongside as "Omega Dev" and prefills `ANDROID_SERVER_URL_DEV`.
+
+The token is entered on the device, never built into the APK: anyone signed in
+to GitHub can download this repo's CI artifacts. To make one, create a service
+token in Cloudflare Zero Trust, then add a policy to Omega's Access application
+with the **Service Auth** action that includes it. Leave both token fields blank
+for a server Access doesn't protect.
 
 ## Project Structure
 

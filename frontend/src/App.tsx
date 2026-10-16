@@ -21,6 +21,7 @@ import { CalendarPage } from './pages/CalendarPage/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage/SettingsPage';
 import { ROUTES } from './constants/routes';
 import { AuthenticatedLayout } from './components/Layout/AuthenticatedLayout';
+import { ServerConfigGate } from './native/ServerConfigGate';
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -63,11 +64,13 @@ const AppShell: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <SidebarProvider>
-          <AppRoutes />
-        </SidebarProvider>
-      </Router>
+      <ServerConfigGate>
+        <Router>
+          <SidebarProvider>
+            <AppRoutes />
+          </SidebarProvider>
+        </Router>
+      </ServerConfigGate>
     </ThemeProvider>
   );
 };
