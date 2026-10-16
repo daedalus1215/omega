@@ -37,6 +37,23 @@ npm install
 npm run dev            # Starts dev server on port 5174
 ```
 
+### Android
+
+Capacitor wraps the same React build in a native shell under `frontend/android/`.
+The APK's WebView loads the live site (`CAPACITOR_SERVER_URL`), so the app is
+always the deployed version and needs no separate release for web changes.
+
+```bash
+cd frontend
+CAPACITOR_SERVER_URL=https://<omega-host> npm run android:sync   # build + sync into android/
+npm run android:open                                            # open in Android Studio
+npm run icons                                                   # redraw launcher/splash images
+```
+
+CI (`.github/workflows/android-build.yml`) builds a debug APK on every frontend
+change, pointed at the `ANDROID_SERVER_URL` repository variable. A manual run can
+target `ANDROID_SERVER_URL_DEV` instead, which installs alongside as "Omega Dev".
+
 ## Project Structure
 
 ```
