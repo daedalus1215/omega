@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useEffect,
   useState,
   type FC,
@@ -22,6 +24,7 @@ import {
   applyApiConfig,
   getStoredApiConfig,
   isTauri,
+  isTauriAndroid,
   saveApiConfig,
   testApiConfig,
   type ApiConfig,
@@ -31,6 +34,12 @@ import {
   type ConnectionCheck,
 } from './connection-check';
 import { onOpenConnectionSettings } from './connection-settings';
+import { useSyncStatus } from '../offline/sync-status';
+
+// Its own chunk, so Tauri's bindings stay out of the web bundle.
+const DesktopTray = lazy(() =>
+  import('./DesktopTray').then(module => ({ default: module.DesktopTray }))
+);
 
 type GateStatus = 'checking' | 'needs-setup' | 'ready';
 
@@ -67,6 +76,8 @@ const PILL_BUTTON = {
 
 type ConnectionFormProps = {
   initial: ApiConfig;
+  /** The server address in use, when changing settings that are already saved. */
+  savedBaseUrl?: string;
   onSaved: (config: ApiConfig) => void;
   onCancel?: () => void;
 };
@@ -78,6 +89,7 @@ type ConnectionFormProps = {
  */
 const ConnectionForm: FC<ConnectionFormProps> = ({
   initial,
+  savedBaseUrl,
   onSaved,
   onCancel,
 }) => {
@@ -87,6 +99,7 @@ const ConnectionForm: FC<ConnectionFormProps> = ({
   );
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState<'checking' | 'saving' | null>(null);
+  const { pending } = useSyncStatus();
   const config = trimConfig(form);
 
   const update = (patch: Partial<ApiConfig>) => {
@@ -131,8 +144,19 @@ const ConnectionForm: FC<ConnectionFormProps> = ({
     setBusy(null);
   };
 
+  const queueMoves =
+    savedBaseUrl !== undefined &&
+    pending > 0 &&
+    config.apiBaseUrl !== savedBaseUrl;
+
   return (
     <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
+      {queueMoves && (
+        <Alert severity="info">
+          {pending === 1 ? '1 change' : `${pending} changes`} waiting to sync
+          will go to the new address.
+        </Alert>
+      )}
       {check && (
         <Alert severity="error">
           {describeConnectionCheck(check, config.apiBaseUrl)}
@@ -299,6 +323,11 @@ export const TauriConfigGate: FC<{ children: ReactNode }> = ({ children }) => {
 
   return (
     <>
+      {isTauri() && !isTauriAndroid() && (
+        <Suspense fallback={null}>
+          <DesktopTray />
+        </Suspense>
+      )}
       {children}
       <Dialog
         open={isEditing}
@@ -314,6 +343,7 @@ export const TauriConfigGate: FC<{ children: ReactNode }> = ({ children }) => {
           {isEditing && (
             <ConnectionForm
               initial={savedConfig ?? EMPTY_FORM}
+              savedBaseUrl={savedConfig?.apiBaseUrl}
               onSaved={handleSaved}
               onCancel={() => setIsEditing(false)}
             />
