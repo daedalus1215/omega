@@ -5,7 +5,7 @@ A standalone calendar management application built with React + NestJS.
 ## Tech Stack
 
 - **Frontend**: React, Vite, MUI, TanStack Query, date-fns, dnd-kit
-- **Backend**: NestJS, TypeORM, SQLite, JWT auth, Passport
+- **Backend**: NestJS, TypeORM, PostgreSQL, JWT auth, Passport
 - **Architecture**: DDD with layered architecture (Transaction Scripts pattern)
 
 ## Features
@@ -81,6 +81,47 @@ token in Cloudflare Zero Trust, then add a policy to Omega's Access application
 with the **Service Auth** action that includes it. Leave both token fields blank
 for a server Access doesn't protect, such as a dev server on plain HTTP.
 
+### Offline mode
+
+The desktop and Android apps keep working without a connection, for days if
+need be. The web app doesn't: it needs the server.
+
+- **What's stored.** Every 30 minutes (first a minute after launch) the app
+  downloads the calendars and every event from 3 months back to 12 months
+  ahead, one month per request. Anything viewed outside that window is kept
+  too. Settings → Offline shows how much is stored and which dates it covers.
+  Because the server creates repeat occurrences as they're read, this also
+  creates them up to a year ahead.
+- **What works offline.** Viewing the calendar; creating, editing, moving and
+  deleting events; changing an event's reminders; deleting a repeating series
+  or one of its occurrences; renaming or recolouring a calendar. Changes are
+  queued on the device and sent in order once the server is reachable; the
+  badge in the header (on desktop, in the sidebar) shows how many are waiting.
+- **Repeating events created offline** show their first occurrence until the
+  series syncs, then the server's occurrences take its place. That first
+  occurrence can be deleted (which cancels the series) but not edited until
+  then.
+- **What needs a connection.** Creating or deleting calendars, sharing,
+  invitations, search terms not searched before, and account settings.
+- **Reminders** are emailed by the server, so an event created offline gets
+  its reminders once it syncs.
+- **Signing out deletes everything stored on the device,** unsynced changes
+  included (it asks first). Logging in as someone else does too.
+- **If two people edit the same event,** whichever change syncs last wins.
+
+For whoever changes the code:
+
+- The device's data lives in the IndexedDB database `omega-offline`. **Never
+  rename it**: that orphans what's stored on devices, unsynced changes
+  included.
+- **Queued writes outlive deploys.** They're replayed by whatever app version
+  is installed when the connection returns, so a backend change to an endpoint
+  the app writes to offline (see `frontend/src/offline/offline-routes.ts`)
+  must keep accepting the old request shape for as long as a device might be
+  offline.
+- The offline layer is a copy of Chronus's; `frontend/src/offline/README.md`
+  lists what differs. The plan is `specs/offline-apps.md`.
+
 ## Project Structure
 
 ```
@@ -101,7 +142,8 @@ omega/
 │       ├── components/        # Layout, Header, Sidebar
 │       ├── contexts/          # Calendar, Sidebar contexts
 │       ├── hooks/             # Shared hooks
+│       ├── offline/           # Offline layer (the apps): storage, sync
 │       ├── pages/             # Calendar, Settings, Login, Register
-│       └── tauri/             # App-only code: connection settings
+│       └── tauri/             # App-only code: connection settings, tray
 └── .cursor/rules/     # Architecture and coding rules
 ```
