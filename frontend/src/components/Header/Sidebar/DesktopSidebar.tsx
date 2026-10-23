@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import Fade from '@mui/material/Fade';
+import { SyncStatusIndicator } from '../../../offline/components/SyncStatusIndicator';
 import { navigationItems } from './navigation-items';
 import styles from './DesktopSidebar.module.css';
 
@@ -82,6 +83,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = () => {
           );
         })}
       </List>
+      {/* The desktop layout has no header: the sync status sits in the rail. */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+        <SyncStatusIndicator compact />
+      </Box>
     </Box>
   );
 };
