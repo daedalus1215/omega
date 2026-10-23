@@ -1,8 +1,24 @@
 # Implementation Plan — Omega Desktop and Android Apps, Offline (Step 1)
 
-**Status:** Not started. Written 2026-10-22 from Chronus's finished offline work
-(`chronus/specs/web-offline-mode.md`, Chronus `main` at `12fbe93`). Open questions below have
-recommended defaults.
+**Status:** Written 2026-10-22 from Chronus's finished offline work
+(`chronus/specs/web-offline-mode.md`, Chronus `main` at `12fbe93`). Q1, Q5, Q6 and Q7 went
+with their defaults. Phases 0–1 done 2026-10-22: the desktop build, the Android Rust check
+and `config.rs`'s tests pass locally; the CI APK still needs the `ANDROID_DEBUG_KEYSTORE_BASE64`
+secret. The HTTP plugin also allows plain `http://` to any host, for the dev server (Q7).
+Phase 2 done 2026-10-22: in headless Chromium, the Tauri build has no transitions, ripple or
+animations except spinners, and a closed dialog is gone within 30 ms; the browser build is
+unchanged. Phase 3 done 2026-10-22: in headless Chromium against a stub API, the
+offline-check build shows the stored calendar after the API goes away and queues nothing, and
+the production build still uses XHR and sends a 401 to `/login`. 9 copied tests that need a
+write route are skipped until Phase 4. Until Phase 5, the Tauri app ignores a 401 (no relogin
+dialog yet). Phase 4 done 2026-10-22 (code and tests): 139 tests pass, and each safeguard in the
+merge, the placeholder rules and pruning was checked by breaking it and watching a test fail.
+Only the whole-set reminder save works offline (D7). The headless M-checks against a real
+backend run in Phase 6. Phase 5 done 2026-10-22; on desktop the sync badge sits in the sidebar
+rail, because the desktop layout has no header (see D10 "As built"). Phase 6 done 2026-10-22:
+README "Offline mode" section, and M2–M9 pass headless against a real backend (39 checks; see
+"Manual verification → Results"). **Left:** M10–M12, the user's checks on their devices. Open
+questions below have recommended defaults.
 **Author:** daedalus1215 + Claude
 **Date:** 2026-10-22
 **Follow-up:** Step 2, idempotent replays and conflict detection (see "Out of scope")
@@ -264,7 +280,8 @@ Copy from Chronus `frontend/src/offline/`, recording the source commit in
 | `components/SyncStatusIndicator.tsx`, `components/ReloginDialog.tsx` | Rebuilt in MUI. Same states and copy, Tauri copy only. |
 | `web-offline.ts`, `cloudflare-reauth.ts`, `storage-persistence.ts` | **Not copied:** browser only. |
 | `src/auth/sign-out.ts`, `useSignOut.tsx`, `login-errors.ts` | Copied. Rebuilt in MUI where they render. |
-| `src/tauri/tauri-transport.ts`, `DesktopTray.tsx`, `tray-messages.ts`, `src-tauri/src/tray.rs` | Copied in Phase 5. |
+| `src/tauri/tauri-transport.ts` | Copied in Phase 3: the Tauri app installs the layer through it. |
+| `src/tauri/DesktopTray.tsx`, `tray-messages.ts`, `src-tauri/src/tray.rs` | Copied in Phase 5. |
 | Tests next to each file | Copy. The ones written against Chronus's note routes are rewritten against Omega's routes in Phase 4. |
 
 Chronus reads the token through `STORAGE_KEYS.AUTH.JWT_TOKEN`. Add a small
@@ -371,9 +388,7 @@ to the `events` store or to stored per-URL responses.
 | `POST /calendar-events/recurring` | yes | D8 | `createsEntity` |
 | `DELETE /calendar-events/recurring/:id` | yes | Remove every stored event with that `recurringEventId`, placeholder included. A temp series id: `skipQueue` and discard. | |
 | `PUT /calendar-events/:id/reminders` | yes | Replace the event's reminders (temp ids for new ones). | `coalesce` |
-| `POST /calendar-events/:id/reminders` | yes | Add one. | `createsEntity` |
-| `PUT /calendar-events/:id/reminders/:rid` | yes | Update one. | `coalesce` |
-| `DELETE /calendar-events/:id/reminders/:rid` | yes | Remove one; a temp reminder id: `skipQueue`. | |
+| `POST`, `PUT`, `DELETE` on `/calendar-events/:id/reminders/:rid` | no | The app never calls them: the details dialog saves the whole set (as built, 2026-10-22). | |
 | `PATCH /calendars/:id` | yes (Q4) | Update the stored `/calendars` list. | `coalesce` |
 | `POST /calendars`, `DELETE /calendars/:id`, sharing, invitations, members, `PUT /users/*`, auth | no (Q4) | | |
 
@@ -460,6 +475,18 @@ Copy Chronus's D5 "as built" behavior:
 - **Desktop tray.** Copy `tray.rs`, `DesktopTray.tsx`, `tray-messages.ts` and the
   notification plugin. The tray has the status line, "Sync now", "Show Omega" and "Quit".
   Linux tray icons show no tooltip, so the menu's first line carries the status.
+- **As built (2026-10-22).**
+  - Omega's desktop layout has no header, only the sidebar rail, so on desktop the badge is
+    a compact icon in the rail. Its count is in a bubble, and the full text is its tooltip and
+    accessible name. On phones it's a chip in the header, as planned. Both open the relogin
+    dialog or the connection settings, as in Chronus.
+  - On desktop, sign-out is only in Settings; it, the header button and the phone sidebar
+    all go through `useSignOut`.
+  - Settings → Offline shows the stored event count and the dates covered
+    (`getOfflineSummary`), pending and rejected counts, **Sync now** and **Connection
+    settings**.
+  - `useRefreshAfterSync` (the calendar page) refetches the calendar once the queue drains,
+    so a synced series' occurrences replace its placeholder straight away (D8).
 
 ## Phases
 
@@ -628,6 +655,32 @@ Seed users through `POST /api/users/register`, and keep the login rate limit in 
 - **M12 (user). Animations, on desktop and Android.** Dialogs, menus, drawers and the
   bottom sheet open and close at once. There's no ripple, spinners spin, and nothing
   blinks.
+
+### Results (2026-10-22)
+
+**M2–M9 pass** (39 checks, no uncaught exceptions). They ran in headless Chromium against
+the offline-check build and the real backend on a throwaway Postgres, driving the real UI:
+creating, renaming and deleting events through their dialogs, a repeating event through the
+create dialog, re-login through the badge, sign-out through Settings.
+
+- **Offline** was the API refusing connections (or hanging, for M9) while the app's own
+  files stayed reachable, which is the Tauri app's situation. Cutting the browser off
+  entirely relied on the service worker to serve the app, which was flaky headless and
+  isn't part of the apps.
+- Measured: the prefetch stored a year ahead (57 events, the weekly series included) about
+  105 s after launch; a hanging backend fell back to stored data after 15.4 s; a repeating
+  event created offline turned into the server's occurrences after syncing, with no
+  placeholder left.
+- **Not run:** M1 (connection settings) needs the Tauri app's own HTTP client, so it's part
+  of M11. M10–M12 are the user's.
+
+**Findings:**
+- The desktop layout has no header, so the badge planned for it was invisible on desktop.
+  Fixed: it's in the sidebar rail (D10 "As built").
+- Not from this work: `PUT /calendar-events/:id/reminders` saves the whole set, but its
+  response lists only the reminders that existed before the call. Right after saving, the
+  details dialog can show fewer reminders until the next fetch. Offline, the app answers
+  with the full set.
 
 ## Risks and notes
 
