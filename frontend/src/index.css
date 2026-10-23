@@ -288,3 +288,17 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* No animations in the Tauri app: its webviews blink and glitch through them
+   (see src/tauri/motion.ts). Outside any @layer and !important, so it beats
+   Tailwind utilities, CSS modules and MUI's inline styles alike. With
+   animation gone, MUI's transition components (Dialog, Drawer, Menu, Popover,
+   Tooltip, Snackbar) unmount at once instead of waiting for a transition.
+   Spinners keep turning: a still one looks frozen. */
+:root[data-motion='off'] *:not(.animate-spin):not(.MuiCircularProgress-root):not(.MuiCircularProgress-root *):not(.MuiLinearProgress-root *),
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
