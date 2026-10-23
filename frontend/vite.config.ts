@@ -9,9 +9,9 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
-      // The Android app (npm run android:sync) ships these files itself, so
-      // a service worker caching them only risks serving stale ones.
-      disable: mode === 'android',
+      // The Tauri app (npm run build:tauri) ships these files itself, so a
+      // service worker caching them only risks serving stale ones.
+      disable: mode === 'tauri',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       strategies: 'generateSW',
