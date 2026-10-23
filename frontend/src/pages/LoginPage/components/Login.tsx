@@ -11,8 +11,8 @@ import {
   Typography,
 } from '@mui/material';
 import { Logo } from '../../../components/Logo/Logo';
-import { isNativeApp } from '../../../native/server-config';
-import { useServerConfig } from '../../../native/ServerConfigGate';
+import { isTauri } from '../../../tauri/api-config';
+import { openConnectionSettings } from '../../../tauri/connection-settings';
 
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<boolean>;
@@ -23,7 +23,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { editServerConfig } = useServerConfig();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +36,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
     } catch {
       setError(
-        isNativeApp()
+        isTauri()
           ? "Couldn't reach Omega. Check your connection, or the server settings below."
           : "Couldn't reach Omega. Check your connection and try again."
       );
@@ -141,10 +140,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 Register here
               </Link>
             </Typography>
-            {isNativeApp() && (
+            {isTauri() && (
               <Button
                 size="small"
-                onClick={editServerConfig}
+                onClick={openConnectionSettings}
                 sx={{ mt: 1, textTransform: 'none' }}
               >
                 Server settings
