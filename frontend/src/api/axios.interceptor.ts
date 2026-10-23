@@ -1,4 +1,5 @@
 import axios, { type AxiosError } from 'axios';
+import { STORAGE_KEYS } from '../constants/storage';
 import { accessHeaders } from '../tauri/access-headers';
 
 const api = axios.create({
@@ -39,9 +40,11 @@ export const configureApiForTauri = (
   api.defaults.env = { ...api.defaults.env, fetch: fetchImpl };
 };
 
-// What a 401 does: drop the session and go to the login page.
+// What a 401 does: drop the session and go to the login page. The Tauri app
+// replaces this: its stored data and queued writes stay usable with an
+// expired session (see src/offline).
 let handleUnauthorized: (error: AxiosError) => void = () => {
-  localStorage.removeItem('jwt_token');
+  localStorage.removeItem(STORAGE_KEYS.AUTH.JWT_TOKEN);
   window.location.href = '/login';
 };
 
@@ -59,7 +62,7 @@ api.interceptors.request.use(
       config.url = `/api${config.url}`;
     }
 
-    const token = localStorage.getItem('jwt_token');
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH.JWT_TOKEN);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
