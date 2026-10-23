@@ -1,14 +1,15 @@
 import React from 'react';
 import { Container, Box, Typography, Button } from '@mui/material';
-import { useAuth } from '../../auth/useAuth';
-import { isTauri } from '../../tauri/api-config';
-import { openConnectionSettings } from '../../tauri/connection-settings';
+import { useSignOut } from '../../auth/useSignOut';
 import { ChangeUsernameForm } from './components/ChangeUsernameForm/ChangeUsernameForm';
 import { ChangePasswordForm } from './components/ChangePasswordForm/ChangePasswordForm';
+import { OfflineSettings } from './components/OfflineSettings/OfflineSettings';
 import { ThemeModeSettings } from './components/ThemeModeSettings/ThemeModeSettings';
 
 export const SettingsPage: React.FC = () => {
-  const { logout } = useAuth();
+  // Deletes this device's offline data too, asking first if anything
+  // hasn't synced (src/offline).
+  const { signOut, confirmDialog } = useSignOut();
 
   return (
     <Box
@@ -27,40 +28,23 @@ export const SettingsPage: React.FC = () => {
           password.
         </Typography>
         <ThemeModeSettings />
+        <OfflineSettings />
         <Box sx={{ pb: 4, mb: 4, borderBottom: 1, borderColor: 'divider' }}>
           <ChangeUsernameForm />
           <ChangePasswordForm />
         </Box>
-        <Box
-          sx={{
-            pt: 2,
-            pb: 8,
-            borderTop: 1,
-            borderColor: 'divider',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          {isTauri() && (
-            <Button
-              variant="outlined"
-              color="inherit"
-              onClick={openConnectionSettings}
-            >
-              Connection settings
-            </Button>
-          )}
+        <Box sx={{ pt: 2, pb: 8, borderTop: 1, borderColor: 'divider' }}>
           <Button
             variant="outlined"
             color="inherit"
-            onClick={() => logout()}
+            onClick={signOut}
             aria-label="Sign out"
           >
             Sign out
           </Button>
         </Box>
       </Container>
+      {confirmDialog}
     </Box>
   );
 };
