@@ -1,6 +1,8 @@
 import React from 'react';
 import { Container, Box, Typography, Button } from '@mui/material';
 import { useAuth } from '../../auth/useAuth';
+import { isTauri } from '../../tauri/api-config';
+import { openConnectionSettings } from '../../tauri/connection-settings';
 import { ChangeUsernameForm } from './components/ChangeUsernameForm/ChangeUsernameForm';
 import { ChangePasswordForm } from './components/ChangePasswordForm/ChangePasswordForm';
 import { ThemeModeSettings } from './components/ThemeModeSettings/ThemeModeSettings';
@@ -29,7 +31,26 @@ export const SettingsPage: React.FC = () => {
           <ChangeUsernameForm />
           <ChangePasswordForm />
         </Box>
-        <Box sx={{ pt: 2, pb: 8, borderTop: 1, borderColor: 'divider' }}>
+        <Box
+          sx={{
+            pt: 2,
+            pb: 8,
+            borderTop: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
+          {isTauri() && (
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={openConnectionSettings}
+            >
+              Connection settings
+            </Button>
+          )}
           <Button
             variant="outlined"
             color="inherit"
