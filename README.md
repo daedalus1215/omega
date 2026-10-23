@@ -37,33 +37,49 @@ npm install
 npm run dev            # Starts dev server on port 5174
 ```
 
-### Android
+### Desktop and Android apps
 
-Capacitor packages the React build into an Android app under `frontend/android/`.
-The app carries its own copy of the UI and talks to an Omega server over the
-network. On first launch it asks for the server's address and, if Cloudflare
-Access protects the server, an Access service token: Access's sign-in page is
-meant for browsers, so the app gets through with the token instead. Logging in
-to Omega then works as on the web. **Server settings** on the login screen
-changes them later.
+Tauri packages the React build into a desktop app (Linux, macOS) and an Android
+app, both from `frontend/src-tauri/`. The apps carry their own copy of the UI
+and talk to an Omega server over the network. On first launch they ask for the
+server's address and, if Cloudflare Access protects the server, an Access
+service token: Access's sign-in page is meant for browsers, so the apps get
+through with the token instead. Logging in to Omega then works as on the web.
+**Server settings** on the login screen, or **Connection settings** in
+Settings, changes them later.
 
 ```bash
 cd frontend
-npm run android:sync   # build + sync into android/
-npm run android:open   # open in Android Studio
-npm run icons          # redraw launcher/splash images
+npm run desktop:dev     # desktop app against the Vite dev server
+npm run desktop:build   # release build: src-tauri/target/release/omega-desktop,
+                        # plus .deb, .rpm and AppImage bundles
+npm run icons           # redraw the web, desktop and Android icons
 ```
 
-CI (`.github/workflows/android-build.yml`) builds a debug APK on every frontend
-change. The `ANDROID_SERVER_URL` repository variable prefills the address on the
-first-launch screen. A manual run can build the dev app instead, which
-installs alongside as "Omega Dev" and prefills `ANDROID_SERVER_URL_DEV`.
+Linux builds need WebKitGTK and friends (`libwebkit2gtk-4.1-dev`,
+`librsvg2-dev`; on Arch, `webkit2gtk-4.1`). To install the release build for
+your user, copy `src-tauri/target/release/omega-desktop` to `~/.local/bin/`.
+All builds (debug, release, AppImage) share one data directory
+(`~/.local/share/com.omega.app.desktop`), so don't run two at once.
 
-The token is entered on the device, never built into the APK: anyone signed in
+CI (`.github/workflows/tauri-android-build.yml`) builds a debug APK (arm64) on
+every frontend change; download the `omega-android-debug-apk` artifact and
+install it with `adb install -r`. `desktop-build.yml` builds Linux and macOS
+bundles when run by hand. The `ANDROID_SERVER_URL` repository variable
+prefills the address on the first-launch screen.
+
+The APK must be signed with the same key every time, or Android refuses to
+install it over the previous one, and uninstalling first wipes everything the
+app has stored. The `ANDROID_DEBUG_KEYSTORE_BASE64` repository secret holds
+that key (a debug keystore, alias `androiddebugkey`, password `android`,
+base64-encoded); the build fails without it, and checks the APK was signed
+with it.
+
+The token is entered on the device, never built into the app: anyone signed in
 to GitHub can download this repo's CI artifacts. To make one, create a service
 token in Cloudflare Zero Trust, then add a policy to Omega's Access application
 with the **Service Auth** action that includes it. Leave both token fields blank
-for a server Access doesn't protect.
+for a server Access doesn't protect, such as a dev server on plain HTTP.
 
 ## Project Structure
 
@@ -78,12 +94,14 @@ omega/
 │       ├── shared-kernel/     # Guards, decorators, email
 │       └── typeorm/           # Migrations + data source
 ├── frontend/          # React SPA
+│   ├── src-tauri/     # Desktop and Android app shell (Tauri)
 │   └── src/
 │       ├── api/               # Axios interceptor + requests
 │       ├── auth/              # Auth context + hooks
 │       ├── components/        # Layout, Header, Sidebar
 │       ├── contexts/          # Calendar, Sidebar contexts
 │       ├── hooks/             # Shared hooks
-│       └── pages/             # Calendar, Settings, Login, Register
+│       ├── pages/             # Calendar, Settings, Login, Register
+│       └── tauri/             # App-only code: connection settings
 └── .cursor/rules/     # Architecture and coding rules
 ```
