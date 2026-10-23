@@ -1,5 +1,6 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import type { ResolvedThemeMode } from './contexts/ThemeModeContext';
+import { isMotionOff } from './tauri/motion';
 
 // Palettes mirror the CSS tokens in src/index.css (`:root` and `.dark`) so
 // MUI components and CSS-module chrome stay in sync.
@@ -38,8 +39,11 @@ const darkPalette = {
 /**
  * Builds the MUI theme for the resolved app mode.
  */
-export const createMuiTheme = (mode: ResolvedThemeMode): Theme =>
-  createTheme({
+export const createMuiTheme = (
+  mode: ResolvedThemeMode,
+  { motionOff = isMotionOff() }: { motionOff?: boolean } = {}
+): Theme => {
+  return createTheme({
     palette: mode === 'dark' ? darkPalette : lightPalette,
     shape: {
       borderRadius: 8,
@@ -48,10 +52,32 @@ export const createMuiTheme = (mode: ResolvedThemeMode): Theme =>
       fontFamily: 'Inter, Roboto, Arial, sans-serif',
       fontSize: 16,
     },
+    // With motion off (src/tauri/motion.ts), MUI must not wait on its
+    // transitions either: zero durations so closing components unmount at
+    // once, and 'none' so no inline transition style survives.
+    ...(motionOff
+      ? {
+          transitions: {
+            duration: {
+              shortest: 0,
+              shorter: 0,
+              short: 0,
+              standard: 0,
+              complex: 0,
+              enteringScreen: 0,
+              leavingScreen: 0,
+            },
+            create: () => 'none',
+          },
+        }
+      : {}),
     // Centralized menu/dropdown surface styling so every Select, Menu and
     // ToggleButtonGroup shares the same radius, hover, elevation and motion.
     // Components should rely on these instead of re-styling in CSS modules.
     components: {
+      // A ripple with the CSS animation off would show as a static grey
+      // circle instead of disappearing.
+      ...(motionOff ? { MuiButtonBase: { defaultProps: { disableRipple: true } } } : {}),
       MuiMenu: {
         styleOverrides: {
           paper: ({ theme }) => ({
@@ -139,3 +165,4 @@ export const createMuiTheme = (mode: ResolvedThemeMode): Theme =>
       },
     },
   });
+};
