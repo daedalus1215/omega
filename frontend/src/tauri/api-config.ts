@@ -1,5 +1,9 @@
-import { configureApiForTauri } from '../api/axios.interceptor';
+import api, {
+  configureApiForTauri,
+  setUnauthorizedHandler,
+} from '../api/axios.interceptor';
 import { checkConnection, type ConnectionCheck } from './connection-check';
+import { tauriTransport } from './tauri-transport';
 import { withRequestSignal } from './with-request-signal';
 
 export type ApiConfig = {
@@ -40,6 +44,14 @@ export const testApiConfig = async (
 };
 
 export const applyApiConfig = async (config: ApiConfig): Promise<void> => {
-  const { fetch } = await import('@tauri-apps/plugin-http');
+  const [{ fetch }, { installOfflineSupport }] = await Promise.all([
+    import('@tauri-apps/plugin-http'),
+    import('../offline/install-offline-support'),
+  ]);
   configureApiForTauri(config, withRequestSignal(fetch));
+  // Don't log the user out on a 401: the offline adapter flags the expired
+  // session (see sync-status) and keeps the app working from stored data
+  // until they log in again.
+  setUnauthorizedHandler(() => {});
+  installOfflineSupport(api, { transport: tauriTransport });
 };
