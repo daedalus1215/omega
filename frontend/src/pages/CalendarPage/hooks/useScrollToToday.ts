@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { isToday, isWeekend } from 'date-fns';
 import { scrollToElementHorizontally, findElementWithRetry, scrollToHour } from '../utils/scroll.utils';
+import { isMotionOff } from '../../../tauri/motion';
 import { CALENDAR_CONSTANTS } from '../constants/calendar.constants';
 
 type UseScrollToTodayOptions = {
@@ -116,7 +117,11 @@ export const useScrollToToday = ({
       
       if (todayElement) {
         // Fine-tune scroll position using actual element with smooth scroll
-        scrollToElementHorizontally(container, todayElement, 'smooth');
+        scrollToElementHorizontally(
+          container,
+          todayElement,
+          isMotionOff() ? 'auto' : 'smooth'
+        );
       }
       
       return;
