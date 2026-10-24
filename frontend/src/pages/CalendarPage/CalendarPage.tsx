@@ -18,6 +18,7 @@ import { SearchCalendarEventsResultDto } from '../../api/dtos/calendar-events.dt
 import { subDays, addDays, startOfDay, endOfDay, format, parseISO } from 'date-fns';
 import { CALENDAR_CONSTANTS } from './constants/calendar.constants';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useElementHeight } from '../../hooks/useElementHeight';
 import { CalendarContext } from '../../contexts/CalendarContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isCalendarRouteState } from './calendar-route-state';
@@ -52,6 +53,8 @@ export const CalendarPage: React.FC = () => {
   );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  // The toolbar is fixed; the page leaves room for it (CalendarPage.module.css).
+  const [toolbarRef, toolbarHeight] = useElementHeight<HTMLDivElement>();
   const {
     setCalendarMonthLabel,
     setOpenCreateEventModal,
@@ -253,10 +256,18 @@ export const CalendarPage: React.FC = () => {
   };
 
   return (
-    <Box className={styles.calendarPage}>
+    <Box
+      className={styles.calendarPage}
+      style={
+        {
+          '--calendar-toolbar-height': `${toolbarHeight}px`,
+        } as React.CSSProperties
+      }
+    >
       {/* Desktop: Show CalendarToolbar / Mobile: ViewToggle is in Header */}
 
       <CalendarToolbar
+        toolbarRef={toolbarRef}
         currentDate={currentDate}
         currentView={currentView}
         onDateChange={handleDateChange}

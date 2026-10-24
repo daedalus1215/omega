@@ -6,7 +6,10 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  padding: 0.5rem;
+  --page-padding: 0.5rem;
+  padding: var(--page-padding);
+  /* Room for the fixed toolbar, whatever its height (measured in CalendarPage) */
+  padding-top: calc(var(--calendar-toolbar-height, 0px) + var(--page-padding));
   width: 100%;
   box-sizing: border-box;
 }
@@ -40,12 +43,12 @@
 
 @media (max-width: 768px) {
   .calendarPage {
-    padding: 0.25rem;
+    --page-padding: 0.25rem;
   }
 }
 
 @media (max-width: 600px) {
   .calendarPage {
-    padding: 0.25rem;
+    --page-padding: 0.25rem;
   }
 }
