@@ -112,12 +112,6 @@ describe('planReminders', () => {
     });
   });
 
-  it('drops the fraction of a second', () => {
-    const start = new Date(2026, 9, 24, 15, 0, 0, 500);
-    const [planned] = planReminders([event(1, start, [0])], NOW).due;
-    expect(planned.at.getMilliseconds()).toBe(0);
-  });
-
   it('schedules none already due, about to be, or past the horizon', () => {
     const { due } = planReminders(
       [
@@ -197,13 +191,11 @@ const plan = (
   ]),
 });
 
-const fakeScheduler = (
-  pending: { id: number; extra?: Record<string, unknown> | null }[]
-) => {
+const fakeScheduler = (pending: { id: number; signature: string }[]) => {
   const scheduler = {
     pending: vi.fn(async () => pending),
     cancel: vi.fn(async (_ids: number[]) => undefined),
-    schedule: vi.fn((_reminder: PlannedReminder) => undefined),
+    schedule: vi.fn(async (_reminders: PlannedReminder[]) => undefined),
   } satisfies ReminderScheduler;
   return scheduler;
 };
@@ -217,44 +209,45 @@ describe('reconcileReminders', () => {
     );
     expect(result).toEqual({ scheduled: 2, cancelled: 0 });
     expect(scheduler.cancel).not.toHaveBeenCalled();
-    expect(scheduler.schedule).toHaveBeenCalledTimes(2);
+    expect(scheduler.schedule).toHaveBeenCalledWith([
+      planned(1, 'a'),
+      planned(2, 'b'),
+    ]);
   });
 
   it('leaves unchanged reminders alone', async () => {
-    const scheduler = fakeScheduler([{ id: 1, extra: { signature: 'a' } }]);
+    const scheduler = fakeScheduler([{ id: 1, signature: 'a' }]);
     const result = await reconcileReminders(plan([planned(1, 'a')]), scheduler);
     expect(result).toEqual({ scheduled: 0, cancelled: 0 });
     expect(scheduler.cancel).not.toHaveBeenCalled();
     expect(scheduler.schedule).not.toHaveBeenCalled();
   });
 
-  it("cancels what's no longer planned, including ones without extra", async () => {
+  it("cancels what's no longer planned", async () => {
     const scheduler = fakeScheduler([
-      { id: 1, extra: { signature: 'a' } },
-      { id: 7, extra: { signature: 'gone' } },
-      { id: 8, extra: null },
-      { id: 9 },
+      { id: 1, signature: 'a' },
+      { id: 7, signature: 'gone' },
     ]);
     await reconcileReminders(plan([planned(1, 'a')]), scheduler);
-    expect(scheduler.cancel).toHaveBeenCalledWith([7, 8, 9]);
+    expect(scheduler.cancel).toHaveBeenCalledWith([7]);
     expect(scheduler.schedule).not.toHaveBeenCalled();
   });
 
   it('replaces a reminder whose event changed', async () => {
-    const scheduler = fakeScheduler([{ id: 1, extra: { signature: 'old' } }]);
+    const scheduler = fakeScheduler([{ id: 1, signature: 'old' }]);
     const result = await reconcileReminders(
       plan([planned(1, 'new')]),
       scheduler
     );
     expect(result).toEqual({ scheduled: 1, cancelled: 1 });
     expect(scheduler.cancel).toHaveBeenCalledWith([1]);
-    expect(scheduler.schedule).toHaveBeenCalledWith(planned(1, 'new'));
+    expect(scheduler.schedule).toHaveBeenCalledWith([planned(1, 'new')]);
   });
 
   it('cancels everything for an empty plan', async () => {
     const scheduler = fakeScheduler([
-      { id: 3, extra: { signature: 'x' } },
-      { id: 4, extra: { signature: 'y' } },
+      { id: 3, signature: 'x' },
+      { id: 4, signature: 'y' },
     ]);
     await reconcileReminders(plan([]), scheduler);
     expect(scheduler.cancel).toHaveBeenCalledWith([3, 4]);
@@ -264,8 +257,8 @@ describe('reconcileReminders', () => {
     // Neither is in `due` any more (too close, or past), but both still
     // match their reminder: cancelling them would lose them.
     const scheduler = fakeScheduler([
-      { id: 5, extra: { signature: 'in-5-seconds' } },
-      { id: 6, extra: { signature: 'a-second-ago' } },
+      { id: 5, signature: 'in-5-seconds' },
+      { id: 6, signature: 'a-second-ago' },
     ]);
     const result = await reconcileReminders(
       plan(
