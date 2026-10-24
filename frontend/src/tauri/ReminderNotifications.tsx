@@ -8,7 +8,6 @@ import { calendarEventKeys } from '../pages/CalendarPage/hooks/useCalendarEvents
 import {
   askForReminderPermission,
   cancelAllReminders,
-  createReminderChannel,
   hasReminderPermission,
   onReminderTapped,
   syncReminders,
@@ -50,10 +49,6 @@ export const ReminderNotifications: FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    createReminderChannel().catch(logFailure('create the reminder channel'));
-  }, []);
-
   useEffect(
     () =>
       cleanUpLater(
@@ -63,7 +58,12 @@ export const ReminderNotifications: FC = () => {
             openEventStartDate: startDate,
           };
           navigate(ROUTES.CALENDAR, { state });
-        }).then(listener => () => listener.unregister())
+        })
+          .then(listener => () => listener.unregister())
+          .catch(error => {
+            logFailure('listen for tapped reminders')(error);
+            return () => undefined;
+          })
       ),
     [navigate]
   );
