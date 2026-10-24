@@ -83,6 +83,15 @@
   }
 }
 
+/* Phones: the search box takes the room the view switcher (and the arrows,
+   in day and month view) leave */
+@media (max-width: 600px) {
+  .rightSection {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 /* Very small screens */
 @media (max-width: 480px) {
   .toolbar {
@@ -94,14 +103,5 @@
     order: 3;
     width: 100%;
     font-size: 0.875rem;
-  }
-
-  .leftSection,
-  .rightSection {
-    flex: 1;
-  }
-
-  .rightSection {
-    justify-content: flex-end;
   }
 }
