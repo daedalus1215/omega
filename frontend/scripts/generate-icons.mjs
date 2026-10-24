@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { readFileSync, existsSync, unlinkSync } from 'fs';
+import { readFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -70,6 +70,36 @@ await sharp({
   .png()
   .toFile(join(__dirname, '..', 'src-tauri', 'app-icon.png'));
 console.log(`Generated src-tauri/app-icon.png (${tauriIconSize}x${tauriIconSize})`);
+
+/**
+ * Status bar icon for reminder notifications (src/tauri/reminder-device.ts).
+ * Android draws only its alpha channel, so it's the mark in white on
+ * transparent, 24dp at each density. Always from the SVG: an override PNG's
+ * opaque background would come out as a white square. `tauri icon` leaves
+ * drawable-* alone.
+ */
+const androidResDir = join(
+  __dirname,
+  '..',
+  'src-tauri',
+  'gen',
+  'android',
+  'app',
+  'src',
+  'main',
+  'res'
+);
+const statusIconSizes = { mdpi: 24, hdpi: 36, xhdpi: 48, xxhdpi: 72, xxxhdpi: 96 };
+for (const [density, size] of Object.entries(statusIconSizes)) {
+  const dir = join(androidResDir, `drawable-${density}`);
+  mkdirSync(dir, { recursive: true });
+  await sharp(readFileSync(markSvgPath))
+    .resize(size, size)
+    .negate({ alpha: false })
+    .png()
+    .toFile(join(dir, 'ic_stat_omega.png'));
+  console.log(`Generated android drawable-${density}/ic_stat_omega.png (${size}x${size})`);
+}
 
 const legacySvg = join(publicDir, 'omega-icon.svg');
 if (existsSync(legacySvg)) {

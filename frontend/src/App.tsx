@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { lazy, Suspense, useContext, useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -22,6 +22,14 @@ import { SettingsPage } from './pages/SettingsPage/SettingsPage';
 import { ROUTES } from './constants/routes';
 import { AuthenticatedLayout } from './components/Layout/AuthenticatedLayout';
 import { TauriConfigGate } from './tauri/TauriConfigGate';
+import { isTauriAndroid } from './tauri/api-config';
+
+// Its own chunk, so Tauri's bindings stay out of the web bundle.
+const ReminderNotifications = lazy(() =>
+  import('./tauri/ReminderNotifications').then(module => ({
+    default: module.ReminderNotifications,
+  }))
+);
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -69,6 +77,11 @@ const AppShell: React.FC = () => {
           <SidebarProvider>
             <AppRoutes />
           </SidebarProvider>
+          {isTauriAndroid() && (
+            <Suspense fallback={null}>
+              <ReminderNotifications />
+            </Suspense>
+          )}
         </Router>
       </TauriConfigGate>
     </ThemeProvider>

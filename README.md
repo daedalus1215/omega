@@ -14,7 +14,7 @@ A standalone calendar management application built with React + NestJS.
 - Calendar with Timeline, Day, and Month views
 - Drag-and-drop event management
 - Recurring events (daily, weekly, monthly, yearly)
-- Email reminders via cron scheduler
+- Email reminders via cron scheduler, plus notifications in the Android app
 - Responsive design (mobile + desktop)
 
 ## Setup
@@ -104,7 +104,8 @@ need be. The web app doesn't: it needs the server.
 - **What needs a connection.** Creating or deleting calendars, sharing,
   invitations, search terms not searched before, and account settings.
 - **Reminders** are emailed by the server, so an event created offline gets
-  its reminders once it syncs.
+  its emails once it syncs. The Android app's own notifications (below) are
+  scheduled straight away.
 - **Signing out deletes everything stored on the device,** unsynced changes
   included (it asks first). Logging in as someone else does too.
 - **If two people edit the same event,** whichever change syncs last wins.
@@ -121,6 +122,29 @@ For whoever changes the code:
   offline.
 - The offline layer is a copy of Chronus's; `frontend/src/offline/README.md`
   lists what differs. The plan is `specs/offline-apps.md`.
+
+### Reminder notifications (Android)
+
+The Android app shows event reminders as notifications too, scheduled on the
+phone from the events offline mode stores. No push service is involved, and
+the server keeps emailing them.
+
+- **What's scheduled:** every reminder due in the next 14 days. The list is
+  refreshed at launch, every 5 minutes while the app runs, when it comes back
+  to the foreground, and right after a change made in the app.
+- **Changes made elsewhere** (the website, someone else on a shared calendar)
+  reach the phone when it next syncs. Until then, a moved event's reminder
+  fires at the old time, and a deleted event's still fires.
+- **Settings → Reminders** turns them off for this phone, counts what's
+  scheduled, and asks again for notification permission after a no.
+  Signing out cancels them all.
+- **Tapping one** opens the event, unless Android had closed the app; then it
+  just opens Omega.
+- **On time, even when idle:** the manifest asks for Android's exact-alarm
+  permission. The desktop app doesn't schedule reminders.
+
+The details, and what to check on a phone, are in
+`specs/app-reminder-notifications.md`.
 
 ## Project Structure
 

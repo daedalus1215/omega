@@ -19,6 +19,8 @@ import { subDays, addDays, startOfDay, endOfDay, format, parseISO } from 'date-f
 import { CALENDAR_CONSTANTS } from './constants/calendar.constants';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { CalendarContext } from '../../contexts/CalendarContext';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { isCalendarRouteState } from './calendar-route-state';
 import styles from './CalendarPage.module.css';
 
 type DayRange = {
@@ -159,6 +161,20 @@ export const CalendarPage: React.FC = () => {
     setCreateEventDate(undefined);
     setIsCreateModalOpen(true);
   };
+
+  // A tapped reminder notification lands here with its event (see
+  // src/tauri/ReminderNotifications.tsx). Open it the way search does, then
+  // clear the state so going back or reloading doesn't reopen it.
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isCalendarRouteState(location.state)) {
+      return;
+    }
+    setCurrentDate(parseISO(location.state.openEventStartDate));
+    setSearchSelectedEventId(location.state.openEventId);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
 
   const handleSearchSelect = useCallback(
     (result: SearchCalendarEventsResultDto) => {
