@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Each fresh runner signs debug builds with a new key, and Android
       # won't install an update signed with a different key without
