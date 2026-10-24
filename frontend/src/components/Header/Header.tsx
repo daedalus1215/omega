@@ -35,7 +35,13 @@ export const Header: React.FC = () => {
             <IconButton
               onClick={toggleSidebar}
               aria-label="Open menu"
-              sx={{ color: 'text.primary' }}
+              // A fixed size keeps it round; the grid would stretch it.
+              sx={{
+                color: 'text.primary',
+                width: 40,
+                height: 40,
+                justifySelf: 'center',
+              }}
             >
               <MenuIcon fontSize="small" />
             </IconButton>
