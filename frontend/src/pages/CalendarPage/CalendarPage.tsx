@@ -12,6 +12,7 @@ import { CreateEventModal } from './components/CreateEventModal/CreateEventModal
 import { EventDetailsModal } from './components/EventDetailsModal/EventDetailsModal';
 import { CalendarsManager } from './components/CalendarsManager/CalendarsManager';
 import { useCalendarEvents } from './hooks/useCalendarEvents';
+import { useRefreshAfterSync } from './hooks/useRefreshAfterSync';
 import { useCalendarView } from './hooks/useCalendarView';
 import { SearchCalendarEventsResultDto } from '../../api/dtos/calendar-events.dtos';
 import { subDays, addDays, startOfDay, endOfDay, format, parseISO } from 'date-fns';
@@ -116,6 +117,7 @@ export const CalendarPage: React.FC = () => {
     getStartDate(),
     getEndDate()
   );
+  useRefreshAfterSync();
   // Hide events belonging to calendars the user has toggled off.
   const visibleEvents = events.filter(event =>
     isCalendarVisible(event.calendarId)

@@ -11,6 +11,8 @@ import {
   Typography,
 } from '@mui/material';
 import { Logo } from '../../../components/Logo/Logo';
+import { isTauri } from '../../../tauri/api-config';
+import { openConnectionSettings } from '../../../tauri/connection-settings';
 
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<boolean>;
@@ -30,10 +32,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       const success = await onLogin(username, password);
       if (!success) {
-        setError('Invalid credentials');
+        setError('Incorrect username or password.');
       }
     } catch {
-      setError('An error occurred during login');
+      setError(
+        isTauri()
+          ? "Couldn't reach Omega. Check your connection, or the server settings below."
+          : "Couldn't reach Omega. Check your connection and try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -81,6 +87,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             disabled={isSubmitting}
             fullWidth
             autoComplete="username"
+            // Usernames match exactly; stop phone keyboards capitalizing them.
+            slotProps={{
+              htmlInput: {
+                autoCapitalize: 'none',
+                autoCorrect: 'off',
+                spellCheck: false,
+              },
+            }}
           />
 
           <TextField
@@ -126,6 +140,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 Register here
               </Link>
             </Typography>
+            {isTauri() && (
+              <Button
+                size="small"
+                onClick={openConnectionSettings}
+                sx={{ mt: 1, textTransform: 'none' }}
+              >
+                Server settings
+              </Button>
+            )}
           </Box>
         </Stack>
       </CardContent>

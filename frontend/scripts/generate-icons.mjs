@@ -47,6 +47,30 @@ for (const { name, size } of outputs) {
   console.log(`Generated ${name} (${size}x${size})`);
 }
 
+/**
+ * Source image for the Tauri desktop and Android app icons. `npm run icons`
+ * hands it to `tauri icon`, which cuts every size and density from it. The
+ * mark sits inside the central 60% because Android launchers mask adaptive
+ * icons to a circle, keeping only the central 66/108 for certain.
+ */
+const tauriIconSize = 1024;
+const tauriMark = await sharp(inputBuffer)
+  .resize(Math.round(tauriIconSize * 0.6), Math.round(tauriIconSize * 0.6))
+  .png()
+  .toBuffer();
+await sharp({
+  create: {
+    width: tauriIconSize,
+    height: tauriIconSize,
+    channels: 4,
+    background: { r: 255, g: 255, b: 255, alpha: 1 },
+  },
+})
+  .composite([{ input: tauriMark, gravity: 'centre' }])
+  .png()
+  .toFile(join(__dirname, '..', 'src-tauri', 'app-icon.png'));
+console.log(`Generated src-tauri/app-icon.png (${tauriIconSize}x${tauriIconSize})`);
+
 const legacySvg = join(publicDir, 'omega-icon.svg');
 if (existsSync(legacySvg)) {
   unlinkSync(legacySvg);

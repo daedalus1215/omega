@@ -21,6 +21,7 @@ import { CalendarPage } from './pages/CalendarPage/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage/SettingsPage';
 import { ROUTES } from './constants/routes';
 import { AuthenticatedLayout } from './components/Layout/AuthenticatedLayout';
+import { TauriConfigGate } from './tauri/TauriConfigGate';
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -63,11 +64,13 @@ const AppShell: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <SidebarProvider>
-          <AppRoutes />
-        </SidebarProvider>
-      </Router>
+      <TauriConfigGate>
+        <Router>
+          <SidebarProvider>
+            <AppRoutes />
+          </SidebarProvider>
+        </Router>
+      </TauriConfigGate>
     </ThemeProvider>
   );
 };

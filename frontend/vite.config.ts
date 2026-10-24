@@ -5,10 +5,13 @@ import { resolve, join } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import { env } from './vite.env.config'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
+      // The Tauri app (npm run build:tauri) ships these files itself, so a
+      // service worker caching them only risks serving stale ones.
+      disable: mode === 'tauri',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       strategies: 'generateSW',
@@ -100,7 +103,7 @@ export default defineConfig({
       }
     }
   }
-})
+}))
 
 function getHttpsOptions(): { key: Buffer; cert: Buffer } | undefined {
   const sslKeyPath = process.env.SSL_KEYFILE;

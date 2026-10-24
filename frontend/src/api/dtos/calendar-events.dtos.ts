@@ -21,6 +21,12 @@ export type CalendarEventResponseDto = {
   isRecurring?: boolean;
   recurringEventId?: number;
   reminders?: EventReminderResponseDto[];
+  /**
+   * Set by the Tauri app, never by the server: a repeating event created
+   * offline shows its first occurrence until the series syncs, and that
+   * can't be edited (src/offline, specs/offline-apps.md D8).
+   */
+  placeholder?: boolean;
 };
 
 export type CreateEventReminderRequest = {

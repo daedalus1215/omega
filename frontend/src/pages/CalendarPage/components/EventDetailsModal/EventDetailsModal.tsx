@@ -300,7 +300,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 >
                   <RepeatIcon fontSize="small" />
                   <Typography variant="caption" color="text.secondary">
-                    Recurring
+                    {event.placeholder
+                      ? 'Recurring · editable once it syncs'
+                      : 'Recurring'}
                   </Typography>
                 </Box>
               )}
@@ -321,8 +323,12 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 </IconButton>
                 <IconButton
                   onClick={() => setIsEditing(true)}
+                  // A repeating event created offline: only its first
+                  // occurrence is here, standing in until the series syncs.
                   disabled={
-                    updateMutation.isPending || deleteMutation.isPending
+                    updateMutation.isPending ||
+                    deleteMutation.isPending ||
+                    event.placeholder
                   }
                   aria-label="edit event"
                 >

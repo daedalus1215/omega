@@ -1,10 +1,11 @@
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
+import { useSignOut } from '../../auth/useSignOut';
+import { SyncStatusIndicator } from '../../offline/components/SyncStatusIndicator';
 import { Sidebar } from './Sidebar/Sidebar';
 import { Logo } from '../Logo/Logo';
 import { useSidebar } from '../../hooks/useSidebar';
-import { ROUTES } from '../../constants/routes';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import { CalendarContext } from '../../contexts/CalendarContext';
@@ -13,15 +14,13 @@ import styles from './Header.module.css';
 export const MOBILE_HEADER_HEIGHT_PX = 48;
 
 export const Header: React.FC = () => {
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
+  // Deletes this device's offline data too, asking first if anything
+  // hasn't synced (src/offline).
+  const { signOut: handleSignOut, confirmDialog } = useSignOut();
   const { isOpen, setIsOpen, isMobile } = useSidebar();
   const navigate = useNavigate();
   const { calendarMonthLabel } = useContext(CalendarContext);
-
-  const handleSignOut = () => {
-    logout();
-    navigate(ROUTES.LOGIN);
-  };
 
   const toggleSidebar = () => (isMobile ? setIsOpen(!isOpen) : navigate('/'));
 
@@ -43,7 +42,9 @@ export const Header: React.FC = () => {
             <span className={styles.calendarMonthLabel} aria-live="polite">
               {calendarMonthLabel}
             </span>
-            <span className={styles.mobileHeaderSpacer} aria-hidden />
+            <span className={styles.mobileHeaderSpacer}>
+              <SyncStatusIndicator />
+            </span>
           </div>
         </header>
         <Sidebar
@@ -52,6 +53,7 @@ export const Header: React.FC = () => {
           onSignOut={handleSignOut}
           username={user?.username}
         />
+        {confirmDialog}
       </>
     );
   }
@@ -65,6 +67,7 @@ export const Header: React.FC = () => {
             <span className={styles.name}>Omega</span>
           </button>
           <div className={styles.rightSection}>
+            <SyncStatusIndicator />
             <span className={styles.username}>{user?.username}</span>
             <button onClick={handleSignOut} className={styles.signOutButton}>
               Sign Out
@@ -74,6 +77,7 @@ export const Header: React.FC = () => {
       </header>
 
       <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      {confirmDialog}
     </>
   );
 };

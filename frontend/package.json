@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "icons": "node scripts/generate-icons.mjs",
+    "icons": "node scripts/generate-icons.mjs && tauri icon src-tauri/app-icon.png",
     "build": "tsc && vite build",
+    "build:tauri": "tsc && vite build --mode tauri",
+    "test": "vitest run",
     "lint": "eslint .",
     "prettier": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "prettier:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@dnd-kit/sortable": "^10.0.0",
@@ -21,10 +26,14 @@
     "@mui/styled-engine": "^7.0.2",
     "@tanstack/react-query": "^5.81.5",
     "@tanstack/react-virtual": "^3.13.18",
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-http": "^2.8.3",
+    "@tauri-apps/plugin-notification": "^2.7.0",
     "axios": "^1.8.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "idb": "^8.0.4",
     "jwt-decode": "^4.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
@@ -39,6 +48,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@tauri-apps/cli": "^2.12.4",
     "@types/node": "^22.10.7",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
@@ -51,6 +61,7 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
+    "fake-indexeddb": "^6.2.6",
     "globals": "^15.14.0",
     "postcss": "^8.5.3",
     "prettier": "^3.7.3",
@@ -60,6 +71,7 @@
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.18.2",
     "vite": "^7.3.5",
-    "vite-plugin-pwa": "^1.0.0"
+    "vite-plugin-pwa": "^1.0.0",
+    "vitest": "^5.0.5"
   }
 }
