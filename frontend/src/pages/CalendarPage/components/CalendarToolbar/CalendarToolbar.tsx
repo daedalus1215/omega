@@ -15,6 +15,7 @@ interface CalendarToolbarProps {
   onDateChange: (date: Date) => void;
   onViewChange: (view: CalendarViewMode) => void;
   onSearchSelect: (result: SearchCalendarEventsResultDto) => void;
+  toolbarRef?: React.Ref<HTMLDivElement>;
 }
 
 /**
@@ -27,8 +28,11 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onDateChange,
   onViewChange,
   onSearchSelect,
+  toolbarRef,
 }) => {
   const isMobile = useIsMobile();
+  const showNavigation = currentView !== 'timeline';
+  const showTitle = !isMobile;
 
   // Handle navigation based on current view
   const handlePrev = () => {
@@ -79,35 +83,38 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   };
 
   return (
-    <Box className={styles.toolbar}>
-      <Box className={styles.leftSection}>
-        {!(currentView === 'timeline') && (
-          <Box className={styles.navigationButtons}>
-            <IconButton
-              size="small"
-              onClick={handlePrev}
-              aria-label="Previous"
-              className={styles.navButton}
-            >
-              <ChevronLeft />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={handleNext}
-              aria-label="Next"
-              className={styles.navButton}
-            >
-              <ChevronRight />
-            </IconButton>
+    <Box ref={toolbarRef} className={styles.toolbar}>
+      {/* Left out when empty, so the search box can start at the left edge */}
+      {(showNavigation || showTitle) && (
+        <Box className={styles.leftSection}>
+          {showNavigation && (
+            <Box className={styles.navigationButtons}>
+              <IconButton
+                size="small"
+                onClick={handlePrev}
+                aria-label="Previous"
+                className={styles.navButton}
+              >
+                <ChevronLeft />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={handleNext}
+                aria-label="Next"
+                className={styles.navButton}
+              >
+                <ChevronRight />
+              </IconButton>
 
-          </Box>
-        )}
-        {!isMobile && (
-          <Typography variant="h6" className={styles.title} sx={{ fontSize: '1rem' }}>
-            {getTitle()}
-          </Typography>
-        )}
-      </Box>
+            </Box>
+          )}
+          {showTitle && (
+            <Typography variant="h6" className={styles.title} sx={{ fontSize: '1rem' }}>
+              {getTitle()}
+            </Typography>
+          )}
+        </Box>
+      )}
 
       <Box className={styles.rightSection}>
         <EventSearchBox onSearchSelect={onSearchSelect} />
