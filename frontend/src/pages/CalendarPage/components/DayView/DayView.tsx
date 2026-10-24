@@ -168,8 +168,7 @@ export const DayView: React.FC<DayViewProps> = ({
   // Current time indicator
   const { currentTimePosition } = useCurrentTimeIndicator({
     days: dayRange,
-    isMobile,
-    hasScheduleHeaderRow: false,
+    headerHeight: 0,
   });
 
   // Swipe gesture handlers

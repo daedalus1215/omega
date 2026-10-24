@@ -6,22 +6,12 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
-  height: 3132px; /* 60px header + 3072px content (96 units * 32px) */
   flex-shrink: 0;
-}
-
-.timeColumnNoScheduleHeader {
-  height: 3072px; /* 96 units * 32px */
 }
 
 @media (max-width: 600px) {
   .timeColumn {
     min-width: 50px;
-    height: 3127px; /* 55px header + 3072px content (96 units * 32px) */
-  }
-
-  .timeColumnNoScheduleHeader {
-    height: 3072px;
   }
 }
 
@@ -36,20 +26,14 @@
   pointer-events: none;
 }
 
+/* Holds a hidden day header, so it's always as tall as the real ones. */
 .timeSlotHeader {
-  height: 60px;
-  border-bottom: 1px solid var(--color-border, #333);
   flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 30;
-  background-color: var(--color-card-bg, #1e1e1e);
-}
-
-@media (max-width: 600px) {
-  .timeSlotHeader {
-    height: 55px;
-  }
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .timeSlot {

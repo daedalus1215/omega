@@ -47,6 +47,7 @@ import { useScrollToToday } from '../../hooks/useScrollToToday';
 import { useCurrentTimeIndicator } from '../../hooks/useCurrentTimeIndicator';
 import { useVisibleDateRange } from '../../hooks/useVisibleDateRange';
 import { useVirtualizedDays } from '../../hooks/useVirtualizedDays';
+import { useElementHeight } from '../../../../hooks/useElementHeight';
 import {
   calculateDropPosition,
   calculateNewEventTimes,
@@ -250,10 +251,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     totalContentWidth: virtualizer.getTotalSize(),
   });
 
+  // The day headers size to their text; the time column's corner matches
+  // them, and is measured for what sits below them.
+  const [timeHeaderRef, dayHeaderHeight] = useElementHeight<HTMLDivElement>();
+
   // Current time indicator
   const { currentTimePosition } = useCurrentTimeIndicator({
     days,
-    isMobile,
+    headerHeight: dayHeaderHeight,
   });
   
   // Auto-scroll to today on mount
@@ -649,8 +654,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         onDragCancel={handleDragCancel}
         modifiers={[snapToTimeSlot]}
       >
-        <Box className={styles.calendarGrid} ref={calendarGridRef}>
-          <TimeColumn timeSlots={timeSlots} />
+        <Box
+          className={styles.calendarGrid}
+          ref={calendarGridRef}
+          style={
+            {
+              '--day-header-height': `${dayHeaderHeight}px`,
+            } as React.CSSProperties
+          }
+        >
+          <TimeColumn timeSlots={timeSlots} headerRef={timeHeaderRef} />
           
           {currentTimePosition !== null && (
             <CurrentTimeIndicator

@@ -4,13 +4,8 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  height: 3132px; /* 60px header + 3072px content (96 units * 32px) */
   flex-shrink: 0;
   border-right: 1px solid var(--color-border, #333);
-}
-
-.dayColumnNoDayHeader {
-  height: 3072px; /* 96 units * 32px */
 }
 
 .dayColumnNoDayHeader .dayContent {
@@ -20,11 +15,6 @@
 @media (max-width: 600px) {
   .dayColumn {
     min-width: 100px;
-    height: 3127px; /* 55px header + 3072px content (96 units * 32px) */
-  }
-
-  .dayColumnNoDayHeader {
-    height: 3072px;
   }
 
   .dayColumnNoDayHeader .dayContent {
@@ -45,37 +35,6 @@
 
 .dayColumn:last-child::after {
   display: none;
-}
-
-.dayHeader {
-  height: 60px;
-  min-height: 60px;
-  padding: 0.5rem 0.75rem;
-  text-align: center;
-  border-bottom: 1px solid var(--color-border, #333);
-  background-color: var(--color-card-bg, #1e1e1e);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.25rem;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-@media (max-width: 600px) {
-  .dayHeader {
-    padding: 0.5rem 0.5rem;
-    height: 55px;
-    min-height: 55px;
-    gap: 0.125rem;
-  }
-}
-
-.dayHeader.today {
-  background-color: var(--color-primary, #6366f1);
-  color: white;
 }
 
 .dayContent {
