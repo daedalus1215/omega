@@ -709,7 +709,8 @@ create dialog, re-login through the badge, sign-out through Settings.
   mismatch, and add a resolution UI.
 - **Generating occurrences on the device** for series created offline. Wanted later (user,
   2026-10-22); D8's "Later" note says how Step 1 keeps the way open.
-- **Local reminder notifications in the apps.** Reminders stay server emails.
+- **Local reminder notifications in the apps.** Reminders stay server emails. (Done for
+  Android, 2026-10-23: `specs/app-reminder-notifications.md`.)
 - **Offline search.** It would filter the `events` store. Creating and deleting calendars,
   and sharing, offline.
 - A UI to review, retry or discard rejected changes.
