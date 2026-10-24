@@ -4,6 +4,7 @@ import { useSignOut } from '../../auth/useSignOut';
 import { ChangeUsernameForm } from './components/ChangeUsernameForm/ChangeUsernameForm';
 import { ChangePasswordForm } from './components/ChangePasswordForm/ChangePasswordForm';
 import { OfflineSettings } from './components/OfflineSettings/OfflineSettings';
+import { ReminderSettings } from './components/ReminderSettings/ReminderSettings';
 import { ThemeModeSettings } from './components/ThemeModeSettings/ThemeModeSettings';
 
 export const SettingsPage: React.FC = () => {
@@ -29,6 +30,7 @@ export const SettingsPage: React.FC = () => {
         </Typography>
         <ThemeModeSettings />
         <OfflineSettings />
+        <ReminderSettings />
         <Box sx={{ pb: 4, mb: 4, borderBottom: 1, borderColor: 'divider' }}>
           <ChangeUsernameForm />
           <ChangePasswordForm />
