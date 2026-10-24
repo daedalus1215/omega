@@ -1,30 +1,65 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CalendarEventResponseDto } from '../api/dtos/calendar-events.dtos';
 
-const plugin = vi.hoisted(() => ({
-  sendNotification: vi.fn(),
-  pending: vi.fn(async (): Promise<{ id: number; extra?: unknown }[]> => []),
+type AndroidReminder = { id: number; signature: string };
+
+/** RemindersPlugin.kt, as far as these tests need it. */
+const android = vi.hoisted(() => {
+  const state = {
+    scheduled: new Map<number, AndroidReminder>(),
+    taps: [] as (string | undefined)[],
+    onTapped: undefined as (() => void) | undefined,
+  };
+  const invoke = vi.fn(async (command: string, args?: unknown) => {
+    switch (command) {
+      case 'plugin:reminders|schedule':
+        for (const reminder of (args as { reminders: AndroidReminder[] })
+          .reminders) {
+          state.scheduled.set(reminder.id, reminder);
+        }
+        return null;
+      case 'plugin:reminders|cancel':
+        for (const id of (args as { ids: number[] }).ids) {
+          state.scheduled.delete(id);
+        }
+        return null;
+      case 'plugin:reminders|list':
+        return { reminders: [...state.scheduled.values()] };
+      case 'plugin:reminders|take_tap':
+        return { data: state.taps.shift() };
+      default:
+        throw new Error(`unexpected command ${command}`);
+    }
+  });
+  const addPluginListener = vi.fn(
+    async (_plugin: string, _event: string, handler: () => void) => {
+      state.onTapped = handler;
+      return { unregister: vi.fn(async () => undefined) };
+    }
+  );
+  return { state, invoke, addPluginListener };
+});
+const notificationPlugin = vi.hoisted(() => ({
   cancel: vi.fn(async (_ids: number[]) => undefined),
-  cancelAll: vi.fn(async () => undefined),
-  onAction: vi.fn(),
 }));
 const stored = vi.hoisted(() => ({
   events: [] as CalendarEventResponseDto[],
   listEvents: vi.fn(),
 }));
 
-vi.mock('@tauri-apps/plugin-notification', async () => {
-  // Only to keep Schedule, Importance and Visibility; nothing calls Tauri.
-  const actual = await vi.importActual<
-    typeof import('@tauri-apps/plugin-notification')
-  >('@tauri-apps/plugin-notification');
-  return { ...actual, ...plugin };
-});
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: android.invoke,
+  addPluginListener: android.addPluginListener,
+}));
+vi.mock('@tauri-apps/plugin-notification', () => notificationPlugin);
 vi.mock('../offline/offline-store', () => ({
   createOfflineStore: () => ({ listEvents: stored.listEvents }),
 }));
 
 const loadDevice = () => import('./reminder-device');
+
+const commandsCalled = (command: string) =>
+  android.invoke.mock.calls.filter(([called]) => called === command);
 
 const event = (
   id: number,
@@ -54,37 +89,40 @@ beforeEach(() => {
   // The module keeps its queue and store connection; start each test fresh.
   vi.resetModules();
   vi.clearAllMocks();
+  android.state.scheduled.clear();
+  android.state.taps = [];
+  android.state.onTapped = undefined;
   stored.events = [];
   stored.listEvents.mockImplementation(async () => stored.events);
+  const saved = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => saved.get(key) ?? null,
+    setItem: (key: string, value: string) => saved.set(key, value),
+  });
 });
 
 describe('syncReminders', () => {
   it('schedules each reminder for Android', async () => {
     const start = new Date(Date.now() + 2 * 3_600_000);
-    start.setMilliseconds(250);
     stored.events = [event(7, start, 30)];
     const { syncReminders } = await loadDevice();
 
     await syncReminders();
 
-    expect(plugin.sendNotification).toHaveBeenCalledTimes(1);
-    const options = plugin.sendNotification.mock.calls[0][0];
-    expect(options).toMatchObject({
+    const [[, args]] = commandsCalled('plugin:reminders|schedule');
+    const [reminder] = (args as { reminders: Record<string, unknown>[] })
+      .reminders;
+    expect(reminder).toMatchObject({
       id: 70,
-      channelId: 'reminders',
+      at: start.getTime() - 30 * 60_000,
+      start: start.getTime(),
       title: 'Event 7',
-      icon: 'ic_stat_omega',
-      autoCancel: true,
-      extra: { eventId: 7, startDate: start.toISOString() },
+      signature: expect.any(String),
     });
-    // What the plugin sends on: a whole-second time, allowed in Doze.
-    const schedule = JSON.parse(JSON.stringify(options.schedule));
-    expect(schedule.at.allowWhileIdle).toBe(true);
-    expect(schedule.at.repeating).toBe(false);
-    expect(schedule.at.date).toMatch(/T\d\d:\d\d:\d\d\.000Z$/);
-    expect(Date.parse(schedule.at.date)).toBe(
-      Math.floor((start.getTime() - 30 * 60_000) / 1000) * 1000
-    );
+    expect(JSON.parse(reminder.data as string)).toEqual({
+      eventId: 7,
+      startDate: start.toISOString(),
+    });
   });
 
   it('shares a pass between calls made before it starts', async () => {
@@ -111,7 +149,25 @@ describe('syncReminders', () => {
     await Promise.all([first, second]);
 
     expect(stored.listEvents).toHaveBeenCalledTimes(2);
-    expect(plugin.sendNotification).toHaveBeenCalledTimes(1);
+    expect(commandsCalled('plugin:reminders|schedule')).toHaveLength(1);
+  });
+
+  it("cancels the notification plugin's alarms, once", async () => {
+    stored.events = [event(7, new Date(Date.now() + 3_600_000), 15)];
+    const { syncReminders } = await loadDevice();
+
+    await syncReminders();
+    await syncReminders();
+
+    expect(notificationPlugin.cancel).toHaveBeenCalledTimes(1);
+    expect(notificationPlugin.cancel).toHaveBeenCalledWith([70]);
+    expect(notificationPlugin.cancel.mock.invocationCallOrder[0]).toBeLessThan(
+      android.invoke.mock.invocationCallOrder[
+        android.invoke.mock.calls.findIndex(
+          ([command]) => command === 'plugin:reminders|schedule'
+        )
+      ]
+    );
   });
 });
 
@@ -125,7 +181,8 @@ describe('cancelAllReminders', () => {
             resolve([event(1, new Date(Date.now() + 3_600_000), 15)]);
         })
     );
-    const { syncReminders, cancelAllReminders } = await loadDevice();
+    const { syncReminders, cancelAllReminders, countScheduledReminders } =
+      await loadDevice();
 
     const sync = syncReminders();
     await vi.waitFor(() => expect(stored.listEvents).toHaveBeenCalled());
@@ -133,42 +190,60 @@ describe('cancelAllReminders', () => {
     release();
     await Promise.all([sync, cancelled]);
 
-    expect(plugin.sendNotification).toHaveBeenCalledTimes(1);
-    expect(plugin.cancelAll.mock.invocationCallOrder[0]).toBeGreaterThan(
-      plugin.sendNotification.mock.invocationCallOrder[0]
-    );
+    expect(commandsCalled('plugin:reminders|cancel')).toEqual([
+      ['plugin:reminders|cancel', { ids: [10] }],
+    ]);
+    expect(await countScheduledReminders()).toBe(0);
   });
 
   it('still runs after a pass that failed', async () => {
+    android.state.scheduled.set(10, { id: 10, signature: 'x' });
     stored.listEvents.mockRejectedValueOnce(new Error('IndexedDB closed'));
     const { syncReminders, cancelAllReminders } = await loadDevice();
 
     await expect(syncReminders()).rejects.toThrow('IndexedDB closed');
     await cancelAllReminders();
-    expect(plugin.cancelAll).toHaveBeenCalledTimes(1);
+    expect(android.state.scheduled.size).toBe(0);
   });
 });
 
 describe('onReminderTapped', () => {
-  it("hands over a tapped reminder's event, and ignores other taps", async () => {
+  const tap = (eventId: number) =>
+    JSON.stringify({ eventId, startDate: '2026-10-24T15:00:00.000Z' });
+
+  it('hands over the tap that started the app', async () => {
+    android.state.taps = [tap(7)];
     const { onReminderTapped } = await loadDevice();
     const handler = vi.fn();
+
     await onReminderTapped(handler);
-    const tap = plugin.onAction.mock.calls[0][0] as (event: unknown) => void;
 
-    tap({ actionId: 'tap', notification: { extra: {} } });
-    tap({ actionId: 'tap', notification: null });
-    tap({
-      actionId: 'tap',
-      notification: {
-        extra: { eventId: 7, startDate: '2026-10-24T15:00:00.000Z' },
-      },
-    });
-
-    expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith({
       eventId: 7,
       startDate: '2026-10-24T15:00:00.000Z',
     });
+  });
+
+  it('hands over taps while the app runs, and ignores bad ones', async () => {
+    const { onReminderTapped } = await loadDevice();
+    const handler = vi.fn();
+    await onReminderTapped(handler);
+    expect(handler).not.toHaveBeenCalled();
+
+    for (const data of ['{"eventId":"7"}', 'not json', tap(8)]) {
+      android.state.taps.push(data);
+      android.state.onTapped?.();
+    }
+
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledTimes(1));
+    expect(handler).toHaveBeenCalledWith({
+      eventId: 8,
+      startDate: '2026-10-24T15:00:00.000Z',
+    });
+    expect(android.addPluginListener).toHaveBeenCalledWith(
+      'reminders',
+      'tapped',
+      expect.any(Function)
+    );
   });
 });

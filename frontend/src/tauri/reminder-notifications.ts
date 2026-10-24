@@ -5,7 +5,8 @@ import type { CalendarEventResponseDto } from '../api/dtos/calendar-events.dtos'
  * Event reminders as Android notifications, scheduled on the phone from the
  * events offline mode stores (specs/app-reminder-notifications.md). The
  * server still emails them. This copy needs no push service, but it only
- * knows what the last sync brought.
+ * knows what the last sync brought. The app's own Android code
+ * (ReminderAlarms.kt) sets the alarms and shows them.
  */
 
 /** How far ahead reminders are scheduled. Every pass moves the window on. */
@@ -23,11 +24,6 @@ export const MAX_SCHEDULED_REMINDERS = 200;
  */
 const MIN_LEAD_MS = 10_000;
 
-export const REMINDER_CHANNEL_ID = 'reminders';
-
-/** Status bar icon: res/drawable-*dpi/ic_stat_omega.png (npm run icons). */
-export const REMINDER_ICON = 'ic_stat_omega';
-
 /**
  * Notification ids are 32-bit. Server reminder ids are positive serials and
  * are used as they are; a reminder created offline has a negative temp id
@@ -36,20 +32,22 @@ export const REMINDER_ICON = 'ic_stat_omega';
 const TEMP_ID_BASE = 1_500_000_000;
 const TEMP_ID_SPAN = 600_000_000;
 
-/** Travels with the notification, and comes back when it's tapped. */
-export type ReminderExtra = {
+/** Comes back when the notification is tapped. */
+export type ReminderTap = {
   eventId: number;
   startDate: string;
+};
+
+export type ReminderExtra = ReminderTap & {
   /**
-   * Time and wording, to tell whether a pending notification still matches
-   * its event.
+   * Time and wording, to tell whether a scheduled reminder still matches its
+   * event.
    */
   signature: string;
 };
 
 export type PlannedReminder = {
   id: number;
-  /** Always a whole second; see planReminders. */
   at: Date;
   title: string;
   body: string;
@@ -124,11 +122,7 @@ export const planReminders = (
     const start = Date.parse(event.startDate);
     if (Number.isNaN(start)) continue;
     for (const reminder of event.reminders ?? []) {
-      // Whole seconds: the plugin passes the time to Android as text with
-      // nine decimal places, and Android reads all of them as milliseconds,
-      // so any fraction would move the reminder by hours or days.
-      const at =
-        Math.floor((start - reminder.reminderMinutes * 60_000) / 1000) * 1000;
+      const at = start - reminder.reminderMinutes * 60_000;
       const title = event.title.trim() || 'Untitled event';
       const body = describeReminder(
         reminder.reminderMinutes,
@@ -152,17 +146,12 @@ export const planReminders = (
   return { due: due.slice(0, MAX_SCHEDULED_REMINDERS), signatures };
 };
 
-/** What reconcileReminders needs from the notification plugin. */
+/** What reconcileReminders needs from the app's Android code. */
 export type ReminderScheduler = {
-  /**
-   * Scheduled notifications that haven't shown yet. On Android the app
-   * schedules nothing but reminders, so every one of them is a reminder.
-   */
-  pending: () => Promise<
-    { id: number; extra?: Record<string, unknown> | null }[]
-  >;
+  /** Scheduled reminders that haven't shown yet. */
+  pending: () => Promise<{ id: number; signature: string }[]>;
   cancel: (ids: number[]) => Promise<void>;
-  schedule: (reminder: PlannedReminder) => void;
+  schedule: (reminders: PlannedReminder[]) => Promise<void>;
 };
 
 /**
@@ -177,19 +166,16 @@ export const reconcileReminders = async (
   const pending = await scheduler.pending();
   const current = new Set(
     pending
-      .filter(notification => {
-        const signature = plan.signatures.get(notification.id);
-        return (
-          signature !== undefined && signature === notification.extra?.signature
-        );
-      })
-      .map(notification => notification.id)
+      .filter(
+        reminder => plan.signatures.get(reminder.id) === reminder.signature
+      )
+      .map(reminder => reminder.id)
   );
   const stale = pending
-    .map(notification => notification.id)
+    .map(reminder => reminder.id)
     .filter(id => !current.has(id));
   if (stale.length > 0) await scheduler.cancel(stale);
   const missing = plan.due.filter(reminder => !current.has(reminder.id));
-  missing.forEach(reminder => scheduler.schedule(reminder));
+  if (missing.length > 0) await scheduler.schedule(missing);
   return { scheduled: missing.length, cancelled: stale.length };
 };

@@ -2,13 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Reminder notifications go off on time, even when the phone is idle
-         (src/tauri/reminder-device.ts). Android 13 and later grant
-         USE_EXACT_ALARM at install; 12 and 12L grant SCHEDULE_EXACT_ALARM by
-         default. Without either, Android can deliver them minutes late. -->
+         (ReminderAlarms.kt). Android 13 and later grant USE_EXACT_ALARM at
+         install; 12 and 12L grant SCHEDULE_EXACT_ALARM by default. Without
+         either, Android can deliver them minutes late. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission
         android:name="android.permission.SCHEDULE_EXACT_ALARM"
         android:maxSdkVersion="32" />
+    <!-- A restart clears alarms; the reminders' are set again after one. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -31,6 +33,18 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".ReminderAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".ReminderBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <provider
           android:name="androidx.core.content.FileProvider"

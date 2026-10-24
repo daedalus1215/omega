@@ -138,10 +138,11 @@ the server keeps emailing them.
 - **Settings → Reminders** turns them off for this phone, counts what's
   scheduled, and asks again for notification permission after a no.
   Signing out cancels them all.
-- **Tapping one** opens the event, unless Android had closed the app; then it
-  just opens Omega.
+- **Tapping one** opens the event, whether or not the app was running.
 - **On time, even when idle:** the manifest asks for Android's exact-alarm
-  permission. The desktop app doesn't schedule reminders.
+  permission. The alarms are the app's own (`ReminderAlarms.kt`), so they're
+  set again after the phone restarts. The desktop app doesn't schedule
+  reminders.
 
 The details, and what to check on a phone, are in
 `specs/app-reminder-notifications.md`.

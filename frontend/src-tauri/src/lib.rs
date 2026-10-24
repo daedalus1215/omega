@@ -1,4 +1,5 @@
 mod config;
+mod reminders;
 #[cfg(desktop)]
 mod tray;
 
@@ -7,6 +8,7 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_http::init())
     .plugin(tauri_plugin_notification::init())
+    .plugin(reminders::init())
     .invoke_handler(tauri::generate_handler![
       config::get_api_config,
       config::save_api_config,
