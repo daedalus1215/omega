@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Reminder notifications go off on time, even when the phone is idle
+         (src/tauri/reminder-device.ts). Android 13 and later grant
+         USE_EXACT_ALARM at install; 12 and 12L grant SCHEDULE_EXACT_ALARM by
+         default. Without either, Android can deliver them minutes late. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
 
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
