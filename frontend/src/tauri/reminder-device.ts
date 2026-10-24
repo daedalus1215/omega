@@ -1,15 +1,8 @@
+import { addPluginListener, invoke } from '@tauri-apps/api/core';
 import {
-  cancelAll,
-  cancel,
-  createChannel,
-  Importance,
+  cancel as cancelPluginNotifications,
   isPermissionGranted,
-  onAction,
-  pending,
   requestPermission,
-  Schedule,
-  sendNotification,
-  Visibility,
 } from '@tauri-apps/plugin-notification';
 import {
   createOfflineStore,
@@ -18,16 +11,16 @@ import {
 import {
   planReminders,
   reconcileReminders,
-  REMINDER_CHANNEL_ID,
-  REMINDER_ICON,
-  type ReminderExtra,
+  type PlannedReminder,
+  type ReminderPlan,
   type ReminderScheduler,
+  type ReminderTap,
 } from './reminder-notifications';
 
 /**
- * The Android side of reminder notifications: the notification plugin and
- * the stored events. Imported dynamically, so Tauri's bindings stay out of
- * the web bundle.
+ * The Android side of reminder notifications: the app's reminders plugin
+ * (RemindersPlugin.kt), the notification permission, and the stored events.
+ * Imported dynamically, so Tauri's bindings stay out of the web bundle.
  */
 
 // Its own connection to offline mode's database, only ever read from. The
@@ -35,24 +28,47 @@ import {
 let store: OfflineStore | undefined;
 const storedEvents = () => (store ??= createOfflineStore()).listEvents();
 
+/** A reminder as RemindersPlugin.kt takes it (Reminder in ReminderAlarms.kt). */
+const toAndroid = ({ id, at, title, body, extra }: PlannedReminder) => {
+  const { eventId, startDate, signature } = extra;
+  const tap: ReminderTap = { eventId, startDate };
+  return {
+    id,
+    at: at.getTime(),
+    start: Date.parse(startDate),
+    title,
+    body,
+    signature,
+    data: JSON.stringify(tap),
+  };
+};
+
 const scheduler: ReminderScheduler = {
-  // Android hands back each notification's extra too; the type leaves it out.
-  pending: () =>
-    pending() as Promise<{ id: number; extra?: Record<string, unknown> }[]>,
-  cancel,
-  schedule: reminder =>
-    sendNotification({
-      id: reminder.id,
-      channelId: REMINDER_CHANNEL_ID,
-      title: reminder.title,
-      body: reminder.body,
-      icon: REMINDER_ICON,
-      autoCancel: true,
-      extra: reminder.extra,
-      // allowWhileIdle: fire on time even in Doze, with the exact alarm
-      // permission from AndroidManifest.xml.
-      schedule: Schedule.at(reminder.at, false, true),
+  pending: async () =>
+    (
+      await invoke<{ reminders: { id: number; signature: string }[] }>(
+        'plugin:reminders|list'
+      )
+    ).reminders,
+  cancel: ids => invoke('plugin:reminders|cancel', { ids }),
+  schedule: reminders =>
+    invoke('plugin:reminders|schedule', {
+      reminders: reminders.map(toAndroid),
     }),
+};
+
+/**
+ * Builds before this one scheduled reminders through the notification
+ * plugin, which loses them on a restart. Until the phone restarts, those
+ * alarms would go off alongside this build's, so they're cancelled once.
+ */
+const PLUGIN_ALARMS_CLEARED_KEY = 'omega.reminder-plugin-alarms-cleared';
+
+const clearPluginAlarms = async (plan: ReminderPlan) => {
+  if (localStorage.getItem(PLUGIN_ALARMS_CLEARED_KEY)) return;
+  const ids = [...plan.signatures.keys()];
+  if (ids.length > 0) await cancelPluginNotifications(ids);
+  localStorage.setItem(PLUGIN_ALARMS_CLEARED_KEY, 'yes');
 };
 
 // One pass at a time, in order: a cancel-all after sign-out must land after
@@ -75,26 +91,21 @@ export const syncReminders = (): Promise<void> => {
   queuedSync ??= serially(async () => {
     queuedSync = undefined;
     const plan = planReminders(await storedEvents(), Date.now());
+    await clearPluginAlarms(plan);
     await reconcileReminders(plan, scheduler);
   });
   return queuedSync;
 };
 
 /** Signed out, or reminders turned off. */
-export const cancelAllReminders = (): Promise<void> => serially(cancelAll);
+export const cancelAllReminders = (): Promise<void> =>
+  serially(async () => {
+    const ids = (await scheduler.pending()).map(reminder => reminder.id);
+    if (ids.length > 0) await scheduler.cancel(ids);
+  });
 
 export const countScheduledReminders = async (): Promise<number> =>
-  (await pending()).length;
-
-export const createReminderChannel = (): Promise<void> =>
-  createChannel({
-    id: REMINDER_CHANNEL_ID,
-    name: 'Event reminders',
-    description: 'The reminders set on your events',
-    importance: Importance.High,
-    visibility: Visibility.Private,
-    vibration: true,
-  });
+  (await scheduler.pending()).length;
 
 export const hasReminderPermission = (): Promise<boolean> =>
   isPermissionGranted();
@@ -106,21 +117,37 @@ export const hasReminderPermission = (): Promise<boolean> =>
 export const askForReminderPermission = async (): Promise<boolean> =>
   (await requestPermission()) === 'granted';
 
+const parseTap = (data: string | undefined): ReminderTap | undefined => {
+  try {
+    const tap = JSON.parse(data ?? 'null') as Partial<ReminderTap> | null;
+    return typeof tap?.eventId === 'number' && typeof tap.startDate === 'string'
+      ? { eventId: tap.eventId, startDate: tap.startDate }
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 /**
- * Calls back with a tapped reminder's event. Only while the app is running:
- * Android starting the app from the tap reports it before anything listens.
+ * Calls back with each tapped reminder's event: the one that started the
+ * app, if one did, and any tapped while it runs. Android keeps the tap until
+ * it's taken, so it waits for this to listen.
  */
-export const onReminderTapped = (
-  handler: (extra: ReminderExtra) => void
-): Promise<{ unregister: () => Promise<void> }> =>
-  onAction(event => {
-    const extra = event.notification?.extra as
-      | Partial<ReminderExtra>
-      | undefined;
-    if (
-      typeof extra?.eventId === 'number' &&
-      typeof extra.startDate === 'string'
-    ) {
-      handler(extra as ReminderExtra);
-    }
+export const onReminderTapped = async (
+  handler: (tap: ReminderTap) => void
+): Promise<{ unregister: () => Promise<void> }> => {
+  const takeTap = async () => {
+    const { data } = await invoke<{ data?: string }>(
+      'plugin:reminders|take_tap'
+    );
+    const tap = parseTap(data);
+    if (tap) handler(tap);
+  };
+  const listener = await addPluginListener('reminders', 'tapped', () => {
+    takeTap().catch(error =>
+      console.error('Could not open the tapped reminder:', error)
+    );
   });
+  await takeTap();
+  return listener;
+};
