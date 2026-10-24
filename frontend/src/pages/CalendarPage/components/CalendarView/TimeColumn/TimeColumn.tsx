@@ -2,13 +2,19 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { WbSunny, Nightlight } from '@mui/icons-material';
 import { useIsMobile } from '../../../../../hooks/useIsMobile';
+import { DayHeader } from '../DayHeader/DayHeader';
 import styles from './TimeColumn.module.css';
 
 type TimeColumnProps = {
   timeSlots: number[];
   /** Omit the top spacer row so the first hour aligns with a headerless day column (e.g. Day view). */
   hideScheduleHeaderRow?: boolean;
+  /** The top spacer row, as tall as the day headers: CalendarView measures it. */
+  headerRef?: React.Ref<HTMLDivElement>;
 };
+
+// Any day: only its header's height matters.
+const SPACER_DAY = new Date(2026, 0, 28);
 
 type FormattedHour = {
   hour: number;
@@ -38,16 +44,21 @@ const formatHour = (hour: number): FormattedHour => {
 export const TimeColumn: React.FC<TimeColumnProps> = ({
   timeSlots,
   hideScheduleHeaderRow = false,
+  headerRef,
 }) => {
   const isMobile = useIsMobile();
 
   return (
     <Box
-      className={`${styles.timeColumn} ${hideScheduleHeaderRow ? styles.timeColumnNoScheduleHeader : ''}`}
+      className={styles.timeColumn}
       role="presentation"
       aria-hidden="true"
     >
-      {!hideScheduleHeaderRow ? <Box className={styles.timeSlotHeader} /> : null}
+      {!hideScheduleHeaderRow ? (
+        <Box ref={headerRef} className={styles.timeSlotHeader}>
+          <DayHeader day={SPACER_DAY} placeholder />
+        </Box>
+      ) : null}
       {timeSlots.map(hour => {
         const { hour: displayHour, period, isDay } = formatHour(hour);
         return (

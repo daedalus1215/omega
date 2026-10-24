@@ -13,12 +13,6 @@ export const CALENDAR_CONSTANTS = {
   /** Height of each time grid unit (15 minutes) in pixels */
   SLOT_HEIGHT: 32,
   
-  /** Height of day column header on desktop */
-  HEADER_HEIGHT: 60,
-  
-  /** Height of day column header on mobile */
-  MOBILE_HEADER_HEIGHT: 55,
-  
   /** Width of each day column on desktop */
   DAY_WIDTH: 150,
   

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Box, Paper, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { useDroppable } from '@dnd-kit/core';
-import { format, isToday } from 'date-fns';
 import { EventLayoutMap } from '../../../hooks/useEventLayouts';
 import { EventCard } from './EventCard/EventCard';
+import { DayHeader } from '../DayHeader/DayHeader';
 import { CALENDAR_CONSTANTS } from '../../../constants/calendar.constants';
 import styles from './DayColumn.module.css';
 
@@ -69,18 +69,7 @@ export const DayColumn: React.FC<DayColumnProps> = ({
       data-day-id={day.toISOString()}
       className={`${styles.dayColumn} ${hideDayHeader ? styles.dayColumnNoDayHeader : ''} ${isOver ? styles.dropOver : ''}`}
     >
-      {!hideDayHeader ? (
-        <Paper
-          className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''}`}
-        >
-          <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-            {format(day, 'EEE')}
-          </Typography>
-          <Typography variant="h6" sx={{ lineHeight: 1.2, fontSize: '1.25rem' }}>
-            {format(day, 'd')}
-          </Typography>
-        </Paper>
-      ) : null}
+      {!hideDayHeader ? <DayHeader day={day} /> : null}
       <Box className={styles.dayContent}>
         {timeSlots.map(unit => (
           <Box
