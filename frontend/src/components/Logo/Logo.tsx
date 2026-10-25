@@ -1,5 +1,4 @@
 import React from 'react';
-import fullLogoSrc from '../../assets/omega-calendar-logo.png?url';
 import markLogoSrc from '../../assets/omega-mark.svg?url';
 import styles from './Logo.module.css';
 
@@ -22,15 +21,31 @@ export const Logo: React.FC<LogoProps> = ({
   className = '',
   alt = 'Omega',
 }: LogoProps) => {
-  const logoSrc = variant === 'mark' ? markLogoSrc : fullLogoSrc;
   const height = heightProp ?? defaultHeightForVariant(variant);
-  const classNames = [styles.logo, className].filter(Boolean).join(' ');
+  const cssHeight = typeof height === 'number' ? `${height}px` : height;
+  if (variant === 'mark') {
+    return (
+      <img
+        src={markLogoSrc}
+        alt={alt}
+        className={[styles.logo, className].filter(Boolean).join(' ')}
+        style={{ height: cssHeight, width: 'auto' }}
+      />
+    );
+  }
+  // The mark over the name. The name is text, so it follows the theme's
+  // text color; both parts are sized from the logo's height.
   return (
-    <img
-      src={logoSrc}
-      alt={alt}
-      className={classNames}
-      style={{ height: typeof height === 'number' ? `${height}px` : height, width: 'auto' }}
-    />
+    <span
+      role="img"
+      aria-label={alt}
+      className={[styles.logo, styles.full, className].filter(Boolean).join(' ')}
+      style={{ '--logo-height': cssHeight } as React.CSSProperties}
+    >
+      <img src={markLogoSrc} alt="" className={styles.fullMark} />
+      <span className={styles.wordmark} aria-hidden="true">
+        Omega
+      </span>
+    </span>
   );
 };
