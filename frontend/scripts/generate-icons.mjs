@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
  * Android's 108dp adaptive icon grid, where launchers show the central 72dp
  * and, whatever shape they mask it to, keep the central 66dp circle.
  * - The tile is src/assets/omega-mark.svg (<Logo variant="mark" />), the
- *   favicon, the PWA and desktop icons, and Android's pre-8.0 launcher icon.
+ *   favicon and the PWA icons, and with a margin the desktop app's icon.
  * - Android 8+ gets the page as a layer over the indigo, plus a one-tone
  *   layer for themed icons (Android 13+) and the notification icon.
  */
@@ -59,11 +59,19 @@ const silhouette = `
 const tile = (radius) =>
   `<rect x="18" y="18" width="72" height="72" rx="${radius}" fill="${INDIGO}"/>${page}`;
 
+// macOS's icon grid, the tile 824 of 1024 across, which sits well among
+// Linux launcher icons too.
+const desktopSpan = (72 * 1024) / 824;
+const desktopOrigin = 54 - desktopSpan / 2;
+const desktopViewBox = `${desktopOrigin} ${desktopOrigin} ${desktopSpan} ${desktopSpan}`;
+
 const art = {
   /** The visible 72dp, rounded like a launcher would. */
   tile: { viewBox: '18 18 72 72', body: tile(16) },
-  /** Full bleed, for icons the platform rounds itself (iOS, legacy Android). */
+  /** Full bleed, for icons the platform rounds itself (iOS). */
   squareTile: { viewBox: '18 18 72 72', body: tile(0) },
+  /** With a margin, as desktop icons have. */
+  desktop: { viewBox: desktopViewBox, body: tile(16) },
   foreground: { viewBox: '0 0 108 108', body: page },
   monochrome: { viewBox: '0 0 108 108', body: silhouette },
   /** Cropped so the page fills the status bar's 24dp, less its 2dp margin. */
@@ -100,11 +108,11 @@ for (const { name, size, artwork } of outputs) {
  * Sources for the Tauri desktop and Android app icons. `npm run icons` hands
  * app-icon.json to `tauri icon`, which cuts every size and density from the
  * images, writes the adaptive icon with its foreground, indigo background
- * and monochrome layers, and uses app-icon.png for desktop and pre-8.0
- * Android.
+ * and monochrome layers, and uses app-icon.png for the desktop app (and
+ * pre-8.0 Android).
  */
 const tauriIconSize = 1024;
-await render(art.squareTile, tauriIconSize, join(srcTauriDir, 'app-icon.png'));
+await render(art.desktop, tauriIconSize, join(srcTauriDir, 'app-icon.png'));
 await render(art.foreground, tauriIconSize, join(srcTauriDir, 'app-icon-foreground.png'));
 await render(art.monochrome, tauriIconSize, join(srcTauriDir, 'app-icon-monochrome.png'));
 writeFileSync(
