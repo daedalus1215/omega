@@ -9,3 +9,27 @@
 .logo:hover {
   transform: scale(1.05);
 }
+
+/* variant="full": the mark stacked over the name, filling --logo-height. */
+.full {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--logo-height) * 0.06);
+  width: fit-content;
+  height: var(--logo-height);
+}
+
+.fullMark {
+  display: block;
+  height: calc(var(--logo-height) * 0.68);
+  width: auto;
+}
+
+.wordmark {
+  font-size: calc(var(--logo-height) * 0.24);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
