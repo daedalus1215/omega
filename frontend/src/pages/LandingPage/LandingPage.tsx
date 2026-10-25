@@ -41,7 +41,7 @@ export const LandingPage: React.FC = () => {
             alignItems: 'center',
           }}
         >
-          <Logo height="clamp(140px, 36vmin, 210px)" />
+          <Logo variant="mark" height="clamp(104px, 28vmin, 176px)" />
         </Box>
 
         {/* Action Section */}
@@ -54,7 +54,7 @@ export const LandingPage: React.FC = () => {
             maxWidth: { xs: '100%', md: '500px' },
           }}
         >
-          <Box>
+          <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
             <Typography
               variant="h2"
               component="h1"
