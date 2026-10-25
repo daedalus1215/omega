@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Each fresh runner signs debug builds with a new key, and Android
+      # Each fresh runner would sign the APK with a new key, and Android
       # won't install an update signed with a different key without
       # uninstalling first, which wipes the app's stored calendar and queued
       # changes. So every build must use the fixed key from this secret, which
@@ -72,14 +72,17 @@ jobs:
 
       - run: cp vite.env.config.sample.ts vite.env.config.ts
 
-      # Debug-signed so it installs without a release keystore; arm64 covers
-      # current phones. The server address and Cloudflare Access token are
-      # entered in the app on first launch; the ANDROID_SERVER_URL repository
-      # variable only prefills the address. The token is never built in, since
-      # anyone who can see this repo's artifacts could download it.
+      # A release build: optimized, and not debuggable, so nothing over USB
+      # (run-as, the WebView inspector) can read the token the app stores.
+      # Signed with the fixed key all the same (app/build.gradle.kts), so it
+      # installs without a store keystore; arm64 covers current phones. The
+      # server address and Cloudflare Access token are entered in the app on
+      # first launch; the ANDROID_SERVER_URL repository variable only prefills
+      # the address. The token is never built in, since anyone who can see
+      # this repo's artifacts could download it.
       - run: |
           export NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
-          npx tauri android build --debug --apk --target aarch64
+          npx tauri android build --apk --target aarch64
         env:
           VITE_DEFAULT_SERVER_URL: ${{ vars.ANDROID_SERVER_URL }}
 
@@ -96,7 +99,7 @@ jobs:
             echo "::error::Couldn't read the fixed key's fingerprint or find apksigner."
             exit 1
           fi
-          for apk in src-tauri/gen/android/app/build/outputs/apk/*/debug/*.apk; do
+          for apk in src-tauri/gen/android/app/build/outputs/apk/*/release/*.apk; do
             if ! "$apksigner" verify --print-certs "$apk" | grep -q "SHA-256 digest: $expected"; then
               echo "::error::$apk isn't signed with the fixed debug key."
               exit 1
@@ -105,6 +108,6 @@ jobs:
 
       - uses: actions/upload-artifact@v5
         with:
-          name: omega-android-debug-apk
+          name: omega-android-apk
           path: frontend/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
