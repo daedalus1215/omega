@@ -53,12 +53,12 @@ cd frontend
 npm run desktop:dev     # desktop app against the Vite dev server
 npm run desktop:build   # release build: src-tauri/target/release/omega-desktop,
                         # plus .deb, .rpm and AppImage bundles
+npm run desktop:install # release build, installed for your user (Linux)
 npm run icons           # redraw the web, desktop and Android icons
 ```
 
 Linux builds need WebKitGTK and friends (`libwebkit2gtk-4.1-dev`,
-`librsvg2-dev`; on Arch, `webkit2gtk-4.1`). To install the release build for
-your user, copy `src-tauri/target/release/omega-desktop` to `~/.local/bin/`.
+`librsvg2-dev`; on Arch, see [Installing on Linux](#installing-on-linux)).
 All builds (debug, release, AppImage) share one data directory
 (`~/.local/share/com.omega.app.desktop`), so don't run two at once.
 
@@ -83,6 +83,26 @@ to GitHub can download this repo's CI artifacts. To make one, create a service
 token in Cloudflare Zero Trust, then add a policy to Omega's Access application
 with the **Service Auth** action that includes it. Leave both token fields blank
 for a server Access doesn't protect, such as a dev server on plain HTTP.
+
+#### Installing on Linux
+
+On Arch (elsewhere, the packages above instead):
+
+```bash
+sudo pacman -S --needed base-devel webkit2gtk-4.1 librsvg libayatana-appindicator rustup
+rustup default stable                             # Rust 1.90 or later
+cd frontend
+cp vite.env.config.sample.ts vite.env.config.ts   # if you haven't already
+npm install
+npm run desktop:install
+```
+
+This builds the release app and installs it for your user, without root: the
+binary in `~/.local/bin/omega-desktop`, and Omega, with its icon, in the app
+launcher. On first launch it asks for the server address and the Access
+service token, as above. To update, pull and run `npm run desktop:install`
+again. `npm run desktop:uninstall` removes the app but not its settings
+(`~/.config/com.omega.app.desktop`) or data (`~/.local/share/com.omega.app.desktop`).
 
 ### Offline mode
 
