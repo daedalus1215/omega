@@ -66,7 +66,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister }) => {
               mb: 1,
             }}
           >
-            <Logo height="clamp(104px, 38vmin, 168px)" />
+            <Logo height="clamp(72px, 26vmin, 116px)" />
             <Typography variant="h4" component="h1" fontWeight={600}>
               Register
             </Typography>
