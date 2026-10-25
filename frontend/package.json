@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "icons": "node scripts/generate-icons.mjs && tauri icon src-tauri/app-icon.png",
+    "icons": "node scripts/generate-icons.mjs && tauri icon src-tauri/app-icon.json",
     "build": "tsc && vite build",
     "build:tauri": "tsc && vite build --mode tauri",
     "test": "vitest run",

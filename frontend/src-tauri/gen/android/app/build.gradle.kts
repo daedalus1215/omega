@@ -53,6 +53,9 @@ android {
             }
         }
         getByName("release") {
+            // Sideloaded, so signed like the debug build rather than with a
+            // store key: the fixed CI key, or the usual debug key elsewhere.
+            signingConfig = signingConfigs.getByName("debug")
             optimization {
                enable = true
             }
