@@ -62,9 +62,12 @@ your user, copy `src-tauri/target/release/omega-desktop` to `~/.local/bin/`.
 All builds (debug, release, AppImage) share one data directory
 (`~/.local/share/com.omega.app.desktop`), so don't run two at once.
 
-CI (`.github/workflows/tauri-android-build.yml`) builds a debug APK (arm64) on
-every frontend change; download the `omega-android-debug-apk` artifact and
-install it with `adb install -r`. `desktop-build.yml` builds Linux and macOS
+CI (`.github/workflows/tauri-android-build.yml`) builds a release APK (arm64) on
+every frontend change; download the `omega-android-apk` artifact and
+install it with `adb install -r`. Being a release build, nothing connected over
+USB can read what the app stores (`run-as`, the WebView inspector). Local
+`tauri android dev` builds are `com.omega.app.debug` and install alongside the
+release app (`com.omega.app`). `desktop-build.yml` builds Linux and macOS
 bundles when run by hand. The `ANDROID_SERVER_URL` repository variable
 prefills the address on the first-launch screen.
 
