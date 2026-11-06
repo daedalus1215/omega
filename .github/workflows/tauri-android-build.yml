@@ -1,10 +1,8 @@
 name: Android (Tauri) build
 
+# Manual only (Actions → Run workflow, on any branch), so the APK is built only
+# when one is wanted rather than on every push and pull request.
 on:
-  push:
-    paths: ['frontend/**', '.github/workflows/tauri-android-build.yml']
-  pull_request:
-    paths: ['frontend/**', '.github/workflows/tauri-android-build.yml']
   workflow_dispatch:
 
 # A newer run on the same branch makes a running build moot; cancel it so it
