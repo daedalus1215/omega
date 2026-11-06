@@ -62,9 +62,9 @@ Linux builds need WebKitGTK and friends (`libwebkit2gtk-4.1-dev`,
 All builds (debug, release, AppImage) share one data directory
 (`~/.local/share/com.omega.app.desktop`), so don't run two at once.
 
-CI (`.github/workflows/tauri-android-build.yml`) builds a release APK (arm64) on
-every frontend change; download the `omega-android-apk` artifact and
-install it with `adb install -r`. Being a release build, nothing connected over
+CI (`.github/workflows/tauri-android-build.yml`) builds a release APK (arm64)
+when you run it by hand (Actions → Run workflow, on any branch); download the
+`omega-android-apk` artifact and install it with `adb install -r`. Being a release build, nothing connected over
 USB can read what the app stores (`run-as`, the WebView inspector). Local
 `tauri android dev` builds are `com.omega.app.debug` and install alongside the
 release app (`com.omega.app`). `desktop-build.yml` builds Linux and macOS
