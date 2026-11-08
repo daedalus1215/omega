@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateCalendarTransactionScript } from '../transaction-scripts/create-calendar-TS/create-calendar.transaction.script';
 import { CreateCalendarCommand } from '../transaction-scripts/create-calendar-TS/create-calendar.command';
 import { FetchCalendarsTransactionScript } from '../transaction-scripts/fetch-calendars-TS/fetch-calendars.transaction.script';
-import { CalendarWithRole } from '../transaction-scripts/fetch-calendars-TS/calendar-with-role.type';
+import { CalendarWithRole } from '../transaction-scripts/fetch-calendars-TS/calendar-with-role.projection';
 import { UpdateCalendarTransactionScript } from '../transaction-scripts/update-calendar-TS/update-calendar.transaction.script';
 import { UpdateCalendarCommand } from '../transaction-scripts/update-calendar-TS/update-calendar.command';
 import { DeleteCalendarTransactionScript } from '../transaction-scripts/delete-calendar-TS/delete-calendar.transaction.script';

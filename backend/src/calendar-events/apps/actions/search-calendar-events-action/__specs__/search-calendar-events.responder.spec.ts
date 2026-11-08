@@ -3,7 +3,7 @@ import {
   CalendarEventSearchResult,
   OneTimeEventSearchResult,
   RecurringSeriesSearchResult,
-} from '../../../../domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.result';
+} from '../../../../domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.projection';
 import { RecurringEvent } from '../../../../domain/entities/recurring-event.entity';
 
 describe('SearchCalendarEventsResponder', () => {

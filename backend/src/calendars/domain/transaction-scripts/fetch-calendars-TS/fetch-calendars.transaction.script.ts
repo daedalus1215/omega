@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CalendarRepository } from '../../../infra/repositories/calendar.repository';
 import { CalendarMemberRepository } from '../../../infra/repositories/calendar-member.repository';
-import { CalendarWithRole } from './calendar-with-role.type';
+import { CalendarWithRole } from './calendar-with-role.projection';
 
 /**
  * Transaction script for listing the calendars a user can access,
