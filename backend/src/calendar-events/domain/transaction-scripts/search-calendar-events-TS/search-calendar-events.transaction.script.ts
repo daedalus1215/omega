@@ -11,7 +11,7 @@ import {
   CalendarEventSearchResult,
   OneTimeEventSearchResult,
   RecurringSeriesSearchResult,
-} from './search-calendar-events.result';
+} from './search-calendar-events.projection';
 import { generateInstanceDates } from '../../utils/rrule-pattern.utils';
 import { startOfDayUTC } from '../../utils/date-utc.utils';
 

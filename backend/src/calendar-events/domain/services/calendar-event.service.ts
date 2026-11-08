@@ -25,7 +25,7 @@ import { FetchEventRemindersTransactionScript } from '../transaction-scripts/fet
 import { FetchEventRemindersCommand } from '../transaction-scripts/fetch-event-reminders-TS/fetch-event-reminders.command';
 import { SearchCalendarEventsTransactionScript } from '../transaction-scripts/search-calendar-events-TS/search-calendar-events.transaction.script';
 import { SearchCalendarEventsCommand } from '../transaction-scripts/search-calendar-events-TS/search-calendar-events.command';
-import { CalendarEventSearchResult } from '../transaction-scripts/search-calendar-events-TS/search-calendar-events.result';
+import { CalendarEventSearchResult } from '../transaction-scripts/search-calendar-events-TS/search-calendar-events.projection';
 import { CalendarEvent } from '../entities/calendar-event.entity';
 import { EventReminder } from '../entities/event-reminder.entity';
 import { CalendarEventRepository } from '../../infra/repositories/calendar-event.repository';

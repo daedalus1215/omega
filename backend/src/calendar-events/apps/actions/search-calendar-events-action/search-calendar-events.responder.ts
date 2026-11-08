@@ -4,7 +4,7 @@ import {
   RecurringSeriesSearchResultDto,
   SearchCalendarEventsResultDto,
 } from '../../dtos/responses/search-calendar-events.response.dto';
-import { CalendarEventSearchResult } from '../../../domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.result';
+import { CalendarEventSearchResult } from '../../../domain/transaction-scripts/search-calendar-events-TS/search-calendar-events.projection';
 
 /**
  * Responder for the search-calendar-events action.
