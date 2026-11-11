@@ -30,6 +30,7 @@ import {
   DEFAULT_EVENT_COLOR_KEY,
   EVENT_COLORS,
 } from '../../constants/calendar.constants';
+import { shiftEventEnd } from '../../utils/shift-event-end.utils';
 
 type CreateEventModalProps = {
   isOpen: boolean;
@@ -331,21 +332,29 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               type="datetime-local"
               value={formData.startDate}
               onChange={e => {
-                setFormData({ ...formData, startDate: e.target.value });
+                const startDate = e.target.value;
+                // The end follows the start, so the event keeps its length
+                const endDate = shiftEventEnd({
+                  previousStart: formData.startDate,
+                  previousEnd: formData.endDate,
+                  nextStart: startDate,
+                  fallbackDurationMinutes: defaultDurationMinutes,
+                });
+                setFormData({ ...formData, startDate, endDate });
                 if (validationErrors.startDate) {
-                  setValidationErrors({
-                    ...validationErrors,
+                  setValidationErrors(prev => ({
+                    ...prev,
                     startDate: undefined,
-                  });
+                  }));
                 }
-                if (validationErrors.endDate && formData.endDate) {
-                  const start = new Date(e.target.value);
-                  const end = new Date(formData.endDate);
+                if (validationErrors.endDate && endDate) {
+                  const start = new Date(startDate);
+                  const end = new Date(endDate);
                   if (start < end) {
-                    setValidationErrors({
-                      ...validationErrors,
+                    setValidationErrors(prev => ({
+                      ...prev,
                       endDate: undefined,
-                    });
+                    }));
                   }
                 }
               }}
