@@ -7,6 +7,7 @@ import {
   ValidationErrors,
   isFormValid,
 } from '../utils/event-form-validation.utils';
+import { shiftEventEnd } from '../utils/shift-event-end.utils';
 
 type UseEventFormOptions = {
   event: CalendarEventResponseDto | undefined;
@@ -56,20 +57,27 @@ export const useEventForm = ({
 
   const updateField = useCallback(
     (field: keyof UpdateCalendarEventRequest, value: string) => {
-      setFormData(prev => ({ ...prev, [field]: value }));
       if (validationErrors[field as keyof ValidationErrors]) {
         setValidationErrors(prev => ({
           ...prev,
           [field]: undefined,
         }));
       }
-      if (
-        field === 'startDate' &&
-        validationErrors.endDate &&
-        formData.endDate
-      ) {
+      if (field !== 'startDate') {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        return;
+      }
+
+      // The end follows the start, so the event keeps its length
+      const endDate = shiftEventEnd({
+        previousStart: formData.startDate,
+        previousEnd: formData.endDate,
+        nextStart: value,
+      });
+      setFormData(prev => ({ ...prev, startDate: value, endDate }));
+      if (validationErrors.endDate && endDate) {
         const start = new Date(value);
-        const end = new Date(formData.endDate);
+        const end = new Date(endDate);
         if (start < end) {
           setValidationErrors(prev => ({
             ...prev,
@@ -78,7 +86,7 @@ export const useEventForm = ({
         }
       }
     },
-    [validationErrors, formData.endDate]
+    [validationErrors, formData.startDate, formData.endDate]
   );
 
   const resetForm = useCallback(() => {
