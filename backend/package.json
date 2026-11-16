@@ -7,11 +7,17 @@
   "license": "UNLICENSED",
   "overrides": {
     "file-type": ">=21.3.1",
-    "minimatch": ">=9.0.7",
+    "minimatch": ">=11.0.8",
     "tar": ">=7.5.11",
-    "multer": "^2.2.0",
+    "multer": "^2.5.0",
     "js-yaml": "^4.2.0",
-    "@tootallnate/once": "^2.0.1"
+    "@tootallnate/once": "^2.0.1",
+    "typeorm": {
+      "glob": "^14.0.6"
+    },
+    "@nestjs/cli": {
+      "glob": "^14.0.6"
+    }
   },
   "scripts": {
     "build": "nest build",
@@ -55,9 +61,9 @@
     "class-validator": "^0.14.1",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
-    "joi": "^17.13.3",
+    "joi": "^17.13.9",
     "nestjs-pino": "^4.5.0",
-    "nodemailer": "^9.0.1",
+    "nodemailer": "^10.6.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.13.1",
     "pino-http": "^11.0.0",
